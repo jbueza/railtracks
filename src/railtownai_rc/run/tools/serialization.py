@@ -4,11 +4,11 @@ from typing import List
 
 import pickle
 
-from src.systems.request_completion.state.context.context import BaseContext
-from src.systems.request_completion.state.tools.profiling import Stamp
+from ...context import BaseContext
+from .profiling import Stamp
 
-from src.systems.request_completion.state.track.node_heap import NodeHeap
-from src.systems.request_completion.state.track.request_heap import RequestHeap
+from ..state.node import NodeHeap
+from ..state.request import RequestHeap
 
 FILENAME_TEMPLATE = "data/c3-runs/{0}.pickle"
 

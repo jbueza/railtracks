@@ -7,11 +7,11 @@ from functools import reduce
 from typing import Optional, Dict, List, Tuple, Iterable, Set, FrozenSet, Any
 
 
-from src.systems.request_completion.state.track.heap import (
+from .forest import (
     Heap,
     AbstractLinkedObject,
 )
-from src.systems.request_completion.state.tools.profiling import Stamp
+from ..tools.profiling import Stamp
 
 
 @dataclass(frozen=True)

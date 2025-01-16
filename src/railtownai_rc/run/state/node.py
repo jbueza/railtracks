@@ -8,12 +8,12 @@ from dataclasses import dataclass
 from typing import Optional, Iterable
 
 
-from src.systems.request_completion.state.track.heap import (
+from .forest import (
     AbstractLinkedObject,
     Heap,
 )
-from src.systems.request_completion.state.tools.profiling import Stamp
-from src.systems.request_completion.nodes.nodes import (
+from ..tools.profiling import Stamp
+from ...nodes import (
     Node,
 )
 

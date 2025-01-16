@@ -1,4 +1,5 @@
-from typing import TypeVar
+import inspect
+from typing import TypeVar, Generic, Callable
 
 from ..nodes import Node
 
