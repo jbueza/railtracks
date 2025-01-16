@@ -9,3 +9,7 @@ dist
 package-lock.json
 package.json
 test-results.xml
+
+# jupyter notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
