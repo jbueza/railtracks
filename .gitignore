@@ -1,0 +1,11 @@
+.env
+.idea
+.tox
+.venv
+.vscode
+__pycache__
+.prettierrc
+dist
+package-lock.json
+package.json
+test-results.xml

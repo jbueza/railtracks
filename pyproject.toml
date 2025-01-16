@@ -1,0 +1,40 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+
+[project]
+name = "railtownai_rc"
+authors = [
+    { name = "Logan Underwood", email = "logan@railtown.ai" },
+    { name = "Levi Varsanyi", email = "levi@railtownn.ai" },
+    { name = "Jaime Bueza", email = "jaime@railtown.ai" },
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = ["License :: OSI Approved :: MIT License"]
+dynamic = ["version", "description"]
+dependencies = [
+    "requests >=2.31,<3",
+    "pydantic >= 2.5.3,<3",
+    "requests-mock >= 1.12.1",
+    "python-dotenv == 1.0.0",
+]
+
+[project.urls]
+Home = "https://railtown.ai"
+
+
+[tool.flit.module]
+name = "railtownai_rc"
+
+[tool.black]
+line-length = 120
+fast = true
+
+[project.optional-dependencies]
+test = ["pytest >=7.1.2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
