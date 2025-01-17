@@ -12,16 +12,13 @@ from typing import TypeVar, Generator, List, Callable, Tuple
 from ..config import ExecutorConfig
 from ...exceptions import (
     NodeException,
-ResetException,
-FatalException,
-CompletionException,
-MalformedFunctionException,
+    ResetException,
+    FatalException,
+    CompletionException,
+    MalformedFunctionException,
 )
 
-from ...nodes import (
-    Node,
-NodeOutput
-)
+from ...nodes import Node, NodeOutput
 
 
 from ...context import BaseContext
@@ -40,7 +37,6 @@ import logging
 
 _TContext = TypeVar("_TContext", bound=BaseContext)
 _TOutput = TypeVar("_TOutput")
-
 
 
 class RCState:
@@ -124,9 +120,7 @@ class RCState:
         self.execute(start_node)
 
     def execute(self, start_node: Node):
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.executor_config.workers
-        ) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.executor_config.workers) as executor:
             # we insert the details in the start node and all the nodes it creates will automically insert the details.
 
             # TODO come up with algorithm to determine the start point.
@@ -138,9 +132,7 @@ class RCState:
                 # before exit we must update the state objects one last time
                 # this is a special case becuase in all other situations we call `_run_requests` and it handles the
                 # updating of the state objects.
-                stamp = self._stamper.create_stamp(
-                    f"Finished executing {start_node.pretty_name()}"
-                )
+                stamp = self._stamper.create_stamp(f"Finished executing {start_node.pretty_name()}")
                 self.logger.info(f"Finished running {start_node.pretty_name()}")
                 self._request_heap.update("START", output, stamp)
                 self._node_heap.update(start_node, stamp)
@@ -166,15 +158,11 @@ class RCState:
                 self.execute(next_node)
 
             finally:
-                self.logger.info(
-                    f"Shutting down executor with {len(executor._threads)} active threads"
-                )
+                self.logger.info(f"Shutting down executor with {len(executor._threads)} active threads")
 
                 th = threading.Thread(
                     target=lambda: (
-                        self._data_streamer.stop(
-                            force=self.executor_config.force_close_streams
-                        ),
+                        self._data_streamer.stop(force=self.executor_config.force_close_streams),
                         executor.shutdown(wait=True, cancel_futures=True),
                     )
                 )
@@ -208,20 +196,14 @@ class RCState:
             #  is not pickleable.
             node.fill_details(
                 context=self._context,
-                invoke_node=lambda parent_node, new_nodes: self.call_nodes(
-                    parent_node, new_nodes, executor
-                ),
+                invoke_node=lambda parent_node, new_nodes: self.call_nodes(parent_node, new_nodes, executor),
                 data_streamer=self._data_streamer.publish,
             )
-            assert (
-                node.is_filled
-            ), "any node run should be filled with backend details. "
+            assert node.is_filled, "any node run should be filled with backend details. "
             return node.invoke()
 
         except NodeException as e:
-            parent_request_id = self._request_heap.get_request_from_child_id(
-                node.uuid
-            ).identifier
+            parent_request_id = self._request_heap.get_request_from_child_id(node.uuid).identifier
             # if the error was a completion protocol this function will return a value which you should treat as a completed node
             return self._handle_failed_request(parent_request_id, e)
         except ScorchedEarthException as e:
@@ -255,9 +237,7 @@ class RCState:
 
         """
         stamp_gen = self._stamper.stamp_creator()
-        request_ids = self._create_new_request_set(
-            parent_node, nodes, stamp_gen, executor
-        )
+        request_ids = self._create_new_request_set(parent_node, nodes, stamp_gen, executor)
 
         outputs = self._run_requests(request_ids, nodes, executor)
         return outputs
@@ -283,9 +263,7 @@ class RCState:
 
         # 1. interface with the request heap to kill all the requests that we needed to kill
         try:
-            all_requests, updated_stamp, fresh_request_id = (
-                self._request_heap.revert_heap(failed_request_id)
-            )
+            all_requests, updated_stamp, fresh_request_id = self._request_heap.revert_heap(failed_request_id)
         except DeadRequestException:
             # the request we tried to fail has already been failed
             return
@@ -328,9 +306,7 @@ class RCState:
                     message=f"Expected all children to be of type {Node} but got {type(n)}",
                 )
         for child in children:
-            self.logger.info(
-                f"Creating request between {parent_node.pretty_name()} and {child.pretty_name()}"
-            )
+            self.logger.info(f"Creating request between {parent_node.pretty_name()} and {child.pretty_name()}")
         request_ids = list(
             executor.map(
                 self._request_heap.create,
@@ -338,9 +314,7 @@ class RCState:
                 [parent_node.uuid] * len(children),
                 [n.uuid for n in children],
                 [
-                    stamp_gen(
-                        f"Adding request between {parent_node.pretty_name()} and {n.pretty_name()}"
-                    )
+                    stamp_gen(f"Adding request between {parent_node.pretty_name()} and {n.pretty_name()}")
                     for n in children
                 ],
             )
@@ -380,17 +354,14 @@ class RCState:
         # note this function does not do any error handling. All errors will be handled in the `_run_node` function.
         results = []
         futures = {
-            executor.submit(self._run_node, node, executor): (node, r_id)
-            for node, r_id in zip(nodes, request_ids)
+            executor.submit(self._run_node, node, executor): (node, r_id) for node, r_id in zip(nodes, request_ids)
         }
         for future in concurrent.futures.as_completed(futures.keys()):
             node, request_id = futures[future]
 
             output = future.result()
 
-            stamp = self._stamper.create_stamp(
-                f"Finished executing {node.pretty_name()}"
-            )
+            stamp = self._stamper.create_stamp(f"Finished executing {node.pretty_name()}")
             self.logger.info(f"Finished running {node.pretty_name()}")
 
             self._request_heap.update(request_id, output, stamp)
@@ -445,15 +416,11 @@ class RCState:
             )
 
         if len(self.exception_history) >= self.executor_config.global_num_retries:
-            self.logger.critical(
-                f"Encountered our {len(self.exception_history)} exception: {exception}"
-            )
+            self.logger.critical(f"Encountered our {len(self.exception_history)} exception: {exception}")
             raise ExecutionException(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
-                final_exception=GlobalRetriesExceeded(
-                    self.executor_config.global_num_retries
-                ),
+                final_exception=GlobalRetriesExceeded(self.executor_config.global_num_retries),
             )
 
         # now lets check if there is completion protocol
@@ -473,9 +440,7 @@ class RCState:
             )
 
         if isinstance(exception, ResetException):
-            self.logger.error(
-                f"Non fatal exception encountered (completing scorched earth protocol): {exception}"
-            )
+            self.logger.error(f"Non fatal exception encountered (completing scorched earth protocol): {exception}")
             # Now we can raise the special ScorchedEarthException so it can be handled properly.
             raise ScorchedEarthException(request_id, exception)
 
@@ -494,6 +459,7 @@ class RCState:
             exception_history=list(self.exception_history),
             executor_config=self.executor_config,
         )
+
 
 class ScorchedEarthException(Exception):
     """
@@ -527,9 +493,7 @@ class GlobalRetriesExceeded(Exception):
     """A general exception to be thrown when the number of global retries has been exceeded during execution."""
 
     def __init__(self, global_retries: int):
-        super().__init__(
-            f"Execution timed out after {global_retries} retries were tried."
-        )
+        super().__init__(f"Execution timed out after {global_retries} retries were tried.")
 
 
 class ExecutionException(Exception):

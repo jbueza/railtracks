@@ -14,6 +14,7 @@ from ..run.state.request import RequestTemplate
 
 _TOutput = TypeVar("_TOutput")
 
+
 class NodeException(Exception):
     """
     An internal exception designed to be thrown in the inside of a node. The many subtypes of this node are the one
@@ -146,6 +147,3 @@ class MalformedFunctionException(Exception):
             source_file = "Unknown"
 
         return f"({name} in {source_file} at line {line_number})\n{source_code}"
-
-
-

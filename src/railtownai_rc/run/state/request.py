@@ -88,9 +88,7 @@ class RequestTemplate(AbstractLinkedObject):
         return [x for x in requests if x.sink_id == sink_id]
 
     @classmethod
-    def all_downstream(
-        cls, requests: Iterable[RequestTemplate], source_id: Optional[str]
-    ):
+    def all_downstream(cls, requests: Iterable[RequestTemplate], source_id: Optional[str]):
         """
         Collects all the downstream requests from the provided source_id.
         """
@@ -109,9 +107,7 @@ class RequestTemplate(AbstractLinkedObject):
         Open Tail: is defined as any node which currently holds an open request and does not have any open ones beneath
         it.
         """
-        open_downstream_requests = [
-            x for x in cls.downstream(requests, source_id) if not x.closed
-        ]
+        open_downstream_requests = [x for x in cls.downstream(requests, source_id) if not x.closed]
 
         # BASE CASE
         if len(open_downstream_requests) == 0:
@@ -129,9 +125,7 @@ class RequestTemplate(AbstractLinkedObject):
         )
 
     @classmethod
-    def children_complete(
-        cls, requests: Iterable[RequestTemplate], source_node_id: str
-    ):
+    def children_complete(cls, requests: Iterable[RequestTemplate], source_node_id: str):
         """
         Checks if all the downstream requests of a given parent node are complete. If so returns True.
          Otherwise, returns False.
@@ -154,18 +148,12 @@ class RequestForest(Forest[RequestTemplate]):
     def __getitem__(self, item):
         with self._lock:
             if item in self._dead_children:
-                warnings.warn(
-                    "You are attempting to access a request that has been reverted."
-                )
-                raise DeadRequestException(
-                    "You are attempting to access a request that has been reverted."
-                )
+                warnings.warn("You are attempting to access a request that has been reverted.")
+                raise DeadRequestException("You are attempting to access a request that has been reverted.")
             try:
                 return self._heap[item]
             except KeyError:
-                print(
-                    f"failed to collect a request {item in [x.identifier for x in self._full_data]}"
-                )
+                print(f"failed to collect a request {item in [x.identifier for x in self._full_data]}")
                 raise
 
     def failure_tree(self, at_step: int | None = None):
@@ -229,9 +217,7 @@ class RequestForest(Forest[RequestTemplate]):
                 warnings.warn(
                     "You are attempting to revert a request that has already been reverted. This is ok, but nothing will be reverted."
                 )
-                raise DeadRequestException(
-                    "You are attempting to revert a request that has already been reverted."
-                )
+                raise DeadRequestException("You are attempting to revert a request that has already been reverted.")
 
             try:
                 source_id = self._heap[request_id].source_id
@@ -239,9 +225,7 @@ class RequestForest(Forest[RequestTemplate]):
                 assert False
 
             # we need to return the request where the source_id is the sink_id to its previous state.
-            upstream_request_list = RequestTemplate.upstream(
-                self._heap.values(), source_id
-            )
+            upstream_request_list = RequestTemplate.upstream(self._heap.values(), source_id)
 
             # if the failed request is the start request it will need to be handled on a special case basis
             if len(upstream_request_list) == 0:
@@ -250,18 +234,14 @@ class RequestForest(Forest[RequestTemplate]):
             elif len(upstream_request_list) == 1:
                 upstream_request = upstream_request_list[0]
 
-                all_children = RequestTemplate.all_downstream(
-                    self._heap.values(), source_id
-                )
+                all_children = RequestTemplate.all_downstream(self._heap.values(), source_id)
             else:
                 assert False, "There should never be more than 1 upstream request"
 
             # note the upstream request contains the stamp we care about
             # it is assumed that the upstream request is at the state when the request was completed
             new_upstream_request = upstream_request
-            assert (
-                new_upstream_request is not None
-            ), f"Fix this bug here {upstream_request}"
+            assert new_upstream_request is not None, f"Fix this bug here {upstream_request}"
             for child in all_children:
                 assert (
                     child.stamp.step > new_upstream_request.stamp.step
@@ -286,9 +266,7 @@ class RequestForest(Forest[RequestTemplate]):
                 upstream_request.identifier,
             )
 
-    def create(
-        self, identifier: str, source_id: Optional[str], sink_id: str, stamp: Stamp
-    ):
+    def create(self, identifier: str, source_id: Optional[str], sink_id: str, stamp: Stamp):
         """
         Creates a new instance of a request from the provided details and places it into the heap.
 
@@ -350,9 +328,7 @@ class RequestForest(Forest[RequestTemplate]):
 
             # one cannot update a request that does not exist
             if old_request is None:
-                raise RequestDoesNotExistException(
-                    f"Request with identifier {identifier} does not exist in the heap."
-                )
+                raise RequestDoesNotExistException(f"Request with identifier {identifier} does not exist in the heap.")
 
             linked_request = RequestTemplate(
                 identifier=identifier,
@@ -365,9 +341,7 @@ class RequestForest(Forest[RequestTemplate]):
             self._update_heap(linked_request)
 
     @classmethod
-    def generate_graph(
-        cls, heap: Dict[str, RequestTemplate]
-    ) -> Dict[str, List[Tuple[str, str]]]:
+    def generate_graph(cls, heap: Dict[str, RequestTemplate]) -> Dict[str, List[Tuple[str, str]]]:
         """
         Generates a dictionary representation containg the edges in the graph. The key of the dictionary is the source
         and the value is a list of tuples where the first element is the sink_id and the second element is the request\
@@ -391,9 +365,7 @@ class RequestForest(Forest[RequestTemplate]):
             if request_temp.sink_id not in graph:
                 graph[request_temp.sink_id] = []
 
-            graph[request_temp.source_id].append(
-                (request_temp.sink_id, request_temp.identifier)
-            )
+            graph[request_temp.source_id].append((request_temp.sink_id, request_temp.identifier))
 
         return graph
 
@@ -401,12 +373,8 @@ class RequestForest(Forest[RequestTemplate]):
         with self._lock:
             upstreams = RequestTemplate.upstream(list(self._heap.values()), child_id)
             if len(upstreams) == 0:
-                raise RequestDoesNotExistException(
-                    f"Request with child id {child_id} does not exist in the heap."
-                )
-            assert (
-                len(upstreams) == 1
-            ), f"Expected 1 upstream request, instead got {len(upstreams)}"
+                raise RequestDoesNotExistException(f"Request with child id {child_id} does not exist in the heap.")
+            assert len(upstreams) == 1, f"Expected 1 upstream request, instead got {len(upstreams)}"
             return upstreams[0]
 
     def open_tails(self):
@@ -434,24 +402,16 @@ class RequestForest(Forest[RequestTemplate]):
         """
 
         with self._lock:
-            if RequestTemplate.children_complete(
-                list(self._heap.values()), parent_node_id
-            ):
-                upstreams = RequestTemplate.upstream(
-                    list(self._heap.values()), parent_node_id
-                )
-                assert (
-                    len(upstreams) == 1
-                ), f"Expected 1 upstream request, instead got {len(upstreams)}"
+            if RequestTemplate.children_complete(list(self._heap.values()), parent_node_id):
+                upstreams = RequestTemplate.upstream(list(self._heap.values()), parent_node_id)
+                assert len(upstreams) == 1, f"Expected 1 upstream request, instead got {len(upstreams)}"
                 return upstreams[0].identifier
             return None
 
     @property
     def insertion_request(self):
         insertions = [v for v in self._heap.values() if v.source_id is None]
-        assert (
-            len(insertions) == 1
-        ), f"Expected 1 insertion request, instead got {len(insertions)}"
+        assert len(insertions) == 1, f"Expected 1 insertion request, instead got {len(insertions)}"
         return insertions[0]
 
     @property

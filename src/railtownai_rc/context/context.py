@@ -25,7 +25,6 @@ class BaseContext(BaseModel):
         return self
 
 
-
     @classmethod
     def from_dict(cls, json_data: dict):
         """

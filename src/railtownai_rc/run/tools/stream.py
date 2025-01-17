@@ -52,9 +52,7 @@ class DataStream(Generic[T]):
         self._subscribers = subscribers if subscribers is not None else []
 
         # Each sub will have its own queue to maintain ordering of the handling.
-        self._queues: Dict[Subscriber, queue.Queue] = {
-            subscriber: queue.Queue() for subscriber in self._subscribers
-        }
+        self._queues: Dict[Subscriber, queue.Queue] = {subscriber: queue.Queue() for subscriber in self._subscribers}
         # default to running.
         self._running = True
 
@@ -95,9 +93,7 @@ class DataStream(Generic[T]):
                     subscriber.handle(item)
                 except Exception as err:
                     # we need to handle every error so a simple error does not prevent future data from being handled.
-                    warnings.warn(
-                        f"Subscriber {subscriber} failed to handle {item} with error {err}"
-                    )
+                    warnings.warn(f"Subscriber {subscriber} failed to handle {item} with error {err}")
             except queue.Empty:
                 continue
 
@@ -123,9 +119,7 @@ class DataStream(Generic[T]):
         self._executor.shutdown(wait=not force)
         if not force:
             while self.is_unhandled:
-                time.sleep(
-                    0.05
-                )  # we want to debounce this a bit because it could be locking for repetitive access to
+                time.sleep(0.05)  # we want to debounce this a bit because it could be locking for repetitive access to
                 # thread safe type.
 
         self._running = False

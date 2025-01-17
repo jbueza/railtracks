@@ -67,9 +67,7 @@ _P = ParamSpec("_P")
 # this has to be class otherwise the typing can break. If you can figure our some simpler structure which allows for
 # this to be types be my guest to replace to it.
 class NodeFactory(Generic[_TNode]):
-    def __init__(
-        self, new_node: Callable[_P, _TNode], *args: _P.args, **kwargs: _P.kwargs
-    ):
+    def __init__(self, new_node: Callable[_P, _TNode], *args: _P.args, **kwargs: _P.kwargs):
         self.new_node = new_node
         self.args = args
         self.kwargs = kwargs
@@ -90,13 +88,9 @@ class Node(ABC, Generic[_TOutput]):
     """An abstract base class which defines some of the more basic parameters of the nodes"""
 
     @classmethod
-    def __default_invoke_node(
-        cls, parent_node: Node, new_nodes: List[Node]
-    ) -> List[NodeOutput]:
+    def __default_invoke_node(cls, parent_node: Node, new_nodes: List[Node]) -> List[NodeOutput]:
         # TODO write a better warning message here
-        warnings.warn(
-            "You are using the default invoke node. It will not parralelize things"
-        )
+        warnings.warn("You are using the default invoke node. It will not parralelize things")
 
         return [NodeOutput(type(n), n.invoke()) for n in new_nodes]
 
@@ -140,9 +134,7 @@ class Node(ABC, Generic[_TOutput]):
         self._invoke_node = invoke_node
         self.is_filled = True
 
-    def call_node(
-        self, new_node: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs
-    ) -> NodeOutput:
+    def call_node(self, new_node: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs) -> NodeOutput:
         """
         A special helper method for when a single node is called. It is a convenience method
 
@@ -161,10 +153,7 @@ class Node(ABC, Generic[_TOutput]):
         ## TODO: extremely important documentation here.
         return self._invoke_node(
             self,
-            [
-                node_type.create(self.context, self._invoke_node, self.data_streamer)
-                for node_type in nodes
-            ],
+            [node_type.create(self.context, self._invoke_node, self.data_streamer) for node_type in nodes],
         )
 
     @classmethod
@@ -192,7 +181,3 @@ class Node(ABC, Generic[_TOutput]):
         self.__dict__.update(state)
         self.data_streamer = self.__default_data_streamer
         self.is_filled = False
-
-
-
-
