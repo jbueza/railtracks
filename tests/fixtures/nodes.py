@@ -1,9 +1,9 @@
 from __future__ import annotations
-# TODO import railtown_rc here
+from src.railtownai_rc.nodes.nodes import Node
 
 
 
-class CapitalizeText([str]):
+class CapitalizeText(Node[str]):
 
     def __init__(self, data: str):
         super().__init__()

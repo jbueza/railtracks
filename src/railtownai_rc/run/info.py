@@ -12,21 +12,21 @@ from ..context import (
 from .config import ExecutorConfig
 from .tools.profiling import Stamp, StampManager
 from .tools.stream import Subscriber
-from .state.request import RequestHeap
-from .state.node import NodeHeap
+from .state.request import RequestForest
+from .state.node import NodeForest
 from .visuals.agent_viewer import AgentViewer
 
 
-TContext = TypeVar("TContext", bound=BaseContext)
-TOutput = TypeVar("TOutput")
+_TContext = TypeVar("_TContext", bound=BaseContext)
+_TOutput = TypeVar("_TOutput")
 
 
 # TODO add some the logic for an optional architecture requirement.
 class ExecutionInfo:
     def __init__(
         self,
-        request_heap: RequestHeap,
-        node_heap: NodeHeap,
+        request_heap: RequestForest,
+        node_heap: NodeForest,
         stamper: StampManager,
         context: BaseContext = EmptyContext(),
         subscriber: Subscriber[str] | None = None,
@@ -51,8 +51,8 @@ class ExecutionInfo:
         subscriber: Subscriber[str] | None = None,
         executor_config: ExecutorConfig = ExecutorConfig(),
     ) -> ExecutionInfo:
-        request_heap = RequestHeap()
-        node_heap = NodeHeap()
+        request_heap = RequestForest()
+        node_heap = NodeForest()
         stamper = StampManager()
         first_stamp = stamper.create_stamp(
             f"Opened a new request between the start and the {start_node.pretty_name()}"
@@ -77,7 +77,7 @@ class ExecutionInfo:
         )
 
     @property
-    def answer(self) -> TOutput:
+    def answer(self) -> _TOutput:
         """Convenience method to access the answer of the run."""
         return self.request_heap.answer
 

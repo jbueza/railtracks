@@ -6,24 +6,24 @@ from ..tools.profiling import Stamp
 
 from ..state.node import (
     LinkedNode,
-    NodeHeap,
+    NodeForest,
 )
 from ..state.request import (
     RequestTemplate,
-    RequestHeap,
+    RequestForest,
 )
 
 class AgentViewer:
     def __init__(
-        self, stamps: List[Stamp], request_heap: RequestHeap, node_heap: NodeHeap
+        self, stamps: List[Stamp], request_heap: RequestForest, node_heap: NodeForest
     ):
         """
         Creates a new instance of a `AgentViewer` object.
 
         Args:
             stamps (Stamp): all stamps from an executed run
-            request_heap (RequestHeap): the requests from an executed run
-            node_heap (NodeHeap):  the node heap from an executed run
+            request_heap (RequestForest): the requests from an executed run
+            node_heap (NodeForest):  the node heap from an executed run
         """
         self.stamps = stamps
         self.request_heap = request_heap
@@ -129,7 +129,7 @@ class AgentViewer:
         FONT = {'size': 15, 'align': 'center'}
         SIZE = 30
 
-        graph = RequestHeap.generate_graph(self.request_heap.heap())
+        graph = RequestForest.generate_graph(self.request_heap.heap())
 
         net = Network()
         

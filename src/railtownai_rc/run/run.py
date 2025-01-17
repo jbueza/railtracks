@@ -16,15 +16,15 @@ from .config import ExecutorConfig
 from .state.execute import RCState
 from .tools.stream import Subscriber
 
-TOutput = TypeVar("TOutput")
-TContext = TypeVar("TContext", bound=BaseContext)
+_TOutput = TypeVar("_TOutput")
+_TContext = TypeVar("_TContext", bound=BaseContext)
 
 
 
 # TODO make the subscriber a lambda function input
 def run(
     start_node: Node,
-    context: TContext = EmptyContext(),
+    context: _TContext = EmptyContext(),
     subscriber: Subscriber[str] = Subscriber.null_concrete_sub()(),
     executor_config: ExecutorConfig = ExecutorConfig(),
 ):
@@ -74,7 +74,7 @@ def _unsafe_run(
 def safe_run(
     start_node: Node,
     graph: Any,  # TODO fill out this type
-    context: TContext,
+    context: _TContext,
     subscriber: Subscriber[str] = Subscriber.null_concrete_sub()(),
 ) -> ExecutionInfo:
     raise NotImplementedError("This function is not yet implemented")

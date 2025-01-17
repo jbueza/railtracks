@@ -3,11 +3,11 @@ from typing import List, Dict, Type, Set
 
 
 from ..state.node import (
-    NodeHeap,
+    NodeForest,
 )
 from ..state.request import (
     RequestTemplate,
-    RequestHeap,
+    RequestForest,
 )
 from ..tools.profiling import Stamp
 
@@ -31,7 +31,7 @@ class SystemStateManager:
     """
 
     def __init__(
-        self, stamps: List[Stamp], request_heap: RequestHeap, node_heap: NodeHeap
+        self, stamps: List[Stamp], request_heap: RequestForest, node_heap: NodeForest
     ):
         """
         Creates a new instance of a `SystemStateManager` object.
@@ -91,8 +91,8 @@ class SystemStateManager:
             "The system review function has been disabled becuase it needs to fit within the new framework approach"
         )
         request_heap, node_heap = (self.request_heap, self.node_heap)
-        request_heap: RequestHeap
-        node_heap: NodeHeap
+        request_heap: RequestForest
+        node_heap: NodeForest
 
         execution_detail_data = {"Step": [], "Time (s.)": [], "Info": []}
 

@@ -40,7 +40,7 @@ def get_all_open_heads(
 class AbstractLinkedObject:
     """
     A simple base class that can be subclassed to create your own objects with custom parameters that will work out
-    of the box with the `Heap` object.
+    of the box with the `Forest` object.
     """
 
     identifier: str
@@ -51,12 +51,12 @@ class AbstractLinkedObject:
 T = TypeVar("T", bound=AbstractLinkedObject)
 
 
-class Heap(Generic[T]):
+class Forest(Generic[T]):
     """
     A general base class for any heap object. These heap objects have a non-intuitive structure. A common use case of
     a type like this is used to record history of some object. By linking together objects with the same identifier, you
     can create a history of immutable objects that can be accessed at any point in time. You can also build out any of
-    your own desired functionality of the object by subclassing `Heap`.
+    your own desired functionality of the object by subclassing `Forest`.
 
 
     The general principle of the object is you can add any subclass of `AbstractLinkedObject` to the heap. The heap will
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     import time
     import pickle
 
-    h = Heap()
+    h = Forest()
     h._update_heap(
         AbstractLinkedObject(
             "1", Stamp(time=time.time(), step=1, identifier="hello world"), None

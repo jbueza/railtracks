@@ -2,7 +2,8 @@ import inspect
 from typing import TypeVar, Generic, Callable
 
 from ..nodes import Node
-
+from ..run.info import ExecutionInfo
+from ..run.state.request import RequestTemplate
 
 ####################################################################################################
 # Node Exceptions
@@ -11,7 +12,7 @@ from ..nodes import Node
 ####################################################################################################
 
 
-TOutput = TypeVar("TOutput")
+_TOutput = TypeVar("_TOutput")
 
 class NodeException(Exception):
     """
@@ -38,13 +39,13 @@ class NodeException(Exception):
         super().__init__(message)
 
 
-class CompletionException(NodeException, Generic[TOutput]):
+class CompletionException(NodeException, Generic[_TOutput]):
 
     def __init__(
         self,
-        node: Node[TOutput],
+        node: Node[_TOutput],
         detail: str,
-        completion_protocol: TOutput,
+        completion_protocol: _TOutput,
     ):
         """
         The lowest level of severity of an error encountered during a node.
@@ -145,3 +146,6 @@ class MalformedFunctionException(Exception):
             source_file = "Unknown"
 
         return f"({name} in {source_file} at line {line_number})\n{source_code}"
+
+
+

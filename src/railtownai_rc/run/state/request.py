@@ -8,7 +8,7 @@ from typing import Optional, Dict, List, Tuple, Iterable, Set, FrozenSet, Any
 
 
 from .forest import (
-    Heap,
+    Forest,
     AbstractLinkedObject,
 )
 from ..tools.profiling import Stamp
@@ -141,7 +141,7 @@ class RequestTemplate(AbstractLinkedObject):
         return all([x.closed for x in downstream_requests])
 
 
-class RequestHeap(Heap[RequestTemplate]):
+class RequestForest(Forest[RequestTemplate]):
 
     def __init__(self):
         """

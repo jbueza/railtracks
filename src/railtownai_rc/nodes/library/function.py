@@ -14,7 +14,7 @@ from src.railtownai_rc.nodes.nodes import (
 
 
 
-TOutput = TypeVar("TOutput")
+TOutput = TypeVar("_TOutput")
 
 # TODO migrate the following classes to the new system
 # class TerminalLLM(Node[str], ABC):
@@ -69,10 +69,10 @@ TOutput = TypeVar("TOutput")
 #         }
 #
 #
-# TOutput = TypeVar("TOutput")
+# _TOutput = TypeVar("_TOutput")
 #
 #
-# class OutputLessToolCallLLM(Node[TOutput], ABC, Generic[TOutput]):
+# class OutputLessToolCallLLM(Node[_TOutput], ABC, Generic[_TOutput]):
 #     """A base class that is a node which contains
 #      an LLm that can make tool calls. The tool calls will be returned
 #     as calls or if there is a response, the response will be returned as an output"""
@@ -111,7 +111,7 @@ TOutput = TypeVar("TOutput")
 #
 #     def invoke(
 #         self,
-#     ) -> TOutput:
+#     ) -> _TOutput:
 #         while True:
 #             # collect the response from the model
 #             try:
@@ -169,7 +169,7 @@ TOutput = TypeVar("TOutput")
 #         return self.message_hist.messages[-1]
 #
 #
-# class ToolDefinedNode(Node[TOutput], ABC, Generic[TOutput]):
+# class ToolDefinedNode(Node[_TOutput], ABC, Generic[_TOutput]):
 #     @classmethod
 #     @abstractmethod
 #     def tool_info(cls) -> ToolDefinition:

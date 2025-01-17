@@ -10,7 +10,7 @@ from typing import Optional, Iterable
 
 from .forest import (
     AbstractLinkedObject,
-    Heap,
+    Forest,
 )
 from ..tools.profiling import Stamp
 from ...nodes import (
@@ -47,7 +47,7 @@ class NodeCopyException(Exception):
     """An exception thrown when a node cannot be copied due to a given error"""
 
 
-class NodeHeap(Heap[LinkedNode]):
+class NodeForest(Forest[LinkedNode]):
     def __init__(self):
         """
         Creates a new instance of a node heap with no objects present.

@@ -22,26 +22,25 @@ from ..context import (
     EmptyContext,
 )
 
-TOutput = TypeVar("TOutput")
-TOutputInternal = TypeVar("TOutputInternal")
-TContext = TypeVar("TContext", bound=BaseContext)
+_TOutput = TypeVar("_TOutput")
+_TContext = TypeVar("_TContext", bound=BaseContext)
 
 
 # TODO think through if there is a better way to type this.
-class NodeOutput(Generic[TOutputInternal]):
+class NodeOutput(Generic[_TOutput]):
     # TODO: write docs
     @property
     def node_type(self) -> Type[Node]:
         return self._node_type
 
     @property
-    def data(self) -> TOutputInternal:
+    def data(self) -> _TOutput:
         return self._data
 
     def __init__(
         self,
         node_type: Type[Node],
-        data: TOutputInternal,
+        data: _TOutput,
     ):
         self._node_type = node_type
         self._data = data
@@ -61,15 +60,15 @@ def check_flag(flag: bool, failure_message: str):
     return wrapper_decorator
 
 
-TNode = TypeVar("TNode", bound="Node")
+_TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
 
 # this has to be class otherwise the typing can break. If you can figure our some simpler structure which allows for
 # this to be types be my guest to replace to it.
-class NodeFactory(Generic[TNode]):
+class NodeFactory(Generic[_TNode]):
     def __init__(
-        self, new_node: Callable[_P, TNode], *args: _P.args, **kwargs: _P.kwargs
+        self, new_node: Callable[_P, _TNode], *args: _P.args, **kwargs: _P.kwargs
     ):
         self.new_node = new_node
         self.args = args
@@ -87,7 +86,7 @@ class NodeFactory(Generic[TNode]):
 
 
 # TODO add generic for required context object
-class Node(ABC, Generic[TOutput]):
+class Node(ABC, Generic[_TOutput]):
     """An abstract base class which defines some of the more basic parameters of the nodes"""
 
     @classmethod
@@ -132,7 +131,7 @@ class Node(ABC, Generic[TOutput]):
 
     def fill_details(
         self,
-        context: TContext,
+        context: _TContext,
         invoke_node: Callable[[Node, List[Node]], List[NodeOutput]],
         data_streamer: Callable[[str], None],
     ):
@@ -173,7 +172,7 @@ class Node(ABC, Generic[TOutput]):
     def pretty_name(cls) -> str: ...
 
     @abstractmethod
-    def invoke(self) -> TOutput:
+    def invoke(self) -> _TOutput:
         pass
 
     def state_details(self) -> Dict[str, str]:
@@ -193,9 +192,6 @@ class Node(ABC, Generic[TOutput]):
         self.__dict__.update(state)
         self.data_streamer = self.__default_data_streamer
         self.is_filled = False
-
-
-### These are relics of the past left in for backwards compatibility.
 
 
 

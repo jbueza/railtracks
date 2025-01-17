@@ -11,16 +11,20 @@ class BaseContext(BaseModel):
         frozen = True
 
     @model_validator(mode="after")
-    def check_immutability(cls, values):
+    def check_immutability(self, values):
         # makes sure that the base class has not overwritten `self.Config` and that it is immutable.
         if not (
-            hasattr(cls, "Config")
-            and hasattr(cls.Config, "frozen")
-            and cls.Config.frozen == True
+            hasattr(self, "Config")
+            and hasattr(self.Config, "frozen")
+            and self.Config.frozen == True
         ):
             raise Exception(
                 "Your pydantic `context` must be immutable (ie. must contain a `Config` class with attribute `frozen=True`)"
             )
+
+        return self
+
+
 
     @classmethod
     def from_dict(cls, json_data: dict):

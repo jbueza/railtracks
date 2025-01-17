@@ -7,16 +7,11 @@
 from __future__ import annotations
 from dotenv import load_dotenv
 
-import nodes
-import run
-import exceptions
-# TODO add context when ready
+from . import nodes
+from . import run
+from . import exceptions
 
-__all__ = [
-    "nodes",
-    "run",
-    "exceptions",
-]
+__all__ = ["nodes", "run", "exceptions"]
 
 load_dotenv()
 # TODO: Bump this

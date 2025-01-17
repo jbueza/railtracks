@@ -4,14 +4,10 @@ import concurrent.futures
 import threading
 import uuid
 from collections import deque
-from copy import deepcopy
-from dataclasses import dataclass
+
 
 from typing import TypeVar, Generator, List, Callable, Tuple
 
-from typing_extensions import Self
-
-from pydantic import BaseModel
 
 from ..config import ExecutorConfig
 from ...exceptions import (
@@ -19,7 +15,7 @@ from ...exceptions import (
 ResetException,
 FatalException,
 CompletionException,
-MalformedFunctionException
+MalformedFunctionException,
 )
 
 from ...nodes import (
@@ -30,9 +26,9 @@ NodeOutput
 
 from ...context import BaseContext
 from ..info import ExecutionInfo
-from ..state.node import NodeHeap
+from ..state.node import NodeForest
 from ..state.request import (
-    RequestHeap,
+    RequestForest,
     DeadRequestException,
     RequestTemplate,
 )
@@ -42,10 +38,9 @@ from ..tools.stream import Subscriber, DataStream
 import logging
 
 
-TContext = TypeVar("TContext", bound=BaseContext)
-TOutput = TypeVar("TOutput")
+_TContext = TypeVar("_TContext", bound=BaseContext)
+_TOutput = TypeVar("_TOutput")
 
-TOutputIndividual = TypeVar("TOutputIndividual")
 
 
 class RCState:
@@ -500,15 +495,6 @@ class RCState:
             executor_config=self.executor_config,
         )
 
-
-@dataclass
-class ReadableState:
-    node_heap: NodeHeap
-    request_heap: RequestHeap
-    stamper: StampManager
-    context: BaseContext
-
-
 class ScorchedEarthException(Exception):
     """
     A special exception to be thrown to allow specific information about a reset exception to passed from the child
@@ -573,32 +559,3 @@ class ExecutionException(Exception):
     @property
     def exception_history(self):
         return self.execution_info.exception_history
-
-
-if __name__ == "__main__":
-    import pickle
-
-    exc = ExecutionException(
-        failed_request=RequestTemplate(
-            identifier="123",
-            source_id="123",
-            sink_id="123",
-            stamp=Stamp(1.0, 1, "123"),
-            parent=None,
-            output=None,
-        ),
-        rc_state=ReadableState(
-            node_heap=NodeHeap(),
-            request_heap=RequestHeap(),
-            stamper=StampManager(),
-            context=BaseContext(),
-        ),
-        final_exception=Exception(),
-        exception_history=[Exception()],
-    )
-
-    dump = pickle.dumps(exc)
-
-    ex = pickle.loads(dump)
-
-    print(ex)

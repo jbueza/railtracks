@@ -7,16 +7,16 @@ import pickle
 from ...context import BaseContext
 from .profiling import Stamp
 
-from ..state.node import NodeHeap
-from ..state.request import RequestHeap
+from ..state.node import NodeForest
+from ..state.request import RequestForest
 
 FILENAME_TEMPLATE = "data/c3-runs/{0}.pickle"
 
 
 def save_run(
     all_stamps: List[Stamp],
-    request_heap: RequestHeap,
-    node_heap: NodeHeap,
+    request_heap: RequestForest,
+    node_heap: NodeForest,
     context: BaseContext,
     version: str,
     save_path: str,
