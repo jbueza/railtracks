@@ -17,7 +17,7 @@ from railtownai_rc.exceptions.exceptions import (
     FatalException,
     ResetException,
 )
-from tests.rc.fixtures.nodes import (
+from tests.rc_tests.fixtures.nodes import (
     RNGNode,
     FatalErrorNode,
     REGULAR_ERROR,

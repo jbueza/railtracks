@@ -7,7 +7,7 @@ from railtownai_rc.run.info import ExecutionInfo
 from railtownai_rc.run.config import ExecutorConfig
 from railtownai_rc.run.run import run
 
-from tests.rc.fixtures.nodes import (
+from tests.rc_tests.fixtures.nodes import (
     RNGNode,
 )
 

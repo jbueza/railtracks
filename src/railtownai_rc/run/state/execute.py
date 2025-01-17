@@ -10,7 +10,7 @@ from typing import TypeVar, Generator, List, Callable, Tuple
 
 
 from ..config import ExecutorConfig
-from ...exceptions import (
+from ...exceptions.exceptions import (
     NodeException,
     ResetException,
     FatalException,

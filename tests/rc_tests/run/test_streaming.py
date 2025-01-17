@@ -8,7 +8,7 @@ from railtownai_rc.run.tools.stream import (
     Subscriber,
 )
 
-from tests.rc.fixtures.nodes import (
+from tests.rc_tests.fixtures.nodes import (
     StreamingRNGNode,
     StreamingCallNode,
 )
