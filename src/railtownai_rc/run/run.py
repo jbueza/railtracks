@@ -26,9 +26,9 @@ def run(
     subscriber: Subscriber[str] = Subscriber.null_concrete_sub()(),
     executor_config: ExecutorConfig = ExecutorConfig(),
 ):
-    if not isinstance(context, EmptyContext):
-        warnings.warn("We do not support the injection of context at this time. We will use empty context")
-        context = EmptyContext()
+    if isinstance(context, EmptyContext):
+        warnings.warn("We do not support the injection of context at this time. ")
+
 
     return execute(
         start_node,
