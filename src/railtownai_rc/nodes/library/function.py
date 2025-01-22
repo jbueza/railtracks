@@ -8,7 +8,7 @@ from typing import (
 )
 
 
-from src.railtownai_rc.nodes.nodes import (
+from ..nodes import (
     Node,
 )
 
