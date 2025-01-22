@@ -35,6 +35,9 @@ class Parameter:
     def required(self):
         return self._required
 
+    def __str__(self):
+        return f"Parameter(name={self._name}, type={self._param_type}, description={self._description}, required={self._required})"
+
 
 class Tool:
 
@@ -63,6 +66,9 @@ class Tool:
     def parameters(self):
         # pass by value of the list entries.
         return [x for x in self._parameters]
+
+    def __str__(self):
+        return f"Tool(name={self._name}, detail={self._detail}, parameters={self._parameters})"
 
     @classmethod
     def from_function(cls, function: Callable) -> Self:

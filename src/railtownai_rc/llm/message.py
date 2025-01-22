@@ -45,6 +45,9 @@ class Message(Generic[_T]):
         """Collects the role of the message."""
         return self._role
 
+    def __str__(self):
+        return f"{self.role}: {self.content}"
+
 
 class _StringOnlyContent(Message[str]):
     @classmethod
@@ -53,7 +56,7 @@ class _StringOnlyContent(Message[str]):
             raise ValueError(f"A {cls.__name__} needs a string but got {type(content)}")
 
 
-class UserMessage(Message[str]):
+class UserMessage(_StringOnlyContent):
     """
     A simple class that represents a user message.
 
@@ -64,7 +67,7 @@ class UserMessage(Message[str]):
         super().__init__(content=content, role="user")
 
 
-class SystemMessage(Message[str]):
+class SystemMessage(_StringOnlyContent):
     """
     A simple class that represents a system message.
     """

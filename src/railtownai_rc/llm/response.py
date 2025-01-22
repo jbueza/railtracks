@@ -22,3 +22,12 @@ class Response:
     @property
     def streamer(self):
         return self._streamer
+
+    def __str__(self):
+        if self._message is not None:
+            return str(self._message)
+        else:
+            return "Response(<no-data>)"
+
+    def __repr__(self):
+        return f"Response(message={self._message}, streamer={self._streamer})"

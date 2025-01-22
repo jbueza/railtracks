@@ -13,3 +13,6 @@ class MessageHistory(List[Message]):
 
         """
         return True
+
+    def __str__(self):
+        return "\n".join([str(message) for message in self])
