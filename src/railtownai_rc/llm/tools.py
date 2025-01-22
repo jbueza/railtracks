@@ -1,5 +1,5 @@
-from copy import deepcopy
-from typing import List, Self, Callable
+from typing import List, Callable
+from typing_extensions import Self
 
 
 class Parameter:
