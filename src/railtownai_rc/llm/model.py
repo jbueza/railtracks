@@ -26,6 +26,8 @@ def to_llama_chat(message: Message) -> ChatMessage:
 
 class Model:
     def __init__(self, model_type: Literal["OpenAI", "Anthropic"], model_name: str, **kwargs):
+        self._model_type = model_type
+        self._model_name = model_name
         self.model = self.setup_model_object(model_type, model_name, **kwargs)
 
     @classmethod
@@ -117,3 +119,6 @@ class Model:
             ],
         )
         return Response(message=message)
+
+    def __str__(self):
+        return f"Model(type={self._model_type}, name={self._model_name})"
