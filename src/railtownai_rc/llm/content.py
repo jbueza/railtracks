@@ -14,11 +14,17 @@ class ToolCall(BaseModel):
     name: str
     arguments: Dict[str, Any]
 
+    def __str__(self):
+        return f"{self.name}({self.arguments})"
+
 
 class ToolResponse(BaseModel):
     identifier: str
     name: str
     result: AnyStr
+
+    def __str__(self):
+        return f"{self.name} -> {self.result}"
 
 
 Content = Union[str, List[ToolCall], ToolResponse, BaseModel]

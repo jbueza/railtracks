@@ -74,7 +74,8 @@ class Model:
             raise ValueError(f"Model type {model_type} not supported")
 
     def chat(self, messages: MessageHistory, tools: List[FunctionTool] = None, **kwargs):
-        if len(tools) != 0:
+
+        if tools is not None and len(tools) != 0:
             return self._chat_with_tool(messages, tools, **kwargs)
 
         return self._regular_chat(messages, **kwargs)
