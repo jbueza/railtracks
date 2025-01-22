@@ -1,0 +1,15 @@
+from typing import List, TypeVar
+
+from .message import Message
+
+
+class MessageHistory(List[Message]):
+    def is_valid(self):
+        """
+        Checks if the message history is valid.
+
+        Returns:
+            True if the message history is valid, False otherwise.
+
+        """
+        return True
