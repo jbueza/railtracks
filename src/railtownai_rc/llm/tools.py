@@ -1,4 +1,5 @@
-from typing import List, Callable
+from typing import List, Callable, Optional, Type
+from pydantic import BaseModel
 from typing_extensions import Self
 
 
@@ -41,7 +42,7 @@ class Parameter:
 
 class Tool:
 
-    def __init__(self, name: str, detail: str = "", parameters: List[Parameter] = None):
+    def __init__(self, name: str, detail: str = "", parameters: Optional[Type[BaseModel]] = None):
         """
         Creates a new instance of a tool object.
 
@@ -52,7 +53,7 @@ class Tool:
         """
         self._name = name
         self._detail = detail
-        self._parameters = parameters or []
+        self._parameters = parameters
 
     @property
     def name(self):
@@ -65,12 +66,12 @@ class Tool:
     @property
     def parameters(self):
         # pass by value of the list entries.
-        return [x for x in self._parameters]
+        return self._parameters
 
     def __str__(self):
-        return f"Tool(name={self._name}, detail={self._detail}, parameters={self._parameters})"
+        return f"Tool(name={self._name}, detail={self._detail}, parameters={self._parameters.model_json_schema()})"
 
     @classmethod
     def from_function(cls, function: Callable) -> Self:
-        # TODO: complete the specialized logic.
+        # TODO: complete the specialized logic. See github issue.
         pass

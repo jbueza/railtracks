@@ -3,7 +3,7 @@ from typing import List
 
 
 from llama_index.core.llms import ChatMessage
-from llama_index.core.tools import FunctionTool
+from llama_index.core.tools import FunctionTool, ToolMetadata
 
 from ..model import ModelBase
 
@@ -11,24 +11,79 @@ from ..message import Message
 from ..response import Response
 from ..history import MessageHistory
 from ..message import AssistantMessage
-from ..content import ToolCall
+from ..content import ToolCall, Content
 from ..tools import Tool
 
 from pydantic import BaseModel
 
 
-def to_llama_chat(message: Message) -> ChatMessage:
-    # TODO: complete this function. handling the special cases for content types.
-    return ChatMessage(content=message.content, role=message.role)
+def _convert_to_llama_content(content: Content):
+    """
+    Converts the given content to a content which matches the form that llama index requires.
+
+    Args:
+        content: The content you would like to convert
+
+    Returns:
+
+    """
+    # TODO: complete this function. handling the special cases for content types. You will need to see what llama converts tool calls into to make this work.
+    return content
 
 
-def to_llama_tool(tool: Tool) -> FunctionTool:
-    # TODO: complete this function.
-    pass
+def _to_llama_chat(message: Message) -> ChatMessage:
+    """
+    Converts the given `message` to a llama chat message.
+
+    It will handle any possible content type and map it to the proper llama content type.
+    """
+    return ChatMessage(content=_convert_to_llama_content(message.content), role=message.role)
+
+
+def _to_llama_tool(tool: Tool) -> FunctionTool:
+    """
+    Converts the given `tool` to a llama tool.
+
+    Args:
+        tool: The tool you would like to convert.
+
+    Returns:
+        A `FunctionTool` object that represents the given tool.
+    """
+
+    return FunctionTool(
+        metadata=ToolMetadata(
+            name=tool.name,
+            description=tool.detail,
+            fn_schema=tool.parameters,
+        )
+    )
 
 
 class LlamaWrapper(ModelBase):
+    """
+    A large base class that wraps around a llama index model.
+
+    Note that the model object should be interacted with via the methods provided in the wrapper class:
+    - `chat`
+    - `structured`
+    - `stream_chat`
+    - `chat_with_tools`
+
+    Each individual API should implement the required `abstract_methods` in order to allow users to interact with a
+     model of that type.
+    """
+
     def __init__(self, model_name: str, **kwargs):
+        """
+        Creates a new instance of the model with the provided model_name and any additional kwargs. The kwargs will be
+         passed in when you call this model but will be overwritten by any kwargs you provide when you call the model.
+
+        Args:
+            model_name: The name of the model you would like to use.
+            **kwargs: Any additional arguments you would like to pass to the model when calling it. (These should match
+                the arguments that the given API request you have implemented it for.)
+        """
         self._model_type = self.model_type()
         self._model_name = model_name
         self.model = self.setup_model_object(model_name, **kwargs)
@@ -44,14 +99,19 @@ class LlamaWrapper(ModelBase):
         pass
 
     def chat(self, messages: MessageHistory, **kwargs):
-        response = self.model.chat([to_llama_chat(m) for m in messages], **kwargs)
+        """
+
+        """
+
+        response = self.model.chat([_to_llama_chat(m) for m in messages], **kwargs)
         return Response(message=AssistantMessage(response.message.content))
 
     def structured(self, messages: MessageHistory, schema: BaseModel, **kwargs):
-        return self.model.structured_predict(schema, [to_llama_chat(m) for m in messages], **kwargs)
+        # TODO add a descriptive error for failed structured prediction
+        return self.model.structured_predict(schema, [_to_llama_chat(m) for m in messages], **kwargs)
 
     def stream_chat(self, messages: MessageHistory, **kwargs):
-        message = self.model.stream_chat([to_llama_chat(m) for m in messages], **kwargs)
+        message = self.model.stream_chat([_to_llama_chat(m) for m in messages], **kwargs)
 
         # we need to get creative to map the provided streamer
         def map_to_string():
@@ -62,9 +122,12 @@ class LlamaWrapper(ModelBase):
         return Response(message=None, streamer=map_to_string())
 
     def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
-
+        # TODO: add a descriptive error for a tool call with bad parameters.
         response = self.model.chat_with_tools(
-            [to_llama_tool(t) for t in tools], chat_history=[to_llama_chat(m) for m in messages], strict=True, **kwargs
+            [_to_llama_tool(t) for t in tools],
+            chat_history=[_to_llama_chat(m) for m in messages],
+            strict=True,
+            **kwargs,
         )
 
         tool_calls = self.model.get_tool_calls_from_response(response, error_on_no_tool_call=False)
