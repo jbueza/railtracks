@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal, Generic, Any, TypeVar
+from typing import Literal, Generic, TypeVar
 
 from .content import Content
 
@@ -8,6 +8,12 @@ _T = TypeVar("_T", bound=Content)
 
 
 class Role(str, Enum):
+    """
+    A simple enum type that can be used to represent the role of a message.
+
+    Note this role is not often used and you should use the literals instead.
+    """
+
     assistant = "assistant"
     user = "user"
     system = "system"
@@ -15,6 +21,12 @@ class Role(str, Enum):
 
 
 class Message(Generic[_T]):
+    """
+    A base class that represents a message that an LLM can read.
+
+    Note the content may take on a variety of allowable types.
+    """
+
     def __init__(self, content: _T, role: Literal["assistant", "user", "system", "tool"]):
         """
         A simple class that represents a message that an LLM can read.
@@ -32,7 +44,7 @@ class Message(Generic[_T]):
         self._role = Role(role)
 
     @classmethod
-    def validate_content(cls, content):
+    def validate_content(cls, content: _T):
         pass
 
     @property
@@ -47,16 +59,23 @@ class Message(Generic[_T]):
 
     def __str__(self):
         return f"{self.role}: {self.content}"
-    
+
     def __repr__(self):
         return str(self)
 
 
 class _StringOnlyContent(Message[str]):
+    """
+    A helper class used to represent a message that only accepts string content.
+    """
+
     @classmethod
     def validate_content(cls, content: str):
+        """
+        A method used to validate that the content of the message is a string.
+        """
         if not isinstance(content, str):
-            raise ValueError(f"A {cls.__name__} needs a string but got {type(content)}")
+            raise TypeError(f"A {cls.__name__} needs a string but got {type(content)}")
 
 
 class UserMessage(_StringOnlyContent):

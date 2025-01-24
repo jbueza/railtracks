@@ -44,7 +44,6 @@ class LlamaWrapper(ModelBase):
         pass
 
     def chat(self, messages: MessageHistory, **kwargs):
-
         response = self.model.chat([to_llama_chat(m) for m in messages], **kwargs)
         return Response(message=AssistantMessage(response.message.content))
 
@@ -62,10 +61,10 @@ class LlamaWrapper(ModelBase):
 
         return Response(message=None, streamer=map_to_string())
 
-    def chat_with_tools(self, messages: MessageHistory, tools: List[FunctionTool], **kwargs):
+    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
 
         response = self.model.chat_with_tools(
-            tools, chat_history=[to_llama_chat(m) for m in messages], strict=True, **kwargs
+            [to_llama_tool(t) for t in tools], chat_history=[to_llama_chat(m) for m in messages], strict=True, **kwargs
         )
 
         tool_calls = self.model.get_tool_calls_from_response(response, error_on_no_tool_call=False)
