@@ -100,9 +100,18 @@ class LlamaWrapper(ModelBase):
 
     def chat(self, messages: MessageHistory, **kwargs):
         """
+        Chats with a llama model using the given set of message history.
 
+        Args:
+            messages: A complete message history including system messages, that the llm should use as context to
+                generate a response.
+            **kwargs: Any additional arguments you would like to pass to the model when calling it. These will overwrite
+                the arguments passed in at the time of model creation.
+
+        Returns:
+            A response object that contains the response from the model. Note the `message` field will be filled and
+                the `streamer` field will be empty.
         """
-
         response = self.model.chat([_to_llama_chat(m) for m in messages], **kwargs)
         return Response(message=AssistantMessage(response.message.content))
 
