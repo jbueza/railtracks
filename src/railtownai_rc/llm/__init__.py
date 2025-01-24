@@ -1,4 +1,4 @@
-from .model import BaseModel
+from .model import ModelBase
 from .content import ToolCall, ToolResponse
 from .message import UserMessage, SystemMessage, AssistantMessage, Message, ToolMessage
 from .history import MessageHistory
@@ -6,7 +6,7 @@ from .tools import Tool, Parameter
 from .models import AnthropicLLM, OpenAILLM
 
 __all__ = [
-    "BaseModel",
+    "ModelBase",
     "ToolCall",
     "ToolResponse",
     "UserMessage",

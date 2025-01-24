@@ -17,12 +17,15 @@ from abc import ABC, abstractmethod
 
 
 class ModelBase(ABC):
+    @abstractmethod
     def chat(self, messages: MessageHistory, **kwargs) -> Response:
         pass
 
+    @abstractmethod
     def structured(self, messages: MessageHistory, schema: BaseModel, **kwargs) -> Response:
         pass
 
+    @abstractmethod
     def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         pass
 
