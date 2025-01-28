@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from typing import List, Callable, Any
-
+from typing import List, Callable, Any, Type
 
 from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import FunctionTool, ToolMetadata
+
+import json
 
 from ..model import ModelBase
 
@@ -14,7 +15,8 @@ from ..message import AssistantMessage, ToolMessage
 from ..content import ToolCall, Content
 from ..tools import Tool
 
-from pydantic import BaseModel
+
+from pydantic import BaseModel, ValidationError
 
 
 def _to_llama_chat(message: Message, tool_call_fn: Callable[[ToolCall], Any]) -> ChatMessage:
@@ -125,12 +127,19 @@ class LlamaWrapper(ModelBase):
         response = self.model.chat([_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs)
         return Response(message=AssistantMessage(response.message.content))
 
-    def structured(self, messages: MessageHistory, schema: BaseModel, **kwargs):
+    def structured(self, messages: MessageHistory, schema: Type[BaseModel], **kwargs):
         # TODO add a descriptive error for failed structured prediction
-        return self.model.structured_predict(schema, [_to_llama_chat(m) for m in messages], **kwargs)
+        sllm = self.model.as_structured_llm(schema)
+        response = sllm.chat([_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs)
+
+        try:
+            return Response(message=AssistantMessage(schema(**json.loads(response.message.content))))
+        except ValidationError as e:
+            # TODO come up with a better exception message here. 
+            return Exception()
 
     def stream_chat(self, messages: MessageHistory, **kwargs):
-        message = self.model.stream_chat([_to_llama_chat(m) for m in messages], **kwargs)
+        message = self.model.stream_chat([_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs)
 
         # we need to get creative to map the provided streamer
         def map_to_string():
