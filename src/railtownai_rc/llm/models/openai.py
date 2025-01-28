@@ -22,3 +22,7 @@ class OpenAILLM(LlamaWrapper):
             "function": {"arguments": json.dumps(tool.arguments), "name": tool.name},
             "type": "function",
         }
+    
+    def chat_with_tools(self, messages, tools, **kwargs):
+        kwargs["strict"] = True
+        return super().chat_with_tools(messages, tools, **kwargs)

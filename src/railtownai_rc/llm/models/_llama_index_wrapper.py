@@ -107,7 +107,7 @@ class LlamaWrapper(ModelBase):
 
     @classmethod
     @abstractmethod
-    def prepare_tool_calls(cls, tool_call: ToolCall):
+    def prepare_tool_calls(cls, tool: ToolCall):
         pass
 
     def chat(self, messages: MessageHistory, **kwargs):
@@ -135,7 +135,7 @@ class LlamaWrapper(ModelBase):
         try:
             return Response(message=AssistantMessage(schema(**json.loads(response.message.content))))
         except ValidationError as e:
-            # TODO come up with a better exception message here. 
+            # TODO come up with a better exception message here.
             return Exception()
 
     def stream_chat(self, messages: MessageHistory, **kwargs):
@@ -158,7 +158,6 @@ class LlamaWrapper(ModelBase):
         response = self.model.chat_with_tools(
             llama_tools,
             chat_history=llama_chat,
-            strict=True,
             **kwargs,
         )
 
