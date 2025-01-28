@@ -1,6 +1,5 @@
-
 from typing import TypeVar, Any
-
+import warnings
 
 from ..nodes.nodes import Node
 
@@ -20,7 +19,6 @@ _TOutput = TypeVar("_TOutput")
 _TContext = TypeVar("_TContext", bound=BaseContext)
 
 
-
 # TODO make the subscriber a lambda function input
 def run(
     start_node: Node,
@@ -28,6 +26,9 @@ def run(
     subscriber: Subscriber[str] = Subscriber.null_concrete_sub()(),
     executor_config: ExecutorConfig = ExecutorConfig(),
 ):
+    if not isinstance(context, EmptyContext):
+        warnings.warn("We do not support the injection of context at this time. We will use empty context")
+        context = EmptyContext()
 
     return execute(
         start_node,
@@ -49,8 +50,6 @@ def execute(start_node: Node, executor_info: ExecutionInfo) -> ExecutionInfo:
     """
 
     return _unsafe_run(start_node, executor_info)
-
-
 
 
 def _unsafe_run(
