@@ -6,7 +6,6 @@ from typing import Generic, TypeVar, Union, List, Any, Dict, AnyStr
 from pydantic import BaseModel, Field
 
 
-
 ####################################################################################################
 # Simple helper Data Structures for common responses #
 ####################################################################################################
@@ -16,6 +15,7 @@ class ToolCall(BaseModel):
 
     This simple model represents a moment when a tool is called.
     """
+
     identifier: str = Field(description="The identifier attatched to this tool call.")
     name: str = Field(description="The name of the tool being called.")
     arguments: Dict[str, Any] = Field(description="The arguments provided as input to the tool.")
@@ -30,7 +30,10 @@ class ToolResponse(BaseModel):
 
     This simple model should be used when adding a response to a tool.
     """
-    identifier: str = Field(description="The identifier attached to this tool response. This should match the identifier of the tool call.")
+
+    identifier: str = Field(
+        description="The identifier attached to this tool response. This should match the identifier of the tool call."
+    )
     name: str = Field(description="The name of the tool that generated this response.")
     result: AnyStr = Field(description="The result of the tool call.")
 
@@ -39,4 +42,3 @@ class ToolResponse(BaseModel):
 
 
 Content = Union[str, List[ToolCall], ToolResponse, BaseModel]
-
