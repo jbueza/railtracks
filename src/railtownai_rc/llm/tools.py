@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional, Type
+from typing import List, Callable, Optional, Type, Set
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -49,7 +49,7 @@ class Tool:
     the model requires.
     """
 
-    def __init__(self, name: str, detail: str, parameters: Optional[Type[BaseModel]] = None):
+    def __init__(self, name: str, detail: str, parameters: Optional[Type[BaseModel] | Set[Parameter]] = None):
         """
         Creates a new instance of a tool object.
 
@@ -58,9 +58,28 @@ class Tool:
             detail: A detailed description of the tool.
             parameters: The parameters attached to this tool. If none, then there is no parameters for this model.
         """
+        # Note becuase of the union type we need to handle when they define paramters using the more native typuing.
+        if isinstance(parameters, set):
+            self._parameters = self.convert_params_to_model(parameters)
+        else:
+            self._parameters = parameters
+
         self._name = name
         self._detail = detail
-        self._parameters = parameters
+        
+
+    def convert_params_to_model(cls, parameters: Set[Parameter]) -> Type[BaseModel]:
+        """
+        Converts a set of parameters into a Pydantic model.
+
+        Args:
+            parameters: The set of parameters to convert into a Pydantic model.
+
+        Returns:
+            A Pydantic model representing the parameters.
+        """
+        # TODO complete this mess. 
+        return BaseModel
 
     @property
     def name(self):

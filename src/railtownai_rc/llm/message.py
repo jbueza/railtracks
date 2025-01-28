@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import Literal, Generic, TypeVar
 
-from .content import Content
+from .content import Content, ToolResponse
+
 
 
 _T = TypeVar("_T", bound=Content)
@@ -108,11 +109,11 @@ class AssistantMessage(Message[_T], Generic[_T]):
 
 
 # TODO further constrict the possible return type of a ToolMessage.
-class ToolMessage(Message[_T], Generic[_T]):
+class ToolMessage(Message[ToolResponse]):
     """
     A simple class that represents a message that is a tool call answer.
     """
 
-    def __init__(self, content: _T, identifier: str | None = None):
-        super().__init__(content=content, role="tool")
-        self.identifier = identifier
+    def __init__(self, content: ToolResponse):
+        super().__init__(content=str(content.result), role="tool")
+        self.identifier = content.identifier
