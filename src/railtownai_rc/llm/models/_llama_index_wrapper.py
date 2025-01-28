@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List
+from typing import List, Callable, Any
 
 
 from llama_index.core.llms import ChatMessage
@@ -10,34 +10,37 @@ from ..model import ModelBase
 from ..message import Message
 from ..response import Response
 from ..history import MessageHistory
-from ..message import AssistantMessage
+from ..message import AssistantMessage, ToolMessage
 from ..content import ToolCall, Content
 from ..tools import Tool
 
 from pydantic import BaseModel
 
 
-def _convert_to_llama_content(content: Content):
-    """
-    Converts the given content to a content which matches the form that llama index requires.
-
-    Args:
-        content: The content you would like to convert
-
-    Returns:
-
-    """
-    # TODO: complete this function. handling the special cases for content types. You will need to see what llama converts tool calls into to make this work.
-    return content
-
-
-def _to_llama_chat(message: Message) -> ChatMessage:
+def _to_llama_chat(message: Message, tool_call_fn: Callable[[ToolCall], Any]) -> ChatMessage:
     """
     Converts the given `message` to a llama chat message.
 
     It will handle any possible content type and map it to the proper llama content type.
     """
-    return ChatMessage(content=_convert_to_llama_content(message.content), role=message.role)
+    # handle the special case where the message is a tool so we have to link it to the tool id.
+    if isinstance(message, ToolMessage):
+        # TODO: update this logic to be dependency injected
+        return ChatMessage(
+            content=message.content, role=message.role, additional_kwargs={"tool_call_id": message.identifier}
+        )
+
+    if isinstance(message.content, list):
+        assert all(isinstance(t_c, ToolCall) for t_c in message.content)
+        return ChatMessage(
+            additional_kwargs={"tool_calls": [tool_call_fn(t_c) for t_c in message.content]}, role=message.role
+        )
+
+    # TODO: complete this for the openai case then move one to next step.
+    if isinstance(message.content, BaseModel):
+        return ChatMessage(content=message.content.model_dump(), role=message.role)
+
+    return ChatMessage(content=message.content, role=message.role)
 
 
 def _to_llama_tool(tool: Tool) -> FunctionTool:
@@ -51,12 +54,14 @@ def _to_llama_tool(tool: Tool) -> FunctionTool:
         A `FunctionTool` object that represents the given tool.
     """
 
+    # note we pass in a dummy function becuase we aren't using that part of the llama index API. Function calls should be tracked by RC.
     return FunctionTool(
+        fn=lambda *args, **kwargs: None,
         metadata=ToolMetadata(
             name=tool.name,
             description=tool.detail,
             fn_schema=tool.parameters,
-        )
+        ),
     )
 
 
@@ -98,6 +103,11 @@ class LlamaWrapper(ModelBase):
     def model_type(cls) -> str:
         pass
 
+    @classmethod
+    @abstractmethod
+    def prepare_tool_calls(cls, tool_call: ToolCall):
+        pass
+
     def chat(self, messages: MessageHistory, **kwargs):
         """
         Chats with a llama model using the given set of message history.
@@ -112,7 +122,7 @@ class LlamaWrapper(ModelBase):
             A response object that contains the response from the model. Note the `message` field will be filled and
                 the `streamer` field will be empty.
         """
-        response = self.model.chat([_to_llama_chat(m) for m in messages], **kwargs)
+        response = self.model.chat([_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs)
         return Response(message=AssistantMessage(response.message.content))
 
     def structured(self, messages: MessageHistory, schema: BaseModel, **kwargs):
@@ -132,9 +142,13 @@ class LlamaWrapper(ModelBase):
 
     def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
         # TODO: add a descriptive error for a tool call with bad parameters.
+
+        llama_tools = [_to_llama_tool(t) for t in tools]
+        llama_chat = [_to_llama_chat(m, self.prepare_tool_calls) for m in messages]
+
         response = self.model.chat_with_tools(
-            [_to_llama_tool(t) for t in tools],
-            chat_history=[_to_llama_chat(m) for m in messages],
+            llama_tools,
+            chat_history=llama_chat,
             strict=True,
             **kwargs,
         )

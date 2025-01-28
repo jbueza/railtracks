@@ -34,7 +34,7 @@ class ToolResponse(BaseModel):
     identifier: str = Field(
         description="The identifier attached to this tool response. This should match the identifier of the tool call."
     )
-    name: str = Field(description="The name of the tool that generated this response.")
+    name: str | None = Field(default=None, description="The name of the tool that generated this response.")
     result: AnyStr = Field(description="The result of the tool call.")
 
     def __str__(self):
