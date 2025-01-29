@@ -1,7 +1,8 @@
 from ..nodes import Node
 from ...llm import Tool
 
-from typing import Generic, TypeVar, Dict, Any, Self
+from typing import Generic, TypeVar, Dict, Any
+from typing_extensions import Self
 
 from abc import ABC, abstractmethod
 
