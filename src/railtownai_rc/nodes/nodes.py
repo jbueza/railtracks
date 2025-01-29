@@ -3,6 +3,8 @@ import inspect
 import uuid
 import warnings
 
+from ..llm import Tool
+
 from abc import ABC, abstractmethod
 from functools import wraps
 
@@ -162,6 +164,13 @@ class Node(ABC, Generic[_TOutput]):
         """
         di = {k: str(v) for k, v in self.__dict__.items()}
         return di
+
+    def tool_definition(self) -> Tool:
+        """
+        Automatically generates a tool definition for the node.
+        """
+        raise NotImplementedError("This feature has not been implemented yet.")
+
 
     # TODO come up with a better method to handle this issue.
     def __getstate__(self):

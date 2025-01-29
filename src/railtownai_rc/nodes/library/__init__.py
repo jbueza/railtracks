@@ -1,4 +1,6 @@
 from .function import FunctionNode
+from .terminal_llm import TerminalLLM
+from .tool_call_llm import ToolCallLLM
 
 __all__ = [
     FunctionNode,
