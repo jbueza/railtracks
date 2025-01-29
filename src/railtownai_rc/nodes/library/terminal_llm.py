@@ -16,7 +16,9 @@ class TerminalLLM(Node[str], ABC):
         super().__init__()
         self.model = self.create_model()
         assert len(message_history) >= 1, "The message history should include at least one message"
-        assert all([m.role != "system" for m in message_history]), "You must not include any system messages in the history"
+        assert all(
+            [m.role != "system" for m in message_history]
+        ), "You must not include any system messages in the history"
         self.message_hist = MessageHistory([SystemMessage(self.system_message())])
         self.message_hist += message_history
 
