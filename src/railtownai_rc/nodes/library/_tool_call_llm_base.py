@@ -56,9 +56,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         while True:
             # collect the response from the model
             try:
-                returned_mess = self.model.chat_with_tools(
-                    self.message_hist, tools=self.tools()
-                )
+                returned_mess = self.model.chat_with_tools(self.message_hist, tools=self.tools())
                 self.message_hist.append(returned_mess.message)
             except Exception as e:
                 raise ResetException(node=self, detail=f"{e}")
@@ -78,7 +76,6 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                         [x.data for x in responses],
                     ):
                         self.message_hist.append(ToolMessage(ToolResponse(identifier=r_id, result=str(resp))))
-
 
                 elif returned_mess.message.content is not None:
                     # this means the tool call is finished

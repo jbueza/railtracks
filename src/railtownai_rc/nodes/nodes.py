@@ -171,7 +171,6 @@ class Node(ABC, Generic[_TOutput]):
         """
         raise NotImplementedError("This feature has not been implemented yet.")
 
-
     # TODO come up with a better method to handle this issue.
     def __getstate__(self):
         state = self.__dict__.copy()

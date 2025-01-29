@@ -1,8 +1,7 @@
-
-
 from ._tool_call_llm_base import OutputLessToolCallLLM
 
 from abc import ABC
+
 
 class ToolCallLLM(OutputLessToolCallLLM[str], ABC):
 

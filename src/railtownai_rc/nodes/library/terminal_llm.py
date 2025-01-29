@@ -50,4 +50,3 @@ class TerminalLLM(Node[str], ABC):
             node=self,
             detail="ModelLLM returned an unexpected message type.",
         )
-

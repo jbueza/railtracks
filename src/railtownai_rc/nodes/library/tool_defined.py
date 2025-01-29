@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 
 _T = TypeVar("_T")
 
+
 class ToolDefinedNode(Node[_T], ABC, Generic[_T]):
     @classmethod
     @abstractmethod
