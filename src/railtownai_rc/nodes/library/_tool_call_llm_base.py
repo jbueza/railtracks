@@ -64,7 +64,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 if isinstance(returned_mess.message.content, list):
                     assert all([isinstance(x, ToolCall) for x in returned_mess.message.content])
                     new_nodes = [
-                        NodeFactory(self.tool_name_mapping()[t_c.name], t_c.kwargs)
+                        NodeFactory(self.tool_name_mapping()[t_c.name], t_c.arguments)
                         for t_c in returned_mess.message.content
                     ]
 
