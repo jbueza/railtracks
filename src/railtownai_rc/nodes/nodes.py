@@ -3,7 +3,7 @@ import inspect
 import uuid
 import warnings
 
-from ..llm import Tool
+from ..llm import Tool, Parameter
 
 from abc import ABC, abstractmethod
 from functools import wraps
@@ -16,6 +16,8 @@ from typing import (
     Dict,
     Callable,
     ParamSpec,
+    Any,
+    Self,
 )
 
 
@@ -165,11 +167,34 @@ class Node(ABC, Generic[_TOutput]):
         di = {k: str(v) for k, v in self.__dict__.items()}
         return di
 
-    def tool_definition(self) -> Tool:
-        """
-        Automatically generates a tool definition for the node.
-        """
-        raise NotImplementedError("This feature has not been implemented yet.")
+    @classmethod
+    def tool_info(cls) -> Tool:
+        raise NotImplementedError("You must implement the tool_info method in your node")
+
+        # detail = inspect.getdoc(cls)
+        # if detail is None:
+        #     warnings.warn(f"Node {cls.__name__} does not have a docstring. Using empty string instead.")
+        #     detail = ""
+        #
+        # params = inspect.signature(cls.__init__).parameters
+        #
+        # tool = Tool(
+        #     name=cls.pretty_name(),
+        #     detail=detail,
+        #     parameters=set(
+        #         [
+        #             Parameter(name=k, description=v.annotation, param_type="string")
+        #             for k, v in params.items()
+        #             if k != "self"
+        #         ]
+        #     ),
+        # )
+
+        warnings.warn("Using default tool_info method. You should implement this yourself for best results.")
+
+    @classmethod
+    def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
+        return cls(**tool_parameters)  # noqa
 
     # TODO come up with a better method to handle this issue.
     def __getstate__(self):

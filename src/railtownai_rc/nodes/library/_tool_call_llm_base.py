@@ -1,6 +1,6 @@
 from typing import TypeVar, Generic, Set
 
-from .tool_defined import ToolDefinedNode
+
 from ..nodes import Node, NodeFactory, ResetException
 
 from ...llm import MessageHistory, ModelBase, SystemMessage, Tool, ToolCall, ToolResponse, ToolMessage
@@ -36,7 +36,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     # TODO: add functionality to allow for the input of callables here (not just nodes note they should be mapped to nodes on the backend)
     @classmethod
     @abstractmethod
-    def tool_details(cls) -> Set[ToolDefinedNode]: ...
+    def tool_details(cls) -> Set[Node]: ...
 
     @classmethod
     def tool_name_mapping(cls):
