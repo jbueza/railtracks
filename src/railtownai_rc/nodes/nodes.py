@@ -17,8 +17,9 @@ from typing import (
     Callable,
     ParamSpec,
     Any,
-    Self,
 )
+
+from typing_extensions import Self
 
 
 from ..context import (
@@ -189,8 +190,6 @@ class Node(ABC, Generic[_TOutput]):
         #         ]
         #     ),
         # )
-
-        warnings.warn("Using default tool_info method. You should implement this yourself for best results.")
 
     @classmethod
     def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
