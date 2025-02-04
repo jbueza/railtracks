@@ -22,6 +22,30 @@ def test_simple_handler():
     assert h.last_data == "test"
 
 
+def test_error_throwing_handler():
+    class Handler(Subscriber[str]):
+        def __init__(self):
+            self.last_data = None
+
+        def handle(self, item: str):
+            if item == "test":
+                raise ValueError("test")
+            self.last_data = item
+
+    h = Handler()
+    ds = DataStream[str](subscribers=[h])
+    ds.publish("test")
+    ds.stop()
+    assert h.last_data is None
+
+    h = Handler()
+    ds = DataStream[str](subscribers=[h])
+    ds.publish("test")
+    ds.publish("test2")
+    ds.stop()
+    assert h.last_data == "test2"
+
+
 def test_multiple_data():
     class Handler(Subscriber[str]):
         def __init__(self):

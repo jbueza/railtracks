@@ -15,6 +15,11 @@ def test_single_stamper():
     assert stamp.identifier == message
     assert t <= stamp.time <= time.time()
 
+    logs = sm.step_logs
+    assert len(logs) == 1
+    assert logs[0] == [message]
+    assert sm.all_stamps[0].identifier == message
+
 
 def test_multi_stamp():
     sm = StampManager()

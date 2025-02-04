@@ -47,7 +47,7 @@ class StampManager:
     def __init__(self):
         """Creates a new instance of a `StampManager` object. It defaults the current step to 0."""
         self._step = 0
-        self._stamp_lock = self.create_lock()
+        self._stamp_lock = self._create_lock()
         self._step_logs: Dict[int, List[str]] = {self._step: []}
         self._stamps = []
 
@@ -102,7 +102,10 @@ class StampManager:
         return new_stamp
 
     @classmethod
-    def create_lock(cls):
+    def _create_lock(cls):
+        """
+        Creates a new lock object
+        """
         return threading.Lock()
 
     @property
@@ -111,15 +114,13 @@ class StampManager:
         return deepcopy(self._step_logs)
 
     @property
-    def all_stamps(self, ordered=True):
+    def all_stamps(self):
         """Returns a list of the all the stamps that have been created in the system."""
-        if ordered:
-            return deepcopy(sorted(self._stamps))
-        return deepcopy(self._stamps)
+        return deepcopy(sorted(self._stamps))
 
     def __getstate__(self):
         return {k: v for k, v in self.__dict__.items() if k != "_stamp_lock"}
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self._stamp_lock = self.create_lock()
+        self._stamp_lock = self._create_lock()
