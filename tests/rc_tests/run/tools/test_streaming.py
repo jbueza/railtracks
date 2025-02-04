@@ -22,6 +22,22 @@ def test_simple_handler():
     assert h.last_data == "test"
 
 
+def test_simple_handler_add_sub():
+    class Handler(Subscriber[str]):
+        def __init__(self):
+            self.last_data = None
+
+        def handle(self, item: str):
+            self.last_data = item
+
+    h = Handler()
+    ds = DataStream[str](subscribers=[])
+    ds.add_sub(h)
+    ds.publish("test")
+    ds.stop()
+    assert h.last_data == "test"
+
+
 def test_error_throwing_handler():
     class Handler(Subscriber[str]):
         def __init__(self):

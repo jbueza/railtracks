@@ -2,7 +2,9 @@ import pytest
 
 import time
 
-from railtownai_rc.run.tools.profiling import StampManager
+from railtownai_rc.run.tools.profiling import StampManager, Stamp
+
+from src.railtownai_rc.run.tools.profiling import time_diff
 
 
 def test_single_stamper():
@@ -121,3 +123,28 @@ def test_combo():
     assert uno.time <= dos.time
     assert dos.time <= singleton.time
     assert singleton.time <= tres.time
+
+
+def test_save_state():
+    sm = StampManager()
+
+    stamp_gen_1 = sm.stamp_creator()
+
+    uno = stamp_gen_1("1")
+
+    state = sm.__getstate__()
+    assert "_stamp_lock" not in state
+    sm2 = StampManager()
+    sm2.__setstate__(state)
+
+    duo = sm2.create_stamp("2")
+
+    assert duo.step == 1
+    assert uno.step == 0
+
+
+def test_time_diff():
+    one_stamp = Stamp(0, 0, "1")
+    two_stamp = Stamp(1, 0, "2")
+
+    assert time_diff(one_stamp, two_stamp) == 1

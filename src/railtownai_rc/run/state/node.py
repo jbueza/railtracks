@@ -60,7 +60,6 @@ class NodeForest(Forest[LinkedNode]):
     def __getitem__(self, item):
         # note the node in item is mutable so we have to preform a deep copy for the sake of a safety.
         node = self._heap[item]
-        node.node
         try:
             return deepcopy(node)
         except Exception as e:

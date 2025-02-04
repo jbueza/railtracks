@@ -46,20 +46,6 @@ class NodeOutput(Generic[_TOutput]):
         self._data = data
 
 
-def check_flag(flag: bool, failure_message: str):
-    def wrapper_decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            if flag:
-                return func(*args, **kwargs)
-            else:
-                warnings.warn(failure_message)
-
-        return wrapper
-
-    return wrapper_decorator
-
-
 _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
