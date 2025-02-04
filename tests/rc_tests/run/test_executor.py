@@ -30,6 +30,11 @@ def test_no_deadlock():
 
     assert len(finished_result.answer) == num_calls * parallel_calls
     assert all([0 < x < 1 for x in finished_result.answer])
+    assert {x.step for x in finished_result.all_stamps} == {
+        i for i in range(num_calls * parallel_calls + num_calls + 2)
+    }
+
+    assert len(finished_result.all_stamps) == 3 * num_calls * parallel_calls + 2
 
 
 def test_small_no_deadlock():
