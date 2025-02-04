@@ -21,10 +21,10 @@ def test_simple_one_param_function():
 
     pydantic_type = Tool.convert_params_to_model("test_func", {p})
 
-    assert "test" in pydantic_type.model_json_schema()['properties']
+    assert "test" in pydantic_type.model_json_schema()["properties"]
 
     t = Tool(name="test_func", detail="test", parameters={p})
     assert t.detail == "test"
     assert t.name == "test_func"
-    assert t.parameters == pydantic_type
+    assert t.parameters.model_json_schema() == pydantic_type.model_json_schema()
     assert str(t) == f"Tool(name=test_func, detail=test, parameters={pydantic_type.model_json_schema()})"
