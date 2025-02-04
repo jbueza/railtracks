@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Callable, Any, Type
+from typing import List, Callable, Any, Type, Dict
 
 from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import FunctionTool, ToolMetadata
@@ -19,7 +19,7 @@ from ..tools import Tool
 from pydantic import BaseModel, ValidationError
 
 
-def _to_llama_chat(message: Message, tool_call_fn: Callable[[ToolCall], Any]) -> ChatMessage:
+def _to_llama_chat(message: Message, tool_call_fn: Callable[[ToolCall], Dict]) -> ChatMessage:
     """
     Converts the given `message` to a llama chat message.
 
@@ -31,7 +31,7 @@ def _to_llama_chat(message: Message, tool_call_fn: Callable[[ToolCall], Any]) ->
         return ChatMessage(
             content=message.content, role=message.role, additional_kwargs={"tool_call_id": message.identifier}
         )
-
+    # only time this is true is if tool calls
     if isinstance(message.content, list):
         assert all(isinstance(t_c, ToolCall) for t_c in message.content)
         return ChatMessage(

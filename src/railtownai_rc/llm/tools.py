@@ -1,11 +1,18 @@
-from typing import List, Callable, Optional, Type, Set
-from pydantic import BaseModel
+from copy import deepcopy
+from typing import List, Callable, Optional, Type, Set, Literal
+from pydantic import BaseModel, Field, create_model
 from typing_extensions import Self
 
 
 class Parameter:
 
-    def __init__(self, name: str, param_type: str, description: str = "", required: bool = True):
+    def __init__(
+        self,
+        name: str,
+        param_type: Literal["string", "integer", "float", "boolean", "array", "object"],
+        description: str = "",
+        required: bool = True,
+    ):
         """
         Creates a new instance of a parameter object.
 
@@ -39,6 +46,19 @@ class Parameter:
     def __str__(self):
         return f"Parameter(name={self._name}, type={self._param_type}, description={self._description}, required={self._required})"
 
+    @classmethod
+    def type_mapping(cls):
+        return deepcopy(
+            {
+                "string": str,
+                "integer": int,
+                "float": float,
+                "boolean": bool,
+                "array": list,
+                "object": dict,
+            }
+        )
+
 
 class Tool:
     """
@@ -58,28 +78,48 @@ class Tool:
             detail: A detailed description of the tool.
             parameters: The parameters attached to this tool. If none, then there is no parameters for this model.
         """
-        # Note becuase of the union type we need to handle when they define paramters using the more native typuing.
+        # Note because of the union type we need to handle when they define parameters using the more native typing.
         if isinstance(parameters, set):
-            self._parameters = self.convert_params_to_model(parameters)
+            self._parameters = self.convert_params_to_model(name, parameters)
         else:
             self._parameters = parameters
 
         self._name = name
         self._detail = detail
-        
 
-    def convert_params_to_model(cls, parameters: Set[Parameter]) -> Type[BaseModel]:
+    @classmethod
+    def convert_params_to_model(cls, function_name: str, parameters: Set[Parameter]) -> Type[BaseModel]:
         """
         Converts a set of parameters into a Pydantic model.
 
         Args:
+            function_name: The name of the function you are converting the parameters for.
             parameters: The set of parameters to convert into a Pydantic model.
 
         Returns:
             A Pydantic model representing the parameters.
         """
-        # TODO complete this mess. 
-        return BaseModel
+
+        field_definitions = {}
+
+        for param in parameters:
+            try:
+                python_type = Parameter.type_mapping().get(param.param_type.lower())
+            except KeyError:
+                raise ValueError(f"Unknown parameter type: {param.param_type} for parameter: {param.name}")
+
+            if not param.required:
+                python_type = Optional[python_type]
+
+            # ... in pydantic means no default value
+            field_info = Field(
+                description=param.description,
+                default=None if not param.required else ...,
+            )
+
+            field_definitions[param.name] = (python_type, field_info)
+
+        return create_model(function_name, **field_definitions)
 
     @property
     def name(self):

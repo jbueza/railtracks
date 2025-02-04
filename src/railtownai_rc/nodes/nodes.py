@@ -3,6 +3,8 @@ import inspect
 import uuid
 import warnings
 
+from ..llm import Tool, Parameter
+
 from abc import ABC, abstractmethod
 from functools import wraps
 
@@ -14,7 +16,10 @@ from typing import (
     Dict,
     Callable,
     ParamSpec,
+    Any,
 )
+
+from typing_extensions import Self
 
 
 from ..context import (
@@ -149,6 +154,33 @@ class Node(ABC, Generic[_TOutput]):
         di = {k: str(v) for k, v in self.__dict__.items()}
         return di
 
+    @classmethod
+    def tool_info(cls) -> Tool:
+        raise NotImplementedError("You must implement the tool_info method in your node")
+
+        # detail = inspect.getdoc(cls)
+        # if detail is None:
+        #     warnings.warn(f"Node {cls.__name__} does not have a docstring. Using empty string instead.")
+        #     detail = ""
+        #
+        # params = inspect.signature(cls.__init__).parameters
+        #
+        # tool = Tool(
+        #     name=cls.pretty_name(),
+        #     detail=detail,
+        #     parameters=set(
+        #         [
+        #             Parameter(name=k, description=v.annotation, param_type="string")
+        #             for k, v in params.items()
+        #             if k != "self"
+        #         ]
+        #     ),
+        # )
+
+    @classmethod
+    def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
+        return cls(**tool_parameters)  # noqa
+
     # TODO come up with a better method to handle this issue.
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -159,3 +191,92 @@ class Node(ABC, Generic[_TOutput]):
         self.__dict__.update(state)
         self.data_streamer = self.__default_data_streamer
         self.is_filled = False
+
+
+class NodeException(Exception):
+    """
+    An internal exception designed to be thrown in the inside of a node. The many subtypes of this node are the one
+    that should be thrown in the node.
+    """
+
+    def __init__(
+        self,
+        node: Node,
+        detail: str,
+    ):
+        """Creates a new instance of an exception thrown inside a node
+
+        Args:
+            node (Node): The node that caused the error
+            detail (str): A detailed message about the error
+        """
+        message = f"Error in {node.pretty_name()}, {detail}"
+
+        self.node = node
+        self.detail = detail
+
+        super().__init__(message)
+
+
+class CompletionException(NodeException, Generic[_TOutput]):
+
+    def __init__(
+        self,
+        node: Node[_TOutput],
+        detail: str,
+        completion_protocol: _TOutput,
+    ):
+        """
+        The lowest level of severity of an error encountered during a node.
+
+        It is an error which has an accompanied value which should be treated as the completion of the node.
+
+        Example:
+                class APICall(Node):
+                    ...
+                    def invoke(self, data_streamer: DataStream):
+                        ...
+                        if response.status_code == 200:
+                            return str(response.json())
+                        else:
+                            raise CompletionException(self, "API call failed", "Unable to collect any information")
+
+        Args:
+            node: The node that caused the error
+            detail: A detailed message about the error
+            completion_protocol: The value that should be treated as the completion of the node
+        """
+        self.completion_protocol = completion_protocol
+        super().__init__(node, detail)
+
+
+# Note in the below 2 exceptions we implement the __init__ method so we can provide explicit docstring for users to
+#  interact with.
+class FatalException(NodeException):
+    def __init__(self, node, detail):
+        """
+        The highest level of severity of an error encountered during a node. When this error is thrown, the entire
+        execution of the graph will end.
+
+        Args:
+            node: The node that caused the error
+            detail: A detailed description of the error.
+        """
+
+        super().__init__(node, detail)
+
+
+class ResetException(NodeException):
+    def __init__(self, node, detail):
+        """
+        The middle level of a severity of an error encountered during a node. When this error is thrown, the parent that
+        called this node into action will reset and try again. This approach is called "ScorchedEarth".
+
+        This exception is designed to be thrown when errors happen that were unexpected but do not indicate a fatal
+        error in the system.
+
+        Args:
+            node: The node that caused the error
+            detail: A detailed description of the error.
+        """
+        super().__init__(node, detail)
