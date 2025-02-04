@@ -1,5 +1,5 @@
 import pytest
-from railtownai_rc.llm import UserMessage
+from railtownai_rc.llm import UserMessage, ToolMessage, ToolResponse
 
 
 def test_user_message():
@@ -15,3 +15,10 @@ def test_bad_input_message():
         UserMessage(1)  # noqa
 
     assert e.type == TypeError
+
+
+def test_create_tool_message():
+    message = ToolMessage(ToolResponse(identifier="abc", result="Hello world"))
+    assert message.content == "Hello world"
+    assert message.role == "tool"
+    assert message.identifier == "abc"

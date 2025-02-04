@@ -15,8 +15,6 @@ from ..nodes import (
 
 TOutput = TypeVar("_TOutput")
 
-# TODO migrate the following classes to the new system
-
 
 class FunctionNode(Node[TOutput]):
     """

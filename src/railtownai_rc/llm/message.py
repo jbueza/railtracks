@@ -1,9 +1,7 @@
 from enum import Enum
 from typing import Literal, Generic, TypeVar
 
-from .content import Content, ToolResponse
-
-
+from .content import Content, ToolResponse, stringify_content
 
 _T = TypeVar("_T", bound=Content)
 
@@ -59,7 +57,7 @@ class Message(Generic[_T]):
         return self._role
 
     def __str__(self):
-        return f"{self.role}: {self.content}"
+        return f"{self.role}: {stringify_content(self.content)}"
 
     def __repr__(self):
         return str(self)

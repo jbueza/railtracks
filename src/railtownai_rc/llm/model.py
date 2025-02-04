@@ -18,17 +18,13 @@ from abc import ABC, abstractmethod
 
 class ModelBase(ABC):
     @abstractmethod
-    def chat(self, messages: MessageHistory, **kwargs) -> Response:
-        pass
+    def chat(self, messages: MessageHistory, **kwargs) -> Response: ...
 
     @abstractmethod
-    def structured(self, messages: MessageHistory, schema: BaseModel, **kwargs) -> Response:
-        pass
+    def structured(self, messages: MessageHistory, schema: BaseModel, **kwargs) -> Response: ...
 
     @abstractmethod
-    def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
-        pass
+    def stream_chat(self, messages: MessageHistory, **kwargs) -> Response: ...
 
     @abstractmethod
-    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs) -> Response:
-        pass
+    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs) -> Response: ...

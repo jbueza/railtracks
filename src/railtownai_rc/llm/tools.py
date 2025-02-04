@@ -143,8 +143,6 @@ class Tool:
         return f"Tool(name={self._name}, detail={self._detail}, parameters={self._parameters.model_json_schema()})"
 
     @classmethod
-    def from_function(cls, function: Callable) -> Self:
-        # TODO: complete the specialized logic. See github issue.
-        pass
+    def from_function(cls, function: Callable) -> Self: ...
 
-    # TODO: add a method to convert a node into a tool.
+    # TODO: complete the specialized logic. See github issue.
