@@ -17,7 +17,6 @@ class TerminalLLM(Node[str], ABC):
         self.model = model
         self.message_hist = message_history
 
-
     def invoke(self) -> str:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
 
