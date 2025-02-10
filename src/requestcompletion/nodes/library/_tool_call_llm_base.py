@@ -18,19 +18,11 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     def __init__(
         self,
         message_history: MessageHistory,
+        model: ModelBase,
     ):
         super().__init__()
-        self.model = self.create_model()
-        self.message_hist = MessageHistory([SystemMessage(self.system_message())])
-        self.message_hist += message_history
-
-    @classmethod
-    @abstractmethod
-    def system_message(cls) -> str: ...
-
-    @classmethod
-    @abstractmethod
-    def create_model(cls) -> ModelBase: ...
+        self.model = model
+        self.message_hist = message_history
 
     # TODO: add functionality to allow for the input of callables here (not just nodes note they should be mapped to nodes on the backend)
     @classmethod
