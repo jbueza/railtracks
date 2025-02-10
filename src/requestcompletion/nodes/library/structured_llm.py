@@ -4,8 +4,7 @@ from ...llm import MessageHistory, ModelBase, SystemMessage
 from ..nodes import Node, ResetException
 
 from pydantic import BaseModel
-from abc import ABC
-
+from abc import ABC, abstractmethod
 
 _TOutput = TypeVar("_TOutput", bound=BaseModel)
 
@@ -14,6 +13,7 @@ class StructuredLLM(Node[_TOutput], ABC):
 
     # TODO: allow for more general (non-pydantic) outputs
     @classmethod
+    @abstractmethod
     def output_model(cls) -> Type[_TOutput]: ...
 
     def __init__(self, message_history: MessageHistory, model: ModelBase):
