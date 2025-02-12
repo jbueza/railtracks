@@ -1,6 +1,8 @@
-from typing import TypeVar, Generic, Set, Type
+from functools import partial
+from typing import TypeVar, Generic, Set, Type, Dict, Any
 
-from ..nodes import Node, NodeFactory, ResetException
+
+from ..nodes import Node, NodeFactory, ResetException, FatalException
 
 from ...llm import MessageHistory, ModelBase, SystemMessage, Tool, ToolCall, ToolResponse, ToolMessage
 
@@ -24,18 +26,25 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self.model = model
         self.message_hist = message_history
 
-    # TODO: add functionality to allow for the input of callables here (not just nodes note they should be mapped to nodes on the backend)
-    @classmethod
+
     @abstractmethod
-    def tool_details(cls) -> Set[Type[Node]]: ...
+    def tool_details(self) -> Set[Type[Node]]: ...
 
-    @classmethod
-    def tool_name_mapping(cls):
-        return {tdn.tool_info().name: tdn.prepare_tool for tdn in cls.tool_details()}
+    def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
+        """
+        A function which creates a new instance of a node from a tool name and arguments.
 
-    @classmethod
-    def tools(cls):
-        return [x.tool_info() for x in cls.tool_details()]
+        This function may be overwritten to fit the needs of the given node as needed.
+        """
+        node = [x for x in self.tool_details() if x.tool_info().name == tool_name]
+        if node is []:
+            raise ResetException(node=self, detail=f"Tool {tool_name} cannot be create a node")
+        if len(node) > 1:
+            raise FatalException(node=self, detail=f"Tool {tool_name} has multiple nodes, this is not allowed.")
+        return node[0].prepare_tool(arguments)
+
+    def tools(self):
+        return [x.tool_info() for x in self.tool_details()]
 
     @abstractmethod
     def return_output(self) -> _T: ...
@@ -56,7 +65,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 if isinstance(returned_mess.message.content, list):
                     assert all([isinstance(x, ToolCall) for x in returned_mess.message.content])
                     new_nodes = [
-                        NodeFactory(self.tool_name_mapping()[t_c.name], t_c.arguments)
+                        NodeFactory(partial(self.create_node, tool_name=t_c.name), t_c.arguments)
                         for t_c in returned_mess.message.content
                     ]
 
