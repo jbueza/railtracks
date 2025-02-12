@@ -26,9 +26,8 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self.model = model
         self.message_hist = message_history
 
-
     @abstractmethod
-    def tool_details(self) -> Set[Type[Node]]: ...
+    def connected_nodes(self) -> Set[Type[Node]]: ...
 
     def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
         """
@@ -36,7 +35,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
         This function may be overwritten to fit the needs of the given node as needed.
         """
-        node = [x for x in self.tool_details() if x.tool_info().name == tool_name]
+        node = [x for x in self.connected_nodes() if x.tool_info().name == tool_name]
         if node is []:
             raise ResetException(node=self, detail=f"Tool {tool_name} cannot be create a node")
         if len(node) > 1:
@@ -44,7 +43,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         return node[0].prepare_tool(arguments)
 
     def tools(self):
-        return [x.tool_info() for x in self.tool_details()]
+        return [x.tool_info() for x in self.connected_nodes()]
 
     @abstractmethod
     def return_output(self) -> _T: ...

@@ -171,7 +171,6 @@ class Node(ABC, Generic[_TOutput]):
     @classmethod
     def tool_info(cls) -> Tool:
         raise NotImplementedError("You must implement the tool_info method in your node")
-
         # detail = inspect.getdoc(cls)
         # if detail is None:
         #     warnings.warn(f"Node {cls.__name__} does not have a docstring. Using empty string instead.")
@@ -193,6 +192,11 @@ class Node(ABC, Generic[_TOutput]):
 
     @classmethod
     def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
+        """
+        This method creates a new instance of the node by unpacking the tool parameters.
+
+        If you would like any custom behavior please override this method.
+        """
         return cls(**tool_parameters)  # noqa
 
     # TODO come up with a better method to handle this issue.
