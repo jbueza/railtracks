@@ -39,7 +39,10 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         if node is []:
             raise ResetException(node=self, detail=f"Tool {tool_name} cannot be create a node")
         if len(node) > 1:
-            raise FatalException(node=self, detail=f"Tool {tool_name} has multiple nodes, this is not allowed.")
+            raise FatalException(
+                node=self,
+                detail=f"Tool {tool_name} has multiple nodes, this is not allowed. Current Node include {[x.tool_info().name for x in self.connected_nodes()]}",
+            )
         return node[0].prepare_tool(arguments)
 
     def tools(self):
@@ -64,7 +67,9 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 if isinstance(returned_mess.message.content, list):
                     assert all([isinstance(x, ToolCall) for x in returned_mess.message.content])
                     new_nodes = [
-                        NodeFactory(partial(self.create_node, tool_name=t_c.name), t_c.arguments)
+                        NodeFactory(
+                            lambda arguments: self.create_node(tool_name=t_c.name, arguments=arguments), t_c.arguments
+                        )
                         for t_c in returned_mess.message.content
                     ]
 
