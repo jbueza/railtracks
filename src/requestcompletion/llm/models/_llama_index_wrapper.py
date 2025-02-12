@@ -152,6 +152,10 @@ class LlamaWrapper(ModelBase):
     def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
         # TODO: add a descriptive error for a tool call with bad parameters.
 
+        # default to parallel tool calling.
+        if "parallel_tool_calls" not in kwargs:
+            kwargs["parallel_tool_calls"] = True
+
         llama_tools = [_to_llama_tool(t) for t in tools]
         llama_chat = [_to_llama_chat(m, self.prepare_tool_calls) for m in messages]
 
