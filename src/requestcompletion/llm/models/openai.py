@@ -22,7 +22,11 @@ class OpenAILLM(LlamaWrapper):
             "function": {"arguments": json.dumps(tool.arguments), "name": tool.name},
             "type": "function",
         }
-    
+
     def chat_with_tools(self, messages, tools, **kwargs):
         kwargs["strict"] = True
+
+        # we want the default behavior to be parralelized.
+        if "parallel_tool_calls" not in kwargs:
+            kwargs["parallel_tool_calls"] = True
         return super().chat_with_tools(messages, tools, **kwargs)
