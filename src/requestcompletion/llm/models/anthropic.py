@@ -1,10 +1,11 @@
 import json
+from typing import List
 
 from ._llama_index_wrapper import LlamaWrapper
 from llama_index.core import Settings
 from llama_index.llms.anthropic import Anthropic
 
-from .. import ToolCall
+from .. import ToolCall, MessageHistory, Tool
 
 
 class AnthropicLLM(LlamaWrapper):
@@ -24,3 +25,10 @@ class AnthropicLLM(LlamaWrapper):
     @classmethod
     def model_type(cls) -> str:
         return "Anthropic"
+
+    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
+        # default to parallel tool calling. Noting the specific keyword that is used here.
+        if "allow_parallel_tool_calls" not in kwargs:
+            kwargs["allow_parallel_tool_calls"] = True
+
+        super().chat(messages, tools=tools, **kwargs)
