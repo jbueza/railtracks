@@ -1,5 +1,4 @@
 from __future__ import annotations
-import inspect
 import uuid
 import warnings
 
@@ -22,13 +21,8 @@ from typing import (
 from typing_extensions import Self
 
 
-from ..context import (
-    BaseContext,
-    EmptyContext,
-)
 
 _TOutput = TypeVar("_TOutput")
-_TContext = TypeVar("_TContext", bound=BaseContext)
 
 
 # TODO think through if there is a better way to type this.
@@ -69,96 +63,74 @@ _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
 
-# this has to be class otherwise the typing can break. If you can figure our some simpler structure which allows for
-# this to be types be my guest to replace to it.
-class NodeFactory(Generic[_TNode]):
-    def __init__(self, new_node: Callable[_P, _TNode], *args: _P.args, **kwargs: _P.kwargs):
-        self.new_node = new_node
-        self.args = args
-        self.kwargs = kwargs
-
-    def create(
-        self,
-        context: BaseContext,
-        invoke_node: Callable[[Node, List[Node]], List[NodeOutput]],
-        data_streamer: Callable[[str], None],
-    ):
-        new_node = self.new_node(*self.args, **self.kwargs)
-        new_node.fill_details(context, invoke_node, data_streamer)
-        return new_node
-
 
 # TODO add generic for required context object
 class Node(ABC, Generic[_TOutput]):
     """An abstract base class which defines some of the more basic parameters of the nodes"""
 
-    @classmethod
-    def __default_invoke_node(cls, parent_node: Node, new_nodes: List[Node]) -> List[NodeOutput]:
-        # TODO write a better warning message here
-        warnings.warn("You are using the default invoke node. It will not parralelize things")
-
-        return [NodeOutput(type(n), n.invoke()) for n in new_nodes]
-
-    @classmethod
-    def __default_data_streamer(cls, data: str) -> None:
-        warnings.warn("You are using the default data streamer. It will do nothing.")
+    def __default_data_streamer(self, data: str):
         pass
 
-    @classmethod
-    def __default_context(cls) -> BaseContext:
-        warnings.warn("You are using the default context. It will be empty.")
-        return EmptyContext()
+    def __null_backend_connection(self, *args, **kwargs):
+        raise FatalException(self, "You cannot create nodes when a backend parameters have not been injected. Please use the `run` method instead.")
 
     def __init__(
         self,
     ):
-        # TODO add type checking here.
-        # if no streamer is provided it will default to the null function. n
-        self.data_streamer = self.__default_data_streamer
-        self.context = self.__default_context()
-        self._invoke_node = self.__default_invoke_node
-        self.is_filled = False
+        # we need to set the default values for the methods. These methods are only used if some calls `invoke` without
+        # injecting the backend details
+        self.data_streamer: Callable[[str], None] = self.__default_data_streamer
+        self._invoke_node: Callable[[Node, List[str]], List[NodeOutput]] = self.__null_backend_connection
+        self._create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str] = self.__null_backend_connection
+
+        # each fresh node will have a generated uuid that identifies it.
         self.uuid = str(uuid.uuid4())
 
-    def fill_details(
+    def inject(
         self,
-        context: _TContext,
-        invoke_node: Callable[[Node, List[Node]], List[NodeOutput]],
         data_streamer: Callable[[str], None],
+        create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
+        invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
     ):
-        self.context = context
         self.data_streamer = data_streamer
         self._invoke_node = invoke_node
-        self.is_filled = True
+        self._create_node = create_node
 
-    def call_node(self, new_node: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs) -> NodeOutput:
+    def create(self, new_node: Callable[_P, Node] & Node, *args: _P.args, **kwargs: _P.kwargs):
         """
-        A special helper method for when a single node is called. It is a convenience method
+        Creates a node within the RC node framework with the provided arguments.
+
+        Note that you must use this method to create a new node. If you try to create and call a node directly it will
+        not use the rest of the system.
 
         Args:
-            new_node: The type of the node you would like to create.
-            *args:
-            **kwargs:
+            new_node: The node you would like to create.
+            *args: The arguments to pass to the node.
+            **kwargs: The keyword arguments to pass to the node
 
         Returns:
-
+            An identifier for the node that was created.
         """
-        return self._invoke_node(self, [new_node(*args, **kwargs)])[0]
+        return self._create_node(new_node, *args, **kwargs)
 
-    # TODO: figure out a better way to type this.
-    def call_nodes(self, nodes: List[NodeFactory]):
-        ## TODO: extremely important documentation here.
-        return self._invoke_node(
-            self,
-            [node_type.create(self.context, self._invoke_node, self.data_streamer) for node_type in nodes],
-        )
+    def complete(self, request_id: List[str]) -> List[NodeOutput]:
+        """
+        Calls the provided nodes and returns the outputs.
+        """
+        return self._invoke_node(self, request_id)
 
     @classmethod
     @abstractmethod
-    def pretty_name(cls) -> str: ...
+    def pretty_name(cls) -> str:
+        """
+        Returns a pretty name for the node. This name is used to identify the node type of the system.
+        """
 
     @abstractmethod
     def invoke(self) -> _TOutput:
+        """
+        The main method that runs when this node is called
+        """
         pass
 
     def state_details(self) -> Dict[str, str]:
@@ -170,6 +142,11 @@ class Node(ABC, Generic[_TOutput]):
 
     @classmethod
     def tool_info(cls) -> Tool:
+        """
+        A method used to provide information about the node in the form of a tool definition.
+        This is commonly used with LLMs Tool Calling tooling.
+        """
+        # TODO: finish implementing this method
         raise NotImplementedError("You must implement the tool_info method in your node")
         # detail = inspect.getdoc(cls)
         # if detail is None:
@@ -199,16 +176,13 @@ class Node(ABC, Generic[_TOutput]):
         """
         return cls(**tool_parameters)  # noqa
 
-    # TODO come up with a better method to handle this issue.
+    # TODO come up with a much more intelligent state saving approach.
     def __getstate__(self):
         state = self.__dict__.copy()
-        del state["data_streamer"]
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.data_streamer = self.__default_data_streamer
-        self.is_filled = False
 
 
 class NodeException(Exception):

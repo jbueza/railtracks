@@ -6,8 +6,7 @@ import uuid
 from collections import deque
 
 
-from typing import TypeVar, Generator, List, Callable, Tuple
-
+from typing import TypeVar, Generator, List, Callable, Tuple, ParamSpec
 
 from ...exceptions import (
     NodeException,
@@ -18,6 +17,7 @@ from ...exceptions import (
 )
 
 from ...nodes import Node, NodeOutput
+
 
 
 from ...context import BaseContext
@@ -35,6 +35,42 @@ import logging
 
 _TContext = TypeVar("_TContext", bound=BaseContext)
 _TOutput = TypeVar("_TOutput")
+_P = ParamSpec("_P")
+
+
+class NodeRegistry:
+    def __init__(
+        self,
+        data_streamer_hook: Callable[[str], None],
+        create_node_hook: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
+        invoke_node_hook: Callable[[Node, List[str]], List[NodeOutput]],
+    ):
+        self.data_streamer_hook = data_streamer_hook
+        self.create_node_hook = create_node_hook
+        self.invoke_node_hook = invoke_node_hook
+
+        self.registry_lock = threading.Lock()
+        self.registry = set()
+
+    def register(self, node: Node):
+        """
+        Registers the given node with the registry. This will attach the hooks to the node so it will interact with
+        the provided methods instead of the default handlers.
+
+        Note the object will also track the uuid's of nodes that have been registered to prevent double registration.
+        """
+        with self.registry_lock:
+            if node.uuid in self.registry:
+                return
+
+        node.inject(
+            self.data_streamer_hook,
+            self.create_node_hook,
+            self.invoke_node_hook,
+        )
+
+        with self.registry_lock:
+            self.registry.add(node.uuid)
 
 
 class RCState:
@@ -63,6 +99,13 @@ class RCState:
 
         self.subscriber = execution_info.subscriber
         self._context = execution_info.context
+
+        self.exception_history = deque[Exception](execution_info.exception_history)
+
+        self.executor_config = execution_info.executor_config
+
+        ## These are the elements which need to be created as new objects every time. They should not serialized.
+
         self._data_streamer = DataStream(
             subscribers=[
                 (
@@ -73,12 +116,12 @@ class RCState:
             ]
         )
 
+        self._registry: NodeRegistry | None = None
+
         self._answer = None
 
-        self.exception_history = deque[Exception](execution_info.exception_history)
         # each new instance of a state object should have its own logger.
         self.logger = logging.getLogger(__name__)
-        self.executor_config = execution_info.executor_config
 
     def add_stamp(self, message: str):
         """
@@ -115,12 +158,17 @@ class RCState:
             None
 
         """
+
         self.execute(start_node)
 
     def execute(self, start_node: Node):
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.executor_config.workers) as executor:
-            # we insert the details in the start node and all the nodes it creates will automically insert the details.
-
+            # firstly we have to create a registry so new nodes will be created with the correct hooks.
+            self._registry = NodeRegistry(
+                data_streamer_hook=self._data_streamer.publish,
+                create_node_hook=self._create_node,  # noqa: not sure?
+                invoke_node_hook=lambda parent, children: self.call_nodes(parent, children, executor),
+            )
             # TODO come up with algorithm to determine the start point.
             future = executor.submit(self._run_node, start_node, executor)
 
@@ -172,7 +220,7 @@ class RCState:
     def call_nodes(
         self,
         parent_node: Node,
-        nodes: List[Node],
+        nodes: List[str],
         executor: concurrent.futures.ThreadPoolExecutor,
     ) -> List[NodeOutput]:
         """Creates a simple function which can be used to call the nodes once they have been called."""
@@ -190,14 +238,6 @@ class RCState:
         and spawn new processes to handle the new nodes.scp
         """
         try:
-            # just in time filling of the node details. This is an imperfect solution to the fact that the data_streamer
-            #  is not pickleable.
-            node.fill_details(
-                context=self._context,
-                invoke_node=lambda parent_node, new_nodes: self.call_nodes(parent_node, new_nodes, executor),
-                data_streamer=self._data_streamer.publish,
-            )
-            assert node.is_filled, "any node run should be filled with backend details. "
             return node.invoke()
 
         except NodeException as e:
@@ -213,10 +253,35 @@ class RCState:
             # now that we have reset all the state we can go back and this node again.
             return self._run_node(next_node, executor)
 
+    def _create_node(self, node_creator: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs) -> str:
+        """
+        Creates a node using the creator and then registers it with the registry. This will allow the register method to
+        act on the node.
+
+        Note this is the only way you can add node to the system.
+
+        Args:
+            node_creator: The function that will create the node
+            *args: The arguments to pass to the node creator
+            **kwargs: The keyword arguments to pass to the node
+
+        Returns:
+            A NodeTemplate object containing the node that was created
+        """
+        # 1. create the node using the provided parameters.
+        node = node_creator(*args, **kwargs)
+
+        # 2. Attach the registry components (i.e. hook for node creation and node invocation)
+        self._registry.register(node)
+        assert node.uuid in self._node_heap, f"Node {node.uuid} was not added to the heap."
+        self._node_heap.update(node, self._stamper.create_stamp(f"Creating {node.pretty_name()}"))
+        # only returns after the node was successfully added.
+        return node.uuid
+
     def _handle_call_nodes(
         self,
         parent_node: Node,
-        nodes: List[Node],
+        node_ids: List[str],
         executor: concurrent.futures.ThreadPoolExecutor,
     ) -> List[NodeOutput]:
         """
@@ -227,7 +292,7 @@ class RCState:
 
         Args:
             parent_node: The node that is calling the other nodes.
-            nodes: The list of nodes
+            node_ids: The list of nodes, you would like to call
             executor: A executor used for parallelization of the requests.
 
         Returns:
@@ -235,9 +300,9 @@ class RCState:
 
         """
         stamp_gen = self._stamper.stamp_creator()
-        request_ids = self._create_new_request_set(parent_node, nodes, stamp_gen, executor)
+        request_ids = self._create_new_request_set(parent_node, node_ids, stamp_gen, executor)
 
-        outputs = self._run_requests(request_ids, nodes, executor)
+        outputs = self._run_requests(request_ids, executor)
         return outputs
 
     def _preform_scorched_earth(self, failed_request_id: str):
@@ -279,10 +344,14 @@ class RCState:
 
         return self._node_heap[new_node_id].node
 
+
+    # Note it may seem weird to have to pass in the full state of the parent_node.
+    #  this is going to be relevant when do more advanced automated checkpointing and recovery allowing us to restart
+    #  etc.
     def _create_new_request_set(
         self,
         parent_node: Node,
-        children: List[Node],
+        children: List[str],
         stamp_gen: Callable[[str], Stamp],
         executor: concurrent.futures.ThreadPoolExecutor,
     ) -> List[str]:
@@ -291,39 +360,28 @@ class RCState:
         parent node to each of the children nodes. They will all share the stamp and will have a descriptive message
         attached to each of them
 
+        Note that all the identifiers for the
+
         Args:
             parent_node: The node that is calling the other nodes.
-            children: The list of nodes you would like to create a request to.
+            children: The list of node_ids that you would like to call.
             stamp_gen: A function that will create a new stamp of the same number.
             executor: A executor used for parallelization of the requests.
         """
-        for n in children:
-            if not isinstance(n, Node):
-                raise MalformedFunctionException(
-                    bad_function=parent_node.invoke,  # noqa, all Node objects have invoke
-                    message=f"Expected all children to be of type {Node} but got {type(n)}",
-                )
-        for child in children:
-            self.logger.info(f"Creating request between {parent_node.pretty_name()} and {child.pretty_name()}")
+        # note it is assumed that all of the children id are valid and have already been created.
+        assert all([n in self._node_heap for n in children])
         request_ids = list(
             executor.map(
                 self._request_heap.create,
                 [str(uuid.uuid4()) for _ in children],
                 [parent_node.uuid] * len(children),
-                [n.uuid for n in children],
+                children,
                 [
-                    stamp_gen(f"Adding request between {parent_node.pretty_name()} and {n.pretty_name()}")
+                    stamp_gen(f"Adding request between {parent_node.pretty_name()} and {self._node_heap.id_type_mapping[n]}")
                     for n in children
                 ],
             )
         )
-        # note it is imperative that we make these nodes in the heap before executing the requests.
-        #  this was an edge case where if one the requests threw a quick Scorched Earth error before each of the nodes
-        #  had a chance to
-        #  be created in the _run_node function, the system would try to revert nodes which had yet to be created.
-        for node in children:
-            stamp = stamp_gen(f"Creating {node.pretty_name()}")
-            self._node_heap.update(node, stamp)  # none because this is a new node
 
         return request_ids
 
@@ -348,7 +406,8 @@ class RCState:
             nodes: The list of nodes that you would like to run. (note the ordering must match)
             executor: The executor that you would like to use to run the requests.
         """
-
+        # first we must collect the nodes from the heap.
+        nodes = [self._node_heap[n] for n in nodes]
         # note this function does not do any error handling. All errors will be handled in the `_run_node` function.
         results = []
         futures = {
@@ -362,6 +421,7 @@ class RCState:
             stamp = self._stamper.create_stamp(f"Finished executing {node.pretty_name()}")
             self.logger.info(f"Finished running {node.pretty_name()}")
 
+            # update the state objects to reflect the new information.
             self._request_heap.update(request_id, output, stamp)
             self._node_heap.update(node, stamp)
 

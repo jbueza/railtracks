@@ -104,6 +104,9 @@ class Forest(Generic[T]):
             raise TypeError(f"Expected a string but got {type(identifier)}")
         return self._heap[identifier]
 
+    def __contains__(self, item):
+        return item in self._heap
+
     def _update_heap(self, item: T):
         """
         A thread safe operation to add the given item to the heap. Note that there is some special requirements for the
