@@ -270,7 +270,7 @@ class RCState:
         node = node_creator(*args, **kwargs)
 
         # 2. Attach the registry components (i.e. hook for node creation and node invocation)
-        assert node.uuid in self._node_heap, f"Node {node.uuid} was not added to the heap."
+        assert node.uuid not in self._node_heap, f"Node {node.uuid} has already been created"
         self._node_heap.update(node, self._stamper.create_stamp(f"Creating {node.pretty_name()}"))
         # only returns after the node was successfully added.
         return node.uuid
@@ -386,7 +386,6 @@ class RCState:
     def _run_requests(
         self,
         request_ids: List[str],
-        nodes: List[Node],
         executor: concurrent.futures.ThreadPoolExecutor,
     ) -> List[NodeOutput]:
         """
@@ -405,7 +404,8 @@ class RCState:
             executor: The executor that you would like to use to run the requests.
         """
         # first we must collect the nodes from the heap.
-        nodes = [self._node_heap[n] for n in nodes]
+        child_node_id = [self._request_heap[r_id].sink_id for r_id in request_ids]
+        nodes = [self._node_heap[node_id].node for node_id in child_node_id]
         # note this function does not do any error handling. All errors will be handled in the `_run_node` function.
         results = []
         futures = {

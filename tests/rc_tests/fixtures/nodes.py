@@ -163,10 +163,10 @@ class StreamingCallNode(CallNode):
 
     def invoke(self):
         for _ in range(self.number_of_calls):
-            nodes = [NodeFactory(self.node_creator) for _ in range(self.parallel_call_num)]
+            nodes = [self.create(self.node_creator) for _ in range(self.parallel_call_num)]
             for n in nodes:
-                self.data_streamer(self.call_template_call.format(n.new_node))
-            response = self.call_nodes(nodes)
+                self.data_streamer(self.call_template_call.format(n))
+            response = self.complete(nodes)
 
             self.data.extend([d.data for d in response])
 

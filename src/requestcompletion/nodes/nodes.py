@@ -1,6 +1,7 @@
 from __future__ import annotations
 import uuid
 import warnings
+from copy import deepcopy
 
 from ..llm import Tool, Parameter
 
@@ -177,13 +178,20 @@ class Node(ABC, Generic[_TOutput]):
         """
         return cls(**tool_parameters)  # noqa
 
-    # TODO come up with a much more intelligent state saving approach.
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        return state
+    def __deepcopy__(self, memo):
+        # TODO make it so we don't deepcopy the backend connections
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[self.uuid] = result
+        for k, v in self.__dict__.items():
+            if k in ["data_streamer", "_invoke_node", "_create_node"]:
+                # don't deep copy these ones becuase they cause problems. They should never be modified anyway so it isn't a huge deal
+                setattr(result, k, v)
+                continue
+            setattr(result, k, deepcopy(v, memo))
+        return result
 
-    def __setstate__(self, state):
-        self.__dict__.update(state)
+    # TODO write serialization approach that does not save the backend connections
 
 
 class NodeException(Exception):
