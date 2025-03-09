@@ -73,6 +73,7 @@ class NodeForest(Forest[LinkedNode]):
 
         self._hard_revert_list = set()
         self.id_type_mapping = {}
+        self.registration_details = None
 
     def __getitem__(self, item):
         # note the node in item is mutable so we have to preform a deep copy for the sake of a safety.
@@ -92,6 +93,7 @@ class NodeForest(Forest[LinkedNode]):
         create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
         invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
     ):
+        self.registration_details = (data_streamer, create_node, invoke_node)
         with self._lock:
             for key in self._heap.keys():
                 self._heap[key].inject(data_streamer, create_node, invoke_node)
@@ -111,6 +113,14 @@ class NodeForest(Forest[LinkedNode]):
         """
         with self._lock:
             parent = self._heap.get(new_node.uuid, None)
+
+            # if this a new node the parent will be none
+            if parent is None:
+                # noting that all new nodes should insert registration details if available
+                if self.registration_details is not None:
+                    # TODO: think through if we should throw an error if the registration details are not provided
+                    new_node.inject(*self.registration_details)
+
             new_linked_node = LinkedNode(
                 identifier=new_node.uuid,
                 _node=new_node,

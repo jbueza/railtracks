@@ -115,8 +115,6 @@ class RCState:
             ]
         )
 
-        self._registry: NodeRegistry | None = None
-
         self._answer = None
 
         # each new instance of a state object should have its own logger.
@@ -272,7 +270,6 @@ class RCState:
         node = node_creator(*args, **kwargs)
 
         # 2. Attach the registry components (i.e. hook for node creation and node invocation)
-        self._registry.register(node)
         assert node.uuid in self._node_heap, f"Node {node.uuid} was not added to the heap."
         self._node_heap.update(node, self._stamper.create_stamp(f"Creating {node.pretty_name()}"))
         # only returns after the node was successfully added.
