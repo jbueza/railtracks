@@ -65,12 +65,19 @@ _P = ParamSpec("_P")
 
 # TODO add generic for required context object
 class Node(ABC, Generic[_TOutput]):
-    """An abstract base class which defines some of the more basic parameters of the nodes"""
+    """An abstract base class which defines some the functionality of a node"""
 
     def __default_data_streamer(self, data: str):
+        """
+        A default data streamer designed to do nothing.
+        """
         pass
 
     def __null_backend_connection(self, *args, **kwargs):
+        """
+        A placeholder method designed to throw an exception if it is ever called. It should prevent any node from accessing
+        things like creating new nodes without some sort of connection to the state management system.
+        """
         raise FatalException(
             self,
             "You cannot create nodes when a backend parameters have not been injected. Please use the `run` method instead.",
@@ -94,6 +101,9 @@ class Node(ABC, Generic[_TOutput]):
         create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
         invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
     ):
+        """
+        Injects the given methods into the node. These will allow the node to properly connect to the rest of the system.
+        """
         self.data_streamer = data_streamer
         self._invoke_node = invoke_node
         self._create_node = create_node
