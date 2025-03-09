@@ -36,7 +36,7 @@ class LinkedNode(AbstractLinkedObject):
         """
         try:
             # special handling for
-            return deepcopy(self._node)
+            return self._node.safe_copy()
         except Exception as e:
             raise NodeCopyException(
                 "Every node must be able to be deep copied. Failed to copy node {0}, due to {1}.".format(
@@ -76,10 +76,10 @@ class NodeForest(Forest[LinkedNode]):
         self.registration_details = None
 
     def __getitem__(self, item):
-        # note the node in item is mutable so we have to preform a deep copy for the sake of a safety.
+
         node = self._heap[item]
         try:
-            return deepcopy(node)
+            return node
         except Exception as e:
             raise NodeCopyException(
                 "Every node must be able to be deep copied. Failed to copy node {0}, due to {1}.".format(

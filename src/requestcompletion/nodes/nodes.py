@@ -178,20 +178,23 @@ class Node(ABC, Generic[_TOutput]):
         """
         return cls(**tool_parameters)  # noqa
 
-    def __deepcopy__(self, memo):
-        # TODO make it so we don't deepcopy the backend connections
+    def safe_copy(self) -> Self:
+        """
+        A method used to create a new pass by value copy of every element of the node except for the backend connections.
+
+        The backend connections include the data streamer, create_node_hook and invoke_node_hook.
+
+        """
         cls = self.__class__
         result = cls.__new__(cls)
-        memo[self.uuid] = result
         for k, v in self.__dict__.items():
             if k in ["data_streamer", "_invoke_node", "_create_node"]:
-                # don't deep copy these ones becuase they cause problems. They should never be modified anyway so it isn't a huge deal
+                # These do not need to be copied becuase they are not modifed by the node and are expensive to copy
                 setattr(result, k, v)
                 continue
-            setattr(result, k, deepcopy(v, memo))
+            print(k, v)
+            setattr(result, k, deepcopy(v))
         return result
-
-    # TODO write serialization approach that does not save the backend connections
 
 
 class NodeException(Exception):
