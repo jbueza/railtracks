@@ -19,7 +19,6 @@ from ...exceptions import (
 from ...nodes import Node, NodeOutput
 
 
-
 from ...context import BaseContext
 from ..info import ExecutionInfo
 from ..state.request import (
@@ -164,11 +163,12 @@ class RCState:
     def execute(self, start_node: Node):
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.executor_config.workers) as executor:
             # firstly we have to create a registry so new nodes will be created with the correct hooks.
-            self._registry = NodeRegistry(
-                data_streamer_hook=self._data_streamer.publish,
-                create_node_hook=self._create_node,  # noqa: not sure?
-                invoke_node_hook=lambda parent, children: self.call_nodes(parent, children, executor),
+            self._node_heap.register_all(
+                self._data_streamer.publish,
+                self._create_node,
+                lambda parent, children: self.call_nodes(parent, children, executor),
             )
+
             # TODO come up with algorithm to determine the start point.
             future = executor.submit(self._run_node, start_node, executor)
 
@@ -344,7 +344,6 @@ class RCState:
 
         return self._node_heap[new_node_id].node
 
-
     # Note it may seem weird to have to pass in the full state of the parent_node.
     #  this is going to be relevant when do more advanced automated checkpointing and recovery allowing us to restart
     #  etc.
@@ -377,7 +376,9 @@ class RCState:
                 [parent_node.uuid] * len(children),
                 children,
                 [
-                    stamp_gen(f"Adding request between {parent_node.pretty_name()} and {self._node_heap.id_type_mapping[n]}")
+                    stamp_gen(
+                        f"Adding request between {parent_node.pretty_name()} and {self._node_heap.id_type_mapping[n]}"
+                    )
                     for n in children
                 ],
             )

@@ -1,8 +1,7 @@
-from functools import partial
 from typing import TypeVar, Generic, Set, Type, Dict, Any
 
 
-from ..nodes import Node, NodeFactory, ResetException, FatalException
+from ..nodes import Node, ResetException, FatalException
 
 from ...llm import MessageHistory, ModelBase, SystemMessage, Tool, ToolCall, ToolResponse, ToolMessage
 
@@ -67,13 +66,13 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 if isinstance(returned_mess.message.content, list):
                     assert all([isinstance(x, ToolCall) for x in returned_mess.message.content])
                     new_nodes = [
-                        NodeFactory(
+                        self.create(
                             lambda arguments: self.create_node(tool_name=t_c.name, arguments=arguments), t_c.arguments
                         )
                         for t_c in returned_mess.message.content
                     ]
 
-                    responses = self.call_nodes(new_nodes)
+                    responses = self.complete(new_nodes)
                     for r_id, resp in zip(
                         [x.identifier for x in returned_mess.message.content],
                         [x.data for x in responses],

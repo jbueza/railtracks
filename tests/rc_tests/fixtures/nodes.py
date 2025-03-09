@@ -5,7 +5,7 @@ import time
 
 from enum import Enum
 from typing import List, Callable
-from requestcompletion.nodes import Node, NodeFactory
+from requestcompletion.nodes import Node
 from requestcompletion.exceptions import *
 
 
@@ -106,9 +106,7 @@ class CallNode(Node[List]):
 
     def invoke(self):
         for _ in range(self.number_of_calls):
-            response = self.call_nodes(
-                [NodeFactory(self.node_creator) for _ in range(self.parallel_call_num)]
-            )
+            response = self.complete([self.create(self.node_creator) for _ in range(self.parallel_call_num)])
 
             self.data.extend([d.data for d in response])
 
@@ -165,9 +163,7 @@ class StreamingCallNode(CallNode):
 
     def invoke(self):
         for _ in range(self.number_of_calls):
-            nodes = [
-                NodeFactory(self.node_creator) for _ in range(self.parallel_call_num)
-            ]
+            nodes = [NodeFactory(self.node_creator) for _ in range(self.parallel_call_num)]
             for n in nodes:
                 self.data_streamer(self.call_template_call.format(n.new_node))
             response = self.call_nodes(nodes)

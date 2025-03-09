@@ -21,7 +21,6 @@ from typing import (
 from typing_extensions import Self
 
 
-
 _TOutput = TypeVar("_TOutput")
 
 
@@ -63,7 +62,6 @@ _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
 
-
 # TODO add generic for required context object
 class Node(ABC, Generic[_TOutput]):
     """An abstract base class which defines some of the more basic parameters of the nodes"""
@@ -72,7 +70,10 @@ class Node(ABC, Generic[_TOutput]):
         pass
 
     def __null_backend_connection(self, *args, **kwargs):
-        raise FatalException(self, "You cannot create nodes when a backend parameters have not been injected. Please use the `run` method instead.")
+        raise FatalException(
+            self,
+            "You cannot create nodes when a backend parameters have not been injected. Please use the `run` method instead.",
+        )
 
     def __init__(
         self,

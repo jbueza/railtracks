@@ -5,8 +5,7 @@ import warnings
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, Iterable
-
+from typing import Optional, Iterable, Callable, ParamSpec, List
 
 from .forest import (
     AbstractLinkedObject,
@@ -15,7 +14,10 @@ from .forest import (
 from ..tools.profiling import Stamp
 from ...nodes import (
     Node,
+    NodeOutput,
 )
+
+_P = ParamSpec("_P")
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,21 @@ class LinkedNode(AbstractLinkedObject):
                     self.identifier, e
                 )
             )
+
+    def inject(
+        self,
+        data_streamer: Callable[[str], None],
+        create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
+        invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
+    ):
+        """
+        Bypasses the normal mutability protections of the node allowing the run-time injection of methods into the node.
+        """
+        self._node.inject(
+            data_streamer,
+            create_node,
+            invoke_node,
+        )
 
 
 class NodeCopyException(Exception):
@@ -68,6 +85,16 @@ class NodeForest(Forest[LinkedNode]):
                     node.identifier, e
                 )
             )
+
+    def register_all(
+        self,
+        data_streamer: Callable[[str], None],
+        create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
+        invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
+    ):
+        with self._lock:
+            for key in self._heap.keys():
+                self._heap[key].inject(data_streamer, create_node, invoke_node)
 
     def update(self, new_node: Node, stamp: Stamp):
         """
