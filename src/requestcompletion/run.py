@@ -1,6 +1,6 @@
-import contextvars
 from typing import TypeVar, ParamSpec, Callable
 
+from . import ExecutorConfig
 from .tools.stream import DataStream, Subscriber
 from .nodes.nodes import Node
 
@@ -8,13 +8,13 @@ from .nodes.nodes import Node
 from .info import (
     ExecutionInfo,
 )
-from src.requestcompletion.state.execute import RCState
+from .state.execute import RCState
+
+from .context import parent_id
 
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
-
-parent_id = contextvars.ContextVar("parent_id")
 
 
 class RunnerCreationError(Exception):
@@ -39,15 +39,26 @@ class Runner:
 
     def __init__(
         self,
-        executor_info: ExecutionInfo,
+        subscriber: Callable[[str], None] = None,
+        executor_config: ExecutorConfig = ExecutorConfig(),
+        executor_info: ExecutionInfo = None,
     ):
-        self.rc_state = RCState(executor_info)
 
-        self._data_streamer = DataStream(
-            subscribers=[
-                executor_info.subscriber if executor_info.subscriber is not None else Subscriber.null_concrete_sub()()
-            ]
-        )
+        if executor_info is None:
+            executor_info = ExecutionInfo.create_new(executor_config=executor_config)
+        elif executor_config is not None:
+            executor_info.executor_config = executor_config
+
+        self.rc_state = RCState(executor_info)
+        if subscriber is None:
+            self._data_streamer = DataStream()
+        else:
+
+            class DynamicSubscriber(Subscriber[str]):
+                def handle(self, item: str) -> None:
+                    subscriber(item)
+
+            self._data_streamer = DataStream(subscribers=[DynamicSubscriber()])
 
     def __enter__(self):
         return self

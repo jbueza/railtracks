@@ -3,7 +3,8 @@ import warnings
 
 from typing import ParamSpec, Callable, TypeVar
 
-from ..run import get_active_runner, Runner, parent_id
+from ..run import get_active_runner, Runner
+from ..context import parent_id
 from ..nodes.nodes import Node
 
 _TOutput = TypeVar("_TOutput")

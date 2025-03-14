@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, TypeVar
+from typing import List, TypeVar, Callable
 
 from .config import ExecutorConfig
 from .tools.profiling import Stamp, StampManager
@@ -20,14 +20,12 @@ class ExecutionInfo:
         request_heap: RequestForest,
         node_heap: NodeForest,
         stamper: StampManager,
-        subscriber: Subscriber[str] | None = None,
         exception_history: List[Exception] = None,
         executor_config: ExecutorConfig = ExecutorConfig(),
     ):
         self.request_heap = request_heap
         self.node_heap = node_heap
         self.stamper = stamper
-        self.subscriber = subscriber
         self.exception_history = exception_history if exception_history is not None else []
         self.executor_config = executor_config
 
@@ -38,7 +36,6 @@ class ExecutionInfo:
     @classmethod
     def create_new(
         cls,
-        subscriber: Subscriber[str] | None = None,
         executor_config: ExecutorConfig = ExecutorConfig(),
     ) -> ExecutionInfo:
         request_heap = RequestForest()
@@ -49,7 +46,6 @@ class ExecutionInfo:
             request_heap=request_heap,
             node_heap=node_heap,
             stamper=stamper,
-            subscriber=subscriber,
             exception_history=[],
             executor_config=executor_config,
         )

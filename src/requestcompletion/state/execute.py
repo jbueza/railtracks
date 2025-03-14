@@ -8,7 +8,7 @@ from collections import deque
 from typing import TypeVar, List, Callable, ParamSpec
 
 from .request import Cancelled, Failure
-from ..run import parent_id
+from ..context import parent_id
 
 from ..nodes.nodes import Node, FatalException
 
