@@ -139,7 +139,7 @@ class Node(ABC, Generic[_TOutput]):
         """
 
     @abstractmethod
-    def invoke(self) -> _TOutput:
+    async def invoke(self) -> _TOutput:
         """
         The main method that runs when this node is called
         """

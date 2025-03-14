@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import abstractmethod, ABC
 from typing import (
     Any,
     TypeVar,
@@ -8,7 +7,7 @@ from typing import (
 )
 
 
-from ..nodes import (
+from src.requestcompletion.nodes.nodes import (
     Node,
 )
 

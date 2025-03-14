@@ -7,11 +7,11 @@ from functools import reduce
 from typing import Optional, Dict, List, Tuple, Iterable, Set, FrozenSet, Any
 
 
-from .forest import (
+from src.requestcompletion.state.forest import (
     Forest,
     AbstractLinkedObject,
 )
-from ..tools.profiling import Stamp
+from src.requestcompletion.tools import Stamp
 
 
 @dataclass(frozen=True)

@@ -2,13 +2,13 @@ from pyvis.network import Network
 
 from typing import List
 
-from ..tools.profiling import Stamp
+from src.requestcompletion.tools import Stamp
 
-from ..state.node import (
+from src.requestcompletion.state.node import (
     LinkedNode,
     NodeForest,
 )
-from ..state.request import (
+from src.requestcompletion.state.request import (
     RequestTemplate,
     RequestForest,
 )

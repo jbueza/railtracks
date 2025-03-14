@@ -1,7 +1,7 @@
-from ...llm import MessageHistory, ModelBase, SystemMessage
-from ..nodes import Node, ResetException
+from ...llm import MessageHistory, ModelBase
+from src.requestcompletion.nodes.nodes import Node, ResetException
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 class TerminalLLM(Node[str], ABC):
