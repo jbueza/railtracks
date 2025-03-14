@@ -1,6 +1,8 @@
+import asyncio
+import threading
 from typing import TypeVar, ParamSpec, Callable
 
-from . import ExecutorConfig
+from .config import ExecutorConfig
 from .tools.stream import DataStream, Subscriber
 from .nodes.nodes import Node
 
@@ -67,7 +69,11 @@ class Runner:
         # release the instance so it can be used again.
         self._instance = None
 
-    # TODO: add async support
+    def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
+        t = asyncio.create_task(self.run(start_node, *args, **kwargs))
+
+        return t.result()
+
     async def run(
         self,
         start_node: Callable[_P, Node] | None = None,
@@ -81,8 +87,10 @@ class Runner:
             self.rc_state.create_first_entry(node)
         else:
             raise RuntimeError("We currently do not support running without a start node.")
-
-        return await self.rc_state.execute(node)
+        try:
+            return await self.rc_state.execute(node)
+        finally:
+            threading.Thread(self._data_streamer.stop(True)).start()
 
     async def cancel(self, node_id: str):
         # collects the parent id of the current node that is running that is gonna get cancelled

@@ -48,8 +48,6 @@ class RCState:
         self._request_heap = execution_info.request_heap
         self._stamper = execution_info.stamper
 
-        self.subscriber = execution_info.subscriber
-
         self.exception_history = deque[Exception](execution_info.exception_history)
 
         self.executor_config = execution_info.executor_config

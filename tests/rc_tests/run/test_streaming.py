@@ -1,11 +1,12 @@
 import concurrent.futures
 import time
-
+import asyncio
 
 from requestcompletion import ExecutorConfig
 from requestcompletion import Runner
 
-from src.requestcompletion import ExecutionInfo
+from requestcompletion import ExecutionInfo
+
 from tests.rc_tests.fixtures.nodes import (
     StreamingRNGNode,
     StreamingCallNode,
@@ -13,25 +14,19 @@ from tests.rc_tests.fixtures.nodes import (
 
 
 def test_simple_streamer():
-    i_r = StreamingRNGNode()
 
-    class Sub(Subscriber[str]):
+    class SubObject:
         def __init__(self):
             self.finished_message = None
 
-        def handle(self, item: str) -> None:
+        def handle(self, item: str):
             print(f"entering handler {item}")
             self.finished_message = item
 
-    def handle(item: str):
-        print(f"entering handler {item}")
-    with Runner(subscriber=) as runner:
-        runner.run(i_r, subscriber=sub)
-    finished_result = run(
-        i_r,
-        subscriber=sub,
-        executor_config=ExecutorConfig(global_num_retries=5, force_close_streams=False),
-    )
+    sub = SubObject()
+    with Runner(subscriber=sub.handle, executor_config=ExecutorConfig(force_close_streams=True)) as runner:
+        finished_result = runner.run_sync(StreamingRNGNode)
+
     # force close streams flag must be set to false to allow the slow streaming to finish.
 
     assert isinstance(finished_result.answer, float)
