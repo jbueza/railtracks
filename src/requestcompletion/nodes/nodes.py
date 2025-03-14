@@ -25,40 +25,6 @@ from typing_extensions import Self
 _TOutput = TypeVar("_TOutput")
 
 
-# TODO think through if there is a better way to type this.
-class NodeOutput(Generic[_TOutput]):
-    # TODO: write docs
-    @property
-    def node_type(self) -> Type[Node]:
-        return self._node_type
-
-    @property
-    def data(self) -> _TOutput:
-        return self._data
-
-    def __init__(
-        self,
-        node_type: Type[Node],
-        data: _TOutput,
-    ):
-        self._node_type = node_type
-        self._data = data
-
-
-def check_flag(flag: bool, failure_message: str):
-    def wrapper_decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            if flag:
-                return func(*args, **kwargs)
-            else:
-                warnings.warn(failure_message)
-
-        return wrapper
-
-    return wrapper_decorator
-
-
 _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
@@ -67,69 +33,12 @@ _P = ParamSpec("_P")
 class Node(ABC, Generic[_TOutput]):
     """An abstract base class which defines some the functionality of a node"""
 
-    def __default_data_streamer(self, data: str):
-        """
-        A default data streamer designed to do nothing.
-        """
-        pass
-
-    def __null_backend_connection(self, *args, **kwargs):
-        """
-        A placeholder method designed to throw an exception if it is ever called. It should prevent any node from accessing
-        things like creating new nodes without some sort of connection to the state management system.
-        """
-        raise FatalException(
-            self,
-            "You cannot create nodes when a backend parameters have not been injected. Please use the `run` method instead.",
-        )
-
     def __init__(
         self,
     ):
-        # we need to set the default values for the methods. These methods are only used if some calls `invoke` without
-        # injecting the backend details
-        self.data_streamer: Callable[[str], None] = self.__default_data_streamer
-        self._invoke_node: Callable[[Node, List[str]], List[NodeOutput]] = self.__null_backend_connection
-        self._create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str] = self.__null_backend_connection
 
         # each fresh node will have a generated uuid that identifies it.
         self.uuid = str(uuid.uuid4())
-
-    def inject(
-        self,
-        data_streamer: Callable[[str], None],
-        create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
-        invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
-    ):
-        """
-        Injects the given methods into the node. These will allow the node to properly connect to the rest of the system.
-        """
-        self.data_streamer = data_streamer
-        self._invoke_node = invoke_node
-        self._create_node = create_node
-
-    def create(self, new_node: Callable[_P, Node] & Node, *args: _P.args, **kwargs: _P.kwargs):
-        """
-        Creates a node within the RC node framework with the provided arguments.
-
-        Note that you must use this method to create a new node. If you try to create and call a node directly it will
-        not use the rest of the system.
-
-        Args:
-            new_node: The node you would like to create.
-            *args: The arguments to pass to the node.
-            **kwargs: The keyword arguments to pass to the node
-
-        Returns:
-            An identifier for the node that was created.
-        """
-        return self._create_node(new_node, *args, **kwargs)
-
-    def complete(self, request_id: List[str]) -> List[NodeOutput]:
-        """
-        Calls the provided nodes and returns the outputs.
-        """
-        return self._invoke_node(self, request_id)
 
     @classmethod
     @abstractmethod
@@ -198,11 +107,6 @@ class Node(ABC, Generic[_TOutput]):
         cls = self.__class__
         result = cls.__new__(cls)
         for k, v in self.__dict__.items():
-            if k in ["data_streamer", "_invoke_node", "_create_node"]:
-                # These do not need to be copied becuase they are not modifed by the node and are expensive to copy
-                setattr(result, k, v)
-                continue
-            print(k, v)
             setattr(result, k, deepcopy(v))
         return result
 

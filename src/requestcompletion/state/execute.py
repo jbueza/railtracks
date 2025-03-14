@@ -7,27 +7,19 @@ from collections import deque
 
 from typing import TypeVar, List, Callable, ParamSpec
 
+from .request import Cancelled, Failure
 from ..run import parent_id
-from ...exceptions import (
-    ResetException,
-    FatalException,
-    CompletionException,
-)
 
-from ...nodes import Node
+from ..nodes.nodes import Node, FatalException
 
-from src.requestcompletion.context import BaseContext
 from ..info import ExecutionInfo
-from src.requestcompletion.state.request import (
-    DeadRequestException,
+from ..state.request import (
     RequestTemplate,
 )
-from src.requestcompletion.tools import Stamp
+from ..tools.profiling import Stamp
 
 import logging
 
-
-_TContext = TypeVar("_TContext", bound=BaseContext)
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
@@ -145,23 +137,18 @@ class RCState:
             self._node_heap.update(start_node, stamp)
             self._answer = output
         except asyncio.TimeoutError:
-
             raise ExecutionException(
                 failed_request=self._request_heap["START"],
                 execution_info=self.info,
                 final_exception=GlobalTimeOut(self.executor_config.timeout),
             )
-        ### if the initial request throws a scorched earth exception will have to handle it here.
-        except ScorchedEarthException as e:
-            next_node = self._preform_scorched_earth(e.failed_request_id)
-            if next_node is None:
-                raise AssertionError(
-                    "There is no possible reason for this to happen. The first request only has" "one line of execution"
-                )
-            # note we can't just pull the one from memory because its state could have changed during execution,
-            #  so we need to hard revert first
 
-            await self.execute(next_node)
+    async def cancel(self, node_id: str):
+        if node_id not in self._node_heap.heap():
+            self.logger.warning(f"Node {node_id} not found in the heap")
+
+        r_id = self._request_heap.get_request_from_child_id(node_id)
+        self._request_heap.update(r_id, Cancelled, self._stamper.create_stamp(f"Cancelled request {r_id}"))
 
     async def _run_node(
         self,
@@ -175,7 +162,6 @@ class RCState:
         """
         # TODO verify that this is working as expected
         # right before a node is run we register the id of the parent so it can be accessed if the node ever calls `.run`
-        parent_id.set(node.uuid)
         return await node.invoke()
 
     def _create_node(self, parent_node_id: str, node: Node) -> str:
@@ -205,6 +191,7 @@ class RCState:
 
     async def call_nodes(
         self,
+        parent_node_id: str,
         node: Node[_TOutput],
     ) -> _TOutput:
         """
@@ -222,54 +209,12 @@ class RCState:
             A list of the response from the nodes, in the order matching the input list.
 
         """
-        parent_node_id = parent_id.get()  # TODO get the parent node id from the context
         request_id = self._create_node(parent_node_id, node)
 
         outputs: _TOutput = await self._run_request(request_id)
         return outputs
 
-    def _preform_scorched_earth(self, failed_request_id: str):
-        """
-        This function will handle the provided scorched earth exception triggering the full sequnce of events around it
-
-        Specially, if the scorched earth exception is raised in the middle of the execution of a node we will follow
-        this procedure:
-
-        1. Revert the heap such that all siblings of the failed request are killed.
-        2. Revert the nodes connected to those requests to prevent them from being run again.
-        3. Return back the node we started on get return
-        https://www.notion.so/railtownai/Error-Handling-Logic-78237175fd05464fab5cefa2122c8aa1?pvs=4#428cefb545bd46de9af97bc3e25736e8
-
-        :param failed_request_id: The id of the request that the scorched earth exception was raised on
-
-        Returns:
-            The parent node after all the details have been reverted. This is the next node to be executed. It will
-             return none if some other request has already made things none.
-        """
-
-        # 1. interface with the request heap to kill all the requests that we needed to kill
-        try:
-            all_requests, updated_stamp, fresh_request_id = self._request_heap.revert_heap(failed_request_id)
-        except DeadRequestException:
-            # the request we tried to fail has already been failed
-            return
-
-        # 2. figure out what are all the dead nodes
-        all_nodes = set()
-        for r in all_requests:
-            if r.source_id is not None:
-                all_nodes.add(r.source_id)
-            all_nodes.add(r.sink_id)
-
-        self._node_heap.hard_revert(all_nodes, updated_stamp)
-
-        new_node_id = self._request_heap[fresh_request_id].sink_id
-
-        return self._node_heap[new_node_id].node
-
-    # Note it may seem weird to have to pass in the full state of the parent_node.
-    #  this is going to be relevant when do more advanced automated checkpointing and recovery allowing us to restart
-    #  etc.
+    # TODO handle the business around parent node with automatic checkpointing.
     def _create_new_request_set(
         self,
         parent_node: str,
@@ -314,12 +259,7 @@ class RCState:
         child_node_id = self._request_heap[request_id].sink_id
         node = self._node_heap[child_node_id].node
         try:
-            result = self._run_node(node)
-        except FatalException as e:
-            self.logger.critical(
-                f"Fatal exception encountered: {e}. This is likely a problem with the framework, and not your fault."
-            )
-            raise e
+            result = await self._run_node(node)
         except Exception as e:
             self._handle_failed_request(request_id, e)
             result = e
@@ -329,6 +269,9 @@ class RCState:
 
         self._request_heap.update(request_id, result, stamp)
         self._node_heap.update(node, stamp)
+
+        if isinstance(result, Failure):
+            raise result.exception
 
         return result
 
@@ -366,48 +309,20 @@ class RCState:
             ScorchedEarthException: If the exception was a `ResetException` and scorched earth has been turned on.
 
         """
+
         self.exception_history.append(exception)
 
         if isinstance(exception, FatalException):
             self.logger.critical(f"Fatal exception encountered: {exception}")
-            raise ExecutionException(
+            ee = ExecutionException(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
                 final_exception=exception,
             )
+            return Failure(ee)
 
-        if len(self.exception_history) >= self.executor_config.global_num_retries:
-            self.logger.critical(f"Encountered our {len(self.exception_history)} exception: {exception}")
-            raise ExecutionException(
-                failed_request=self._request_heap[request_id],
-                execution_info=self.info,
-                final_exception=GlobalRetriesExceeded(self.executor_config.global_num_retries),
-            )
-
-        # now lets check if there is completion protocol
-        if isinstance(exception, CompletionException):
-            self.logger.warning(f"Completion protocol encountered: {exception}")
-            return exception.completion_protocol
-
-        # If this flag is not set then we won't want to use scorched earth
-        if not self.executor_config.retry_upstream_request_on_failure:
-            self.logger.critical(
-                f"Non fatal exception encountered but config indicates it should be thrown: {exception}"
-            )
-            raise ExecutionException(
-                failed_request=self._request_heap[request_id],
-                execution_info=self.info,
-                final_exception=exception,
-            )
-
-        if isinstance(exception, ResetException):
-            self.logger.error(f"Non fatal exception encountered (completing scorched earth protocol): {exception}")
-            # Now we can raise the special ScorchedEarthException so it can be handled properly.
-            raise ScorchedEarthException(request_id, exception)
-
-        # note if there is an unknown exception it should be re-raised here.
-        self.logger.critical(f"A unknown error was encountered: {exception}")
-        raise exception
+        self.logger.exception(f"Error in request {request_id}: {exception}")
+        return Failure(exception)
 
     @property
     def info(self):
@@ -415,32 +330,10 @@ class RCState:
             node_heap=self._node_heap,
             request_heap=self._request_heap,
             stamper=self._stamper,
-            context=self._context,
             subscriber=self.subscriber,
             exception_history=list(self.exception_history),
             executor_config=self.executor_config,
         )
-
-
-class ScorchedEarthException(Exception):
-    """
-    A special exception to be thrown to allow specific information about a reset exception to passed from the child
-    request to the parent.
-    """
-
-    def __init__(self, failed_request_id: str, original_exception: ResetException):
-        """
-        Creates a new instance of a ScorchedEarthException
-
-        Args:
-            failed_request_id: The request id of the one that failed
-            original_exception: The ResetException which triggered
-        """
-        self.original_exception = original_exception
-        self.failed_request_id = failed_request_id
-
-    def __str__(self):
-        return f"Scorched Earth Exception in {self.failed_request_id[:5] if len(self.failed_request_id) > 5 else self.failed_request_id}: {self.original_exception}"
 
 
 class GlobalTimeOut(Exception):
@@ -448,13 +341,6 @@ class GlobalTimeOut(Exception):
 
     def __init__(self, timeout: float):
         super().__init__(f"Execution timed out after {timeout} seconds")
-
-
-class GlobalRetriesExceeded(Exception):
-    """A general exception to be thrown when the number of global retries has been exceeded during execution."""
-
-    def __init__(self, global_retries: int):
-        super().__init__(f"Execution timed out after {global_retries} retries were tried.")
 
 
 class ExecutionException(Exception):
@@ -484,7 +370,3 @@ class ExecutionException(Exception):
     @property
     def exception_history(self):
         return self.execution_info.exception_history
-
-
-async def some_func():
-    return await api_call()

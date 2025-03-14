@@ -1,8 +1,8 @@
 import contextvars
 from typing import TypeVar, ParamSpec, Callable
 
-from src.requestcompletion.tools import DataStream, Subscriber
-from ..nodes.nodes import Node
+from .tools.stream import DataStream, Subscriber
+from .nodes.nodes import Node
 
 
 from .info import (
@@ -45,7 +45,7 @@ class Runner:
 
         self._data_streamer = DataStream(
             subscribers=[
-                (executor_info.subscriber if executor_info.subscriber is not None else Subscriber.null_concrete_sub()())
+                executor_info.subscriber if executor_info.subscriber is not None else Subscriber.null_concrete_sub()()
             ]
         )
 
@@ -66,18 +66,19 @@ class Runner:
 
         if start_node is not None:
             node = start_node(*args, **kwargs)
+            parent_id.set(node.uuid)
             self.rc_state.create_first_entry(node)
         else:
             raise RuntimeError("We currently do not support running without a start node.")
 
         return await self.rc_state.execute(node)
 
-    async def cancel(self):
+    async def cancel(self, node_id: str):
         # collects the parent id of the current node that is running that is gonna get cancelled
-        parent_id.get()
+        await self.rc_state.cancel(node_id)
 
-    async def call(self, node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.kwargs):
-        await self.rc_state.call_nodes(node(*args, **kwargs))
+    async def call(self, parent_node_id: str, node: Node):
+        await self.rc_state.call_nodes(parent_node_id, node)
 
     # TODO add support for any general user defined streaming object
     def stream(self, item: str):

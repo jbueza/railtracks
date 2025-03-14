@@ -1,7 +1,7 @@
 from typing import TypeVar, Type
 
 from ...llm import MessageHistory, ModelBase
-from src.requestcompletion.nodes.nodes import Node, ResetException
+from ..nodes import Node, ResetException
 
 from pydantic import BaseModel
 from abc import ABC, abstractmethod

@@ -11,7 +11,16 @@ from src.requestcompletion.state.forest import (
     Forest,
     AbstractLinkedObject,
 )
-from src.requestcompletion.tools import Stamp
+from ..tools.profiling import Stamp
+
+
+class Cancelled:
+    pass
+
+
+class Failure:
+    def __init__(self, exception: Exception):
+        self.exception = exception
 
 
 @dataclass(frozen=True)

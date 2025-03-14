@@ -1,9 +1,11 @@
 from typing import TypeVar, Generic, Set, Type, Dict, Any
 
 
-from src.requestcompletion.nodes.nodes import Node, ResetException, FatalException
+from ..nodes import Node, ResetException, FatalException
 
 from ...llm import MessageHistory, ModelBase, ToolCall, ToolResponse, ToolMessage
+
+from ...interaction.call import call
 
 from abc import ABC, abstractmethod
 
@@ -65,14 +67,11 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 # if the returned item is a list then it is a list of tool calls
                 if isinstance(returned_mess.message.content, list):
                     assert all([isinstance(x, ToolCall) for x in returned_mess.message.content])
-                    new_nodes = [
-                        self.create(
-                            lambda arguments: self.create_node(tool_name=t_c.name, arguments=arguments), t_c.arguments
-                        )
+                    responses = [
+                        call(lambda arguments: self.create_node(tool_name=t_c.name, arguments=arguments), t_c.arguments)
                         for t_c in returned_mess.message.content
                     ]
 
-                    responses = self.complete(new_nodes)
                     for r_id, resp in zip(
                         [x.identifier for x in returned_mess.message.content],
                         [x.data for x in responses],

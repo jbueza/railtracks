@@ -2,7 +2,7 @@ import pytest
 import requestcompletion as rc
 
 
-class CapitalizeText(rc.nodes.Node[str]):
+class CapitalizeText(rc.Node[str]):
     def __init__(self, string: str):
         self.string = string
         super().__init__()

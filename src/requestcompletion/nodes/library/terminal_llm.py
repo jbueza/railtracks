@@ -1,5 +1,5 @@
 from ...llm import MessageHistory, ModelBase
-from src.requestcompletion.nodes.nodes import Node, ResetException
+from ..nodes import Node, ResetException
 
 from abc import ABC
 

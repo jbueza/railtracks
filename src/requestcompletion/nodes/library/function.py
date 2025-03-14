@@ -7,7 +7,7 @@ from typing import (
 )
 
 
-from src.requestcompletion.nodes.nodes import (
+from ..nodes import (
     Node,
 )
 

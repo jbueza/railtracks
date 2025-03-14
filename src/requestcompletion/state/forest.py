@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Generic, TypeVar, Optional, Dict, List, Tuple, Iterable
 from typing_extensions import Self
 
-from src.requestcompletion.tools import Stamp
+from ..tools.profiling import Stamp
 
 
 def get_all_open_heads(all_linked_objects: Iterable[T], active_pointers: Iterable[T]) -> Tuple[List[T], List[T]]:

@@ -10,10 +10,9 @@ from src.requestcompletion.state.forest import (
     AbstractLinkedObject,
     Forest,
 )
-from src.requestcompletion.tools import Stamp
-from ...nodes import (
+from ..tools.profiling import Stamp
+from ..nodes.nodes import (
     Node,
-    NodeOutput,
 )
 
 _P = ParamSpec("_P")
@@ -43,21 +42,6 @@ class LinkedNode(AbstractLinkedObject):
                 )
             )
 
-    def inject(
-        self,
-        data_streamer: Callable[[str], None],
-        create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
-        invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
-    ):
-        """
-        Bypasses the normal mutability protections of the node allowing the run-time injection of methods into the node.
-        """
-        self._node.inject(
-            data_streamer,
-            create_node,
-            invoke_node,
-        )
-
 
 class NodeCopyException(Exception):
     """An exception thrown when a node cannot be copied due to a given error"""
@@ -86,17 +70,6 @@ class NodeForest(Forest[LinkedNode]):
                 )
             )
 
-    def register_all(
-        self,
-        data_streamer: Callable[[str], None],
-        create_node: Callable[[Callable[_P, Node], _P.args, _P.kwargs], str],
-        invoke_node: Callable[[Node, List[str]], List[NodeOutput]],
-    ):
-        self.registration_details = (data_streamer, create_node, invoke_node)
-        with self._lock:
-            for key in self._heap.keys():
-                self._heap[key].inject(data_streamer, create_node, invoke_node)
-
     def update(self, new_node: Node, stamp: Stamp):
         """
         Updates the heap with the provided node. If you are updating a node that is currently present in the heap you
@@ -112,13 +85,6 @@ class NodeForest(Forest[LinkedNode]):
         """
         with self._lock:
             parent = self._heap.get(new_node.uuid, None)
-
-            # if this a new node the parent will be none
-            if parent is None:
-                # noting that all new nodes should insert registration details if available
-                if self.registration_details is not None:
-                    # TODO: think through if we should throw an error if the registration details are not provided
-                    new_node.inject(*self.registration_details)
 
             new_linked_node = LinkedNode(
                 identifier=new_node.uuid,
