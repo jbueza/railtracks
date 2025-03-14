@@ -23,20 +23,12 @@ class TerminalLLM(Node[str], ABC):
         Returns:
             (TerminalLLM.Output): The response message from the model
         """
-        try:
-            returned_mess = self.model.chat(self.message_hist)
-        except Exception as e:
-            raise ResetException(node=self, detail=f"{e}")
+
+        returned_mess = self.model.chat(self.message_hist)
+        print(returned_mess)
 
         self.message_hist.append(returned_mess.message)
 
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
-            if cont is None:
-                raise ResetException(node=self, detail="The LLM returned no content")
             return cont
-
-        raise ResetException(
-            node=self,
-            detail="ModelLLM returned an unexpected message type.",
-        )

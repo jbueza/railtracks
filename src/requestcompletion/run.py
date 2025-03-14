@@ -66,11 +66,25 @@ class Runner:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # release the instance so it can be used again.
-        self._instance = None
+        print("exited the runner")
+        Runner._instance = None
 
-    def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
-        return asyncio.get_event_loop().run_until_complete(self.run(start_node, *args, **kwargs))
+    def run_sync(self, start_node: Callable[..., Node] | None = None, *args, **kwargs):
+        try:
+            # Try to see if there is a running event loop
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # If there's already a running loop, we can't use run_until_complete.
+            # Instead, schedule the coroutine and wait for its result in a thread-safe way.
+            # (Note: This is a workaround and may have limitations depending on your use case.)
+            future = asyncio.run_coroutine_threadsafe(self.run(start_node, *args, **kwargs), loop)
+            return future.result()
+        else:
+            # If no loop is running, create one and run the coroutine.
+            return asyncio.run(self.run(start_node, *args, **kwargs))
 
     async def run(
         self,
