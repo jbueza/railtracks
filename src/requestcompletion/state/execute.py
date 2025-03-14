@@ -328,7 +328,6 @@ class RCState:
             node_heap=self._node_heap,
             request_heap=self._request_heap,
             stamper=self._stamper,
-            subscriber=self.subscriber,
             exception_history=list(self.exception_history),
             executor_config=self.executor_config,
         )

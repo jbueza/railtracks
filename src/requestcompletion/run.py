@@ -70,9 +70,7 @@ class Runner:
         self._instance = None
 
     def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
-        t = asyncio.create_task(self.run(start_node, *args, **kwargs))
-
-        return t.result()
+        return asyncio.get_event_loop().run_until_complete(self.run(start_node, *args, **kwargs))
 
     async def run(
         self,
@@ -88,9 +86,11 @@ class Runner:
         else:
             raise RuntimeError("We currently do not support running without a start node.")
         try:
-            return await self.rc_state.execute(node)
+            await self.rc_state.execute(node)
         finally:
             threading.Thread(self._data_streamer.stop(True)).start()
+
+        return self.rc_state.info
 
     async def cancel(self, node_id: str):
         # collects the parent id of the current node that is running that is gonna get cancelled
