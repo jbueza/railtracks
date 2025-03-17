@@ -17,7 +17,7 @@ class TerminalLLM(Node[str], ABC):
         self.model = model
         self.message_hist = message_history
 
-    def invoke(self) -> str:
+    async def invoke(self) -> str:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
 
         Returns:
@@ -25,7 +25,6 @@ class TerminalLLM(Node[str], ABC):
         """
 
         returned_mess = self.model.chat(self.message_hist)
-        print(returned_mess)
 
         self.message_hist.append(returned_mess.message)
 

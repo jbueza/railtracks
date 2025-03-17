@@ -26,7 +26,7 @@ class StructuredLLM(Node[_TOutput], ABC):
         self.model = model
         self.message_hist = message_history
 
-    def invoke(self) -> _TOutput:
+    async def invoke(self) -> _TOutput:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
 
         Returns:

@@ -3,10 +3,10 @@ import uuid
 import warnings
 from copy import deepcopy
 
-from ..llm import Tool, Parameter
+from ..llm import Tool
 
-from abc import ABC, abstractmethod
-from functools import wraps
+from abc import ABC, abstractmethod, ABCMeta
+import inspect
 
 from typing import (
     TypeVar,
@@ -29,8 +29,25 @@ _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
 
+class EnsureInvokeCoroutineMeta(ABCMeta):
+    def __init__(cls, name, bases, dct):
+        super().__init__(name, bases, dct)
+
+        # now we need to make sure the invoke method is a coroutine, if not we should automatically switch it here.
+        method_name = "invoke"
+        if method_name in dct and callable(dct[method_name]):
+            method = dct[method_name]
+            if not inspect.iscoroutinefunction(method):
+
+                # a simple async wrapper of the sequential method.
+                async def async_wrapper(self, *args, **kwargs):
+                    return method(self, *args, **kwargs)
+
+                setattr(cls, method_name, async_wrapper)
+
+
 # TODO add generic for required context object
-class Node(ABC, Generic[_TOutput]):
+class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
     """An abstract base class which defines some the functionality of a node"""
 
     def __init__(
