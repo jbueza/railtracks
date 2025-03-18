@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import asyncio
 import uuid
 import warnings
 from copy import deepcopy
@@ -41,7 +43,7 @@ class EnsureInvokeCoroutineMeta(ABCMeta):
 
                 # a simple async wrapper of the sequential method.
                 async def async_wrapper(self, *args, **kwargs):
-                    return method(self, *args, **kwargs)
+                    return await asyncio.to_thread(method(self, *args, **kwargs))
 
                 setattr(cls, method_name, async_wrapper)
 
@@ -53,7 +55,6 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
     def __init__(
         self,
     ):
-
         # each fresh node will have a generated uuid that identifies it.
         self.uuid = str(uuid.uuid4())
 

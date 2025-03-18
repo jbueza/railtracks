@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from typing_extensions import Self
 import warnings
 
@@ -19,6 +21,9 @@ from typing import (
     Union,
     get_origin,
     get_args,
+    Coroutine,
+    Awaitable,
+    ParamSpec,
 )
 
 from ..nodes import Node, Tool
@@ -27,31 +32,37 @@ from pydantic import BaseModel
 
 
 _TOutput = TypeVar("_TOutput")
+_P = ParamSpec("_P")
 
 
-def from_function(func: Callable) -> Type[Node]:
+def from_function(func: Callable[[_P], Awaitable[_TOutput]]) -> Type[Node[_TOutput]]:
     """
     A function to create a node from a function
     """
 
-    class DynamicFunctionNode(Node):
-        def __init__(self, *args, **kwargs):
+    class DynamicFunctionNode(Node[_TOutput]):
+        def __init__(self, *args: _P.args, **kwargs: _P.kwargs):
             super().__init__()
             self.args = args
             self.kwargs = kwargs
 
-        def invoke(self) -> Any:
+        async def invoke(self) -> _TOutput:
             """Invoke the function with converted arguments."""
             try:
                 # Convert kwargs to appropriate types based on function signature
                 converted_kwargs = self._convert_kwargs_to_appropriate_types()
 
-                # Call the function with converted arguments
-                result = func(*self.args, **converted_kwargs)
+                # we want to have different behavior if the function is a coroutine or not
+                if asyncio.iscoroutinefunction(func):
+                    result = await func(*self.args, **converted_kwargs)
+                else:
+                    result = await asyncio.to_thread(func, *self.args, **converted_kwargs)
                 return result
+
             except Exception as e:
                 warnings.warn(
-                    f"Error invoking function {func.__name__}\nProvidedArgs: {self.args}\nProvided kwargs:\n{self.kwargs}.\n: {str(e)}")
+                    f"Error invoking function {func.__name__}\nProvidedArgs: {self.args}\nProvided kwargs:\n{self.kwargs}.\n: {str(e)}"
+                )
                 raise e
 
         def _convert_kwargs_to_appropriate_types(self) -> Dict[str, Any]:
@@ -192,16 +203,18 @@ class FunctionNode(Node[_TOutput]):
     A class for ease of creating a function node for the user
     """
 
-    def __init__(self, func: Callable[..., _TOutput], **kwargs: dict[str, Any]):
+    def __init__(self, func: Callable[[_P], Awaitable[_TOutput] | _TOutput], *args: _P.args, **kwargs: _P.kwargs):
         super().__init__()
         self.func = func
+        self.args = args
         self.kwargs = kwargs
 
-    def invoke(self) -> _TOutput:
+    async def invoke(self) -> _TOutput:
         try:
-            result = self.func(**self.kwargs)
-            if result and isinstance(result, str):
-                self.data_streamer(result)
+            if asyncio.iscoroutinefunction(self.func):
+                result = await self.func(*self.args, **self.kwargs)
+            else:
+                result = asyncio.to_thread(self.func(*self.args, **self.kwargs))
 
             return result
         except Exception as e:
@@ -211,7 +224,7 @@ class FunctionNode(Node[_TOutput]):
         return f"Function Node - {self.__class__.__name__}({self.func.__name__})"
 
     def tool_info(self) -> Tool:
-        return self.func
+        return Tool.from_function(self.func)
 
     @classmethod
     def prepare_tool(cls, tool_parameters):
