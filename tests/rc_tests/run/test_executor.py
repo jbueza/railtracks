@@ -1,80 +1,61 @@
 from __future__ import annotations
 
+import asyncio
+import random
 import time
 
-from requestcompletion.run.config import ExecutorConfig
-from requestcompletion.run.run import run
+import requestcompletion as rc
 
-from tests.rc_tests.fixtures.nodes import (
-    CallNode,
-    RNGNode,
-)
+
+RNGNode = rc.library.from_function(random.random)
+
+
+async def many_calls(num_calls: int, parallel_calls: int):
+    data = []
+    for _ in range(num_calls):
+        contracts = [rc.call(RNGNode) for _ in range(parallel_calls)]
+        results = await asyncio.gather(*contracts)
+        data.extend(results)
+    return data
+
+
+ManyCalls = rc.library.from_function(many_calls)
+
+
+def many_calls_tester(num_calls: int, parallel_calls: int):
+    with rc.Runner() as run:
+        finished_result = run.run_sync(ManyCalls, num_calls, parallel_calls)
+
+    ans = finished_result.answer
+
+    assert isinstance(ans, list)
+    assert len(ans) == num_calls * parallel_calls
+    assert all([0 < x < 1 for x in ans])
 
 
 def test_no_deadlock():
     num_calls = 4
     parallel_calls = 55
-    t = time.time()
-    i_node = CallNode(num_calls, parallel_calls, lambda: RNGNode())
-    finished_result = run(
-        i_node,
-        executor_config=ExecutorConfig(
-            global_num_retries=350,
-            workers=5,
-            timeout=250,
-        ),
-    )
 
-    assert isinstance(finished_result.answer, list)
-
-    assert len(finished_result.answer) == num_calls * parallel_calls
-    assert all([0 < x < 1 for x in finished_result.answer])
+    many_calls_tester(num_calls, parallel_calls)
 
 
 def test_small_no_deadlock():
     num_calls = 10
     parallel_calls = 15
 
-    i_node = CallNode(num_calls, parallel_calls, lambda: RNGNode())
-    finished_result = run(
-        i_node,
-        executor_config=ExecutorConfig(
-            global_num_retries=350,
-            workers=5,
-            timeout=250,
-        ),
-    )
-
-    assert isinstance(finished_result.answer, list)
-
-    assert len(finished_result.answer) == num_calls * parallel_calls
-    assert all([0 < x < 1 for x in finished_result.answer])
+    many_calls_tester(num_calls, parallel_calls)
 
 
 def test_large_no_deadlock():
     num_calls = 45
     parallel_calls = 23
 
-    i_node = CallNode(num_calls, parallel_calls, lambda: RNGNode())
-    finished_result = run(
-        i_node,
-        executor_config=ExecutorConfig(
-            global_num_retries=350,
-            workers=5,
-            timeout=250,
-        ),
-    )
-
-    assert isinstance(finished_result.answer, list)
-
-    assert len(finished_result.answer) == num_calls * parallel_calls
-    assert all([0 < x < 1 for x in finished_result.answer])
+    many_calls_tester(num_calls, parallel_calls)
 
 
-def test_simple_rng_graph():
-    i_r = RNGNode()
-    finished_result = run(i_r)
+def test_simple_rng():
+    with rc.Runner() as run:
+        result = run.run_sync(RNGNode)
 
-    assert isinstance(finished_result.answer, float)
-
-    assert 0 < finished_result.answer < 1
+    assert 0 < result.answer < 1
