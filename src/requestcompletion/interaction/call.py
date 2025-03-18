@@ -18,7 +18,7 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
     try:
         p_n_id = parent_id.get()
         created_node = node(*args, **kwargs)
-        parent_id.put(created_node.uuid)
+        parent_id.set(created_node.uuid)
         return await runner.call(p_n_id, created_node)
     except (asyncio.TimeoutError, asyncio.CancelledError):
         try:

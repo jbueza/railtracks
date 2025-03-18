@@ -70,7 +70,8 @@ class Runner:
 
     def run_sync(self, start_node: Callable[..., Node] | None = None, *args, **kwargs):
         # If no loop is running, create one and run the coroutine.
-        return asyncio.run(self.run(start_node, *args, **kwargs))
+        result = asyncio.run(self.run(start_node, *args, **kwargs))
+        return result
 
     async def run(
         self,
@@ -97,7 +98,7 @@ class Runner:
         await self.rc_state.cancel(node_id)
 
     async def call(self, parent_node_id: str, node: Node):
-        await self.rc_state.call_nodes(parent_node_id, node)
+        return await self.rc_state.call_nodes(parent_node_id, node)
 
     # TODO add support for any general user defined streaming object
     def stream(self, item: str):
