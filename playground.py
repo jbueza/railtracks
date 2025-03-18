@@ -8,6 +8,8 @@ print("Time taken to import requestcompletion:", time.time() - ref)
 
 ref = time.time()
 
+async def
+
 
 class SimpleThinker(rc.library.TerminalLLM):
     @classmethod
