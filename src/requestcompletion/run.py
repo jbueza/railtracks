@@ -43,13 +43,10 @@ class Runner:
         self,
         subscriber: Callable[[str], None] = None,
         executor_config: ExecutorConfig = ExecutorConfig(),
-        executor_info: ExecutionInfo = None,
     ):
 
-        if executor_info is None:
-            executor_info = ExecutionInfo.create_new(executor_config=executor_config)
-        elif executor_config is not None:
-            executor_info.executor_config = executor_config
+        executor_info = ExecutionInfo.create_new(executor_config=executor_config)
+        executor_config = executor_config
 
         self.rc_state = RCState(executor_info)
         if subscriber is None:
@@ -89,13 +86,20 @@ class Runner:
         try:
             await self.rc_state.execute(node)
         finally:
-            threading.Thread(self._data_streamer.stop(True)).start()
+            threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
 
         return self.rc_state.info
 
     async def cancel(self, node_id: str):
         # collects the parent id of the current node that is running that is gonna get cancelled
         await self.rc_state.cancel(node_id)
+
+    # TODO implement this method and any additional logic in rc_state that is required.
+    def from_state(self, executor_info: ExecutionInfo):
+        raise NotImplementedError(
+            "Currently we do not support running from a state object. Please contact Logan to add this feature."
+        )
+        self.rc_state = RCState(executor_info)
 
     async def call(self, parent_node_id: str, node: Node):
         return await self.rc_state.call_nodes(parent_node_id, node)
