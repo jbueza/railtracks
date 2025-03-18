@@ -16,10 +16,10 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
 
     # we create a new context to prevent bleeding memory from the previous context.
     try:
-        parent_node_id = parent_id.get()
+        p_n_id = parent_id.get()
         created_node = node(*args, **kwargs)
-        parent_node_id.put(created_node.uuid)
-        return await runner.call(parent_node_id, created_node)
+        parent_id.put(created_node.uuid)
+        return await runner.call(p_n_id, created_node)
     except (asyncio.TimeoutError, asyncio.CancelledError):
         try:
             node_to_cancel_id = parent_id.get()

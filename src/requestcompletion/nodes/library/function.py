@@ -24,6 +24,7 @@ from typing import (
     Coroutine,
     Awaitable,
     ParamSpec,
+    Generic,
 )
 
 from ..nodes import Node, Tool
@@ -35,12 +36,13 @@ _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-def from_function(func: Callable[[_P], Awaitable[_TOutput]]) -> Type[Node[_TOutput]]:
+def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
     """
     A function to create a node from a function
     """
 
-    class DynamicFunctionNode(Node[_TOutput]):
+    # TODO figure out how to type this properly
+    class DynamicFunctionNode(Node[_TOutput], Generic[_P, _TOutput]):
         def __init__(self, *args: _P.args, **kwargs: _P.kwargs):
             super().__init__()
             self.args = args
