@@ -53,6 +53,12 @@ def test_error_handler():
     assert result.answer == "Caught the error"
 
 
+def test_error_handler_wo_retry():
+    with pytest.raises(rc.state.execute.ExecutionException):
+        with rc.Runner(executor_config=rc.ExecutorConfig(end_on_error=True)) as run:
+            result = run.run_sync(ErrorHandler)
+
+
 async def error_handler_with_retry(retries: int):
     for _ in range(retries):
         try:

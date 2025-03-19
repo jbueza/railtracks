@@ -309,6 +309,15 @@ class RCState:
 
         self.exception_history.append(exception)
 
+        if self.executor_config.end_on_error:
+            self.logger.critical(f"Encountered an Error: {exception}")
+            ee = ExecutionException(
+                failed_request=self._request_heap[request_id],
+                execution_info=self.info,
+                final_exception=exception,
+            )
+            return Failure(ee)
+
         if isinstance(exception, FatalException):
             self.logger.critical(f"Fatal exception encountered: {exception}")
             ee = ExecutionException(
