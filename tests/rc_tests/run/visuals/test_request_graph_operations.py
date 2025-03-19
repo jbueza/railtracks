@@ -4,7 +4,7 @@ from uuid import uuid4
 from requestcompletion.state.request import (
     RequestTemplate,
 )
-from requestcompletion.tools.profiling import Stamp
+from requestcompletion.utils.profiling import Stamp
 
 
 def create_tree_from_graph(graph: Dict[str, List[Tuple[str, Any]]]):

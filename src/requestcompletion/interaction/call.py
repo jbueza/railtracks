@@ -12,6 +12,17 @@ _P = ParamSpec("_P")
 
 
 async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.kwargs):
+    """
+    Call another node from within a node inside the framework. This will return a coroutine that you can interact with
+    in whatever way using the `asyncio` framework.
+
+    Args:
+        node: The node type you would like to create
+        *args: The arguments to pass to the node
+        **kwargs: The keyword arguments to pass to the node
+
+
+    """
     runner: Runner = get_active_runner()
 
     # we create a new context to prevent bleeding memory from the previous context.

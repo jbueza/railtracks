@@ -3,7 +3,7 @@ import uuid
 import pytest
 from dataclasses import dataclass
 
-from requestcompletion.tools.profiling import Stamp
+from requestcompletion.utils.profiling import Stamp
 from requestcompletion.state.forest import Forest, AbstractLinkedObject
 
 
