@@ -15,7 +15,7 @@ from ..info import ExecutionInfo
 from ..state.request import (
     RequestTemplate,
 )
-from ..tools.profiling import Stamp
+from ..utils.profiling import Stamp
 
 import logging
 

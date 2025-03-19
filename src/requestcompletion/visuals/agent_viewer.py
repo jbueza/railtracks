@@ -2,7 +2,7 @@ from pyvis.network import Network
 
 from typing import List
 
-from ..tools.profiling import Stamp
+from ..utils.profiling import Stamp
 
 from ..state.node import (
     LinkedNode,

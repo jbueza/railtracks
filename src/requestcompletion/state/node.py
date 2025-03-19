@@ -10,7 +10,7 @@ from src.requestcompletion.state.forest import (
     AbstractLinkedObject,
     Forest,
 )
-from ..tools.profiling import Stamp
+from ..utils.profiling import Stamp
 from ..nodes.nodes import (
     Node,
 )

@@ -18,4 +18,8 @@ class ExecutorConfig(BaseModel):
         default=True,
         description="If true the executor will force close any open streams when it finishes execution.",
     )
+    end_on_error: bool = Field(
+        default=False,
+        description="If true the executor will stop execution when an error is encountered.",
+    )
     DEBUG: bool = Field(default=False, description="If true the executor will run in debug mode")

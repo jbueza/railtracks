@@ -3,7 +3,7 @@ import threading
 from typing import TypeVar, ParamSpec, Callable
 
 from .config import ExecutorConfig
-from .tools.stream import DataStream, Subscriber
+from .utils.stream import DataStream, Subscriber
 from .nodes.nodes import Node
 
 

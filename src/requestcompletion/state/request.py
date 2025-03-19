@@ -11,7 +11,7 @@ from src.requestcompletion.state.forest import (
     Forest,
     AbstractLinkedObject,
 )
-from ..tools.profiling import Stamp
+from ..utils.profiling import Stamp
 
 
 class Cancelled:
