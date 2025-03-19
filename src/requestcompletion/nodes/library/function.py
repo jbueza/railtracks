@@ -55,7 +55,7 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
                 converted_kwargs = self._convert_kwargs_to_appropriate_types()
 
                 # we want to have different behavior if the function is a coroutine or not
-                if asyncio.iscoroutinefunction(func):
+                if asyncio.iscoroutine(func):
                     result = await func(*self.args, **converted_kwargs)
                 else:
                     result = await asyncio.to_thread(func, *self.args, **converted_kwargs)
