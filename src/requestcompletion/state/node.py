@@ -65,10 +65,8 @@ class NodeForest(Forest[LinkedNode]):
         Note it will throw a NodeCopyException if the node cannot be copied.
         """
 
-
         node = self._heap[item]
         return node
-
 
     def update(self, new_node: Node, stamp: Stamp):
         """
