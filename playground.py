@@ -1,40 +1,25 @@
-import time
+import contextvars
+import asyncio
 
-ref = time.time()
-
-import requestcompletion as rc
-
-print("Time taken to import requestcompletion:", time.time() - ref)
-
-ref = time.time()
-
-async def
+p_id = contextvars.ContextVar("parent_id")
 
 
-class SimpleThinker(rc.library.TerminalLLM):
-    @classmethod
-    def pretty_name(cls) -> str:
-        pass
-
-    def __init__(self, query: str):
-        super().__init__(
-            message_history=rc.llm.MessageHistory(
-                [
-                    rc.llm.SystemMessage(
-                        "You are a helpful asssinatnt with a simple mind that supplies simple solutions to any question. "
-                    ),
-                    rc.llm.UserMessage(query),
-                ]
-            ),
-            model=rc.llm.OpenAILLM("gpt-4o"),
-        )
+async def call(function, _id):
+    p_id.set("parent")
+    token = p_id.set(_id)
+    await function
+    p_id.reset(token)
+    print(p_id.get())
 
 
-print("Time taken to define SimpleThinker:", time.time() - ref)
+async def function():
+    print(p_id.get())
 
-ref = time.time()
-with rc.Runner() as run:
-    print("Time taken to run SimpleThinker:", time.time() - ref)
-    ref = time.time()
-    print(run.run_sync(SimpleThinker, "How should I add 2 number together").answer)
-    print("Time taken to run SimpleThinker:", time.time() - ref)
+
+async def main():
+    # for i in range(10):
+    contract = [call(function(), i) for i in range(10)]
+    await asyncio.gather(*contract)
+
+
+asyncio.run(main())

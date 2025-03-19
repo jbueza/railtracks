@@ -1,3 +1,4 @@
+import asyncio
 from functools import partial
 from typing import TypeVar, Generic, Set, Type, Dict, Any, Callable
 
@@ -52,7 +53,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     @abstractmethod
     def return_output(self) -> _T: ...
 
-    def invoke(
+    async def invoke(
         self,
     ) -> _T:
         while True:
@@ -74,7 +75,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
                     for r_id, resp in zip(
                         [x.identifier for x in returned_mess.message.content],
-                        [x.data for x in responses],
+                        await asyncio.gather(*responses),
                     ):
                         self.message_hist.append(ToolMessage(ToolResponse(identifier=r_id, result=str(resp))))
 

@@ -349,6 +349,13 @@ class RequestForest(Forest[RequestTemplate]):
             )
             self._update_heap(linked_request)
 
+    def children(self, parent_id: str):
+        """
+        Finds all the children of the provided parent_id.
+        """
+        with self._lock:
+            return RequestTemplate.downstream(self._heap.values(), parent_id)
+
     @classmethod
     def generate_graph(cls, heap: Dict[str, RequestTemplate]) -> Dict[str, List[Tuple[str, str]]]:
         """

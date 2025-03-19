@@ -8,7 +8,6 @@ from collections import deque
 from typing import TypeVar, List, Callable, ParamSpec
 
 from .request import Cancelled, Failure
-from ..context import parent_id
 
 from ..nodes.nodes import Node, FatalException
 
@@ -259,8 +258,8 @@ class RCState:
         try:
             result = await self._run_node(node)
         except Exception as e:
-            self._handle_failed_request(request_id, e)
-            result = e
+            handled_error = self._handle_failed_request(request_id, e)
+            result = handled_error
 
         stamp = self._stamper.create_stamp(f"Finished executing {node.pretty_name()}")
         self.logger.info(f"Finished running {node.pretty_name()}")

@@ -1,8 +1,6 @@
-import pytest
-
 import time
 
-from requestcompletion.run.tools.profiling import StampManager
+from requestcompletion.tools.profiling import StampManager
 
 
 def test_single_stamper():

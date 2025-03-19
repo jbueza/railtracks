@@ -99,7 +99,7 @@ class Runner:
         raise NotImplementedError(
             "Currently we do not support running from a state object. Please contact Logan to add this feature."
         )
-        self.rc_state = RCState(executor_info)
+        # self.rc_state = RCState(executor_info)
 
     async def call(self, parent_node_id: str, node: Node):
         return await self.rc_state.call_nodes(parent_node_id, node)
