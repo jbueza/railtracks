@@ -26,7 +26,7 @@ class ExecutionInfo:
         self.request_heap = request_heap
         self.node_heap = node_heap
         self.stamper = stamper
-        self.exception_history = exception_history if exception_history is not None else []
+        self.exception_history = exception_history or []
         self.executor_config = executor_config
 
     @classmethod
