@@ -19,6 +19,7 @@ from typing import (
     Callable,
     ParamSpec,
     Any,
+    Coroutine,
 )
 
 from typing_extensions import Self
@@ -66,7 +67,7 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         """
 
     @abstractmethod
-    async def invoke(self) -> _TOutput:
+    async def invoke(self) -> Coroutine[Any, Any, _TOutput]:
         """
         The main method that runs when this node is called
         """

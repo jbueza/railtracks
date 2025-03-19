@@ -143,11 +143,3 @@ class StreamingCallNode(CallNode):
             self.data.extend([d for d in response])
 
         return self.data
-
-
-if __name__ == "__main__":
-    sen = ScorchedEarthNode()
-    from copy import deepcopy
-
-    copy = deepcopy(sen)
-    print(copy)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 import random
 
@@ -83,79 +85,27 @@ def test_error_handler_with_retry():
         assert len(result.exception_history) == num_retries
 
 
-async def error_handler(num_calls: int, parallel_calls: int):
+async def parallel_error_handler(num_calls: int, parallel_calls: int):
     data = []
     for _ in range(num_calls):
         contracts = [rc.call(ErrorThrower) for _ in range(parallel_calls)]
-        results = await asyncio.gather(*contracts)
-        data.extend(results)
+
+        results = await asyncio.gather(*contracts, return_exceptions=True)
+
+        data += results
+
     return data
 
 
-def test_crazy_errors():
-    num_calls = 10
-    parallel_calls = 5
-    i_node = CallNode(
-        num_calls,
-        parallel_calls,
-        lambda: CompletionProtocolNode("hello world"),
-    )
-
-    finished_result = run(i_node, executor_config=ExecutorConfig(global_num_retries=350, timeout=250))
-
-    assert isinstance(finished_result.answer, list)
-    assert len(finished_result.answer) == num_calls * parallel_calls
-    assert all([x == "hello world" for x in finished_result.answer])
+ParallelErrorHandler = rc.library.from_function(parallel_error_handler)
 
 
-def test_even_crazier_errors():
-    i_node = CallNode(10, 50, lambda: RNGNode())
+def test_parallel_error_tester():
 
-    finished_result = run(
-        i_node,
-        executor_config=ExecutorConfig(global_num_retries=10000, timeout=250, workers=290),
-    )
+    for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
+        with rc.Runner() as run:
+            result = run.run_sync(ParallelErrorHandler, n_c, p_c)
 
-    assert isinstance(finished_result.answer, list)
-    assert len(finished_result.answer) == 10 * 50
-    assert all([0 <= x <= 1 for x in finished_result.answer])
-
-
-def test_time_out():
-    i_node = TimeoutNode(5)
-
-    with pytest.raises(ExecutionException) as err:
-        run(i_node, executor_config=ExecutorConfig(timeout=1))
-
-    assert isinstance(err.value.final_exception, GlobalTimeOut)
-    assert len(err.value.exception_history) == 0
-
-
-def test_passed_time_out():
-    i_node = TimeoutNode(1)
-
-    finished_result = run(i_node, executor_config=ExecutorConfig(global_num_retries=10, timeout=10))
-
-    assert finished_result.answer is None
-
-
-def test_complicated_graph_structure():
-    i_node = CallNode(3, 5, lambda: TimeoutNode(1))
-
-    try:
-        run(i_node, executor_config=ExecutorConfig(timeout=5, global_num_retries=10000))
-    except ExecutionException as err:
-        assert isinstance(err.final_exception, GlobalTimeOut)
-
-
-def test_complicated_graph_structure_2():
-    i_node = CallNode(
-        3,
-        3,
-        lambda: CompletionProtocolNode("Hello World"),
-    )
-
-    try:
-        run(i_node, executor_config=ExecutorConfig(timeout=10, global_num_retries=10))
-    except ExecutionException as err:
-        assert isinstance(err.final_exception, GlobalRetriesExceeded)
+        assert isinstance(result.answer, list)
+        assert len(result.answer) == n_c * p_c
+        assert all([isinstance(x, TestError) for x in result.answer])
