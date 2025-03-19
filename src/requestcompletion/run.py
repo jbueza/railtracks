@@ -91,6 +91,7 @@ class Runner:
         return self.rc_state.info
 
     async def cancel(self, node_id: str):
+        raise NotImplementedError("Currently we do not support cancelling nodes. Please contact Logan to add this feature.")
         # collects the parent id of the current node that is running that is gonna get cancelled
         await self.rc_state.cancel(node_id)
 
