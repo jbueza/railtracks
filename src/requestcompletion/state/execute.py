@@ -61,11 +61,14 @@ class RCState:
 
     def create_first_entry(self, start_node: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs):
         """
-        Creates the first entry in the system. This will create the first request and node in the system.
+        Creates the provided node in the system.
 
-        Note the system will not allow you to create a new entry if there is already an entry in the system.
+        This function will only work if the graph is empty
+
         Args:
             start_node: The node that you would like to start
+            *args: The arguments to pass to the node
+            **kwargs: The keyword arguments to pass to the node
         """
         assert len(self._request_heap.heap()) == 0, "The state must be empty to create a starting point"
         assert len(self._node_heap.heap()) == 0, "The state must be empty to create a starting point"
@@ -93,7 +96,7 @@ class RCState:
 
     def add_stamp(self, message: str):
         """
-        Manually adds a stamp to the stamp generator in this object.
+        Manually adds a stamp with the provided message to the stamp generator
 
         Args:
             message: The message you would like to attach to the stamp
@@ -103,33 +106,8 @@ class RCState:
         """
         self._stamper.create_stamp(message)
 
-    # TODO make this a more general invoke method. you should not have to pass in the start node.
-    #  it should be able to look at state and infer the next task.
-    def invoke(
-        self,
-        start_node: Node,
-    ):
-        """
-        This function will run the provided node and will automatically handle any calls to other nodes that are made
-        during the execution of the node.
-
-        Once this function has returned, the state of the object will update. You can access any details you would like
-        to by accessing the components of the object.
-
-        This should go without saying but this function creates a large amount of side effects, directly interacting
-        with the state of the object.
-
-        Args:
-            start_node: The node which you would like to start the execution of the graph from.
-
-        Returns:
-            None
-
-        """
-        raise NotImplementedError("This function is not yet implemented. Contact Logan to add this feature.")
-        # self.execute(start_node)
-
     async def execute(self, request_id: str):
+        """Executes the graph starting at the provided request id."""
         # TODO: come up with a better algorithm for finding the start of execution.
 
         try:
@@ -156,14 +134,8 @@ class RCState:
         self,
         node: Node,
     ):
-        """
-        This function is responsible for running a single node. It will run the node and then return the output of it.
+        """Runs the provided node and returns the output of the node."""
 
-        This node could have generators which will trigger the creation of other nodes. This function will handle this
-        and spawn new processes to handle the new nodes.scp
-        """
-        # TODO verify that this is working as expected
-        # right before a node is run we register the id of the parent so it can be accessed if the node ever calls `.run`
         return await node.invoke()
 
     def _create_node_and_request(
@@ -179,9 +151,14 @@ class RCState:
 
         Note this is the only way you can add node to the system.
 
+        Side Effects:
+        It will set the parent_id context manager variable to the new node id.
+
         Args:
             parent_node_id: The parent node id of the node you are creating (used for tracking of requests)
-            node: The node you would like to run in the system.
+            node: The Node you would like to create
+            *args: The arguments to pass to the node
+            **kwargs: The keyword arguments to pass to the node
 
         Returns:
             The request id of the request created between parent and child.
@@ -190,7 +167,7 @@ class RCState:
         # 1. Create the node here
         node = node(*args, **kwargs)
 
-        # This is a critical registarion step so other elements are away that we have officially created the node.
+        # This is a critical registration step so other elements are away that we have officially created the node.
         parent_id.set(node.uuid)
 
         # 2. Add it to the node heap.
