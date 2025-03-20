@@ -112,7 +112,6 @@ def nested_many_calls_tester(num_calls: int, parallel_calls: int, depth: int):
     child_requests = r_h.children(r_h.insertion_request.sink_id)
 
     assert len(child_requests) == num_calls * parallel_calls
-    print(child_requests[0].input)
     for r in child_requests:
         assert r.input[0][0] == num_calls
         assert r.input[0][1] == parallel_calls
