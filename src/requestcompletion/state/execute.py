@@ -5,9 +5,10 @@ import uuid
 from collections import deque
 
 
-from typing import TypeVar, List, Callable, ParamSpec
+from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict
 
 from .request import Cancelled, Failure
+from ..context import parent_id
 
 from ..nodes.nodes import Node, FatalException
 
@@ -58,7 +59,7 @@ class RCState:
         # each new instance of a state object should have its own logger.
         self.logger = logging.getLogger(__name__)
 
-    def create_first_entry(self, start_node: Node):
+    def create_first_entry(self, start_node: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs):
         """
         Creates the first entry in the system. This will create the first request and node in the system.
 
@@ -69,17 +70,26 @@ class RCState:
         assert len(self._request_heap.heap()) == 0, "The state must be empty to create a starting point"
         assert len(self._node_heap.heap()) == 0, "The state must be empty to create a starting point"
 
+        created_node = start_node(*args, **kwargs)
+        # we have this akward interaction with the parent_id context manager to make sure that the parent_id is set
+        # this is the same logic as seen when a new node is created
+        parent_id.set(created_node.uuid)
+
         first_stamp = self._stamper.create_stamp(
-            f"Opened a new request between the start and the {start_node.pretty_name()}"
+            f"Opened a new request between the start and the {created_node.pretty_name()}"
         )
 
-        self._node_heap.update(start_node, first_stamp)
-        self._request_heap.create(
+        self._node_heap.update(created_node, first_stamp)
+        request_id = self._request_heap.create(
             identifier="START",
             source_id=None,
-            sink_id=start_node.uuid,
+            input_args=args,
+            input_kwargs=kwargs,
+            sink_id=created_node.uuid,
             stamp=first_stamp,
         )
+
+        return request_id
 
     def add_stamp(self, message: str):
         """
@@ -116,23 +126,18 @@ class RCState:
             None
 
         """
+        raise NotImplementedError("This function is not yet implemented. Contact Logan to add this feature.")
+        # self.execute(start_node)
 
-        self.execute(start_node)
-
-    async def execute(self, start_node: Node):
+    async def execute(self, request_id: str):
         # TODO: come up with a better algorithm for finding the start of execution.
 
         try:
-            output = await asyncio.wait_for(self._run_node(start_node), timeout=self.executor_config.timeout)
 
-            # before exit we must update the state objects one last time
-            # this is a special case becuase in all other situations we call `_run_requests` and it handles the
-            # updating of the state objects.
-            stamp = self._stamper.create_stamp(f"Finished executing {start_node.pretty_name()}")
-            self.logger.info(f"Finished running {start_node.pretty_name()}")
-            self._request_heap.update("START", output, stamp)
-            self._node_heap.update(start_node, stamp)
+            output = await asyncio.wait_for(self._run_request(request_id), timeout=self.executor_config.timeout)
+            # Note that since this is the insertion requests, its output is our answer.
             self._answer = output
+
         except asyncio.TimeoutError:
             raise ExecutionException(
                 failed_request=self._request_heap["START"],
@@ -161,7 +166,13 @@ class RCState:
         # right before a node is run we register the id of the parent so it can be accessed if the node ever calls `.run`
         return await node.invoke()
 
-    def _create_node(self, parent_node_id: str, node: Node) -> str:
+    def _create_node_and_request(
+        self,
+        parent_node_id: str,
+        node: Callable[_P, Node],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ) -> str:
         """
         Creates a node using the creator and then registers it with the registry. This will allow the register method to
         act on the node.
@@ -176,16 +187,18 @@ class RCState:
             The request id of the request created between parent and child.
         """
 
-        # 1. Make sure the node has not already been created.
-        assert node.uuid not in self._node_heap, f"Node {node.uuid} has already been created"
+        # 1. Create the node here
+        node = node(*args, **kwargs)
 
-        # 2. Create the node and add it to the node heap.
+        # This is a critical registarion step so other elements are away that we have officially created the node.
+        parent_id.set(node.uuid)
+
+        # 2. Add it to the node heap.
         sc = self._stamper.stamp_creator()
         self._node_heap.update(node, sc(f"Creating {node.pretty_name()}"))
 
-
         # 3. Attach the requests that will tied to this node.
-        request_ids = self._create_new_request_set(parent_node_id, [node.uuid], sc)
+        request_ids = self._create_new_request_set(parent_node_id, [node.uuid], [args], [kwargs], sc)
 
         # 4. Return the request id of the node that was created.
         return request_ids[0]
@@ -193,7 +206,9 @@ class RCState:
     async def call_nodes(
         self,
         parent_node_id: str,
-        node: Node[_TOutput],
+        node: Callable[_P, Node[_TOutput]],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
     ) -> _TOutput:
         """
         This function will handle the creation of the node and the subsequent running of the node returning the result.
@@ -209,7 +224,7 @@ class RCState:
             The output of the node that was run. It will match the output type of the child node that was run.
 
         """
-        request_id = self._create_node(parent_node_id, node)
+        request_id = self._create_node_and_request(parent_node_id, node, *args, **kwargs)
 
         outputs: _TOutput = await self._run_request(request_id)
         return outputs
@@ -219,6 +234,8 @@ class RCState:
         self,
         parent_node: str,
         children: List[str],
+        input_args: List[Tuple],
+        input_kwargs: List[Dict[str, Tuple]],
         stamp_gen: Callable[[str], Stamp],
     ) -> List[str]:
         """
@@ -246,6 +263,8 @@ class RCState:
                 [str(uuid.uuid4()) for _ in children],
                 [parent_node] * len(children),
                 children,
+                input_args,
+                input_kwargs,
                 [
                     stamp_gen(
                         f"Adding request between {self._node_heap.id_type_mapping[parent_node]} and {self._node_heap.id_type_mapping[n]}"

@@ -85,7 +85,7 @@ class Runner:
         Runner._instance = None
 
     def run_sync(self, start_node: Callable[..., Node] | None = None, *args, **kwargs):
-        """ Runs the provided node synchronously. """
+        """Runs the provided node synchronously."""
         # If no loop is running, create one and run the coroutine.
         result = asyncio.run(self.run(start_node, *args, **kwargs))
         return result
@@ -96,17 +96,15 @@ class Runner:
         *args: _P.args,
         **kwargs: _P.kwargs,
     ):
-        """ Runs the rc framework with the given start node and provided arguments."""
+        """Runs the rc framework with the given start node and provided arguments."""
 
         # relevant if we ever want to have future support for optional start nodes
         if start_node is not None:
-            node = start_node(*args, **kwargs)
-            parent_id.set(node.uuid)
-            self.rc_state.create_first_entry(node)
+            node_id = self.rc_state.create_first_entry(start_node, *args, **kwargs)
         else:
             raise RuntimeError("We currently do not support running without a start node.")
         try:
-            await self.rc_state.execute(node)
+            await self.rc_state.execute(node_id)
         finally:
             # The data streamer is a running on a separate thread
             threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
@@ -127,7 +125,13 @@ class Runner:
         )
         # self.rc_state = RCState(executor_info)
 
-    async def call(self, parent_node_id: str, node: Node):
+    async def call(
+        self,
+        parent_node_id: str,
+        node: Callable[_P, Node[_TOutput]],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ):
         """
         An internal method used to call a node using the state object tied to this runner.
 
@@ -137,7 +141,7 @@ class Runner:
             parent_node_id: The parent node id of the node you are calling.
             node: The node you would like to calling.
         """
-        return await self.rc_state.call_nodes(parent_node_id, node)
+        return await self.rc_state.call_nodes(parent_node_id, node, *args, **kwargs)
 
     # TODO add support for any general user defined streaming object
     def stream(self, item: str):

@@ -21,6 +21,7 @@ class ExecutionInfo:
     The class is designed to be used as a snapshot of the state which can be both used to view the state of the run and
     to be used to continue the run from the point it was saved.
     """
+
     def __init__(
         self,
         request_heap: RequestForest,
@@ -37,7 +38,7 @@ class ExecutionInfo:
 
     @classmethod
     def default(cls):
-        """ Creates a new "empty" instance of the ExecutionInfo class with the default values. """
+        """Creates a new "empty" instance of the ExecutionInfo class with the default values."""
         return cls.create_new()
 
     @classmethod

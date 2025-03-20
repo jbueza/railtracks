@@ -17,6 +17,7 @@ def create_tree_from_graph(graph: Dict[str, List[Tuple[str, Any]]]):
                     identifier=str(uuid4()),
                     source_id=source_id,
                     sink_id=sink_id,
+                    input=((), {}),
                     parent=None,
                     stamp=basic_stamp,
                     output=output,

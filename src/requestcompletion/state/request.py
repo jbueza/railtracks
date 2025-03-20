@@ -27,6 +27,7 @@ class Failure:
 class RequestTemplate(AbstractLinkedObject):
     source_id: Optional[str]
     sink_id: str
+    input: Tuple[Tuple, Dict]
     output: Optional[Any]
     parent: Optional[RequestTemplate]
 
@@ -275,7 +276,15 @@ class RequestForest(Forest[RequestTemplate]):
                 upstream_request.identifier,
             )
 
-    def create(self, identifier: str, source_id: Optional[str], sink_id: str, stamp: Stamp):
+    def create(
+        self,
+        identifier: str,
+        source_id: Optional[str],
+        sink_id: str,
+        input_args: Tuple,
+        input_kwargs: Dict,
+        stamp: Stamp,
+    ):
         """
         Creates a new instance of a request from the provided details and places it into the heap.
 
@@ -291,6 +300,7 @@ class RequestForest(Forest[RequestTemplate]):
                 identifier=identifier,
                 source_id=source_id,
                 sink_id=sink_id,
+                input=(input_args, input_kwargs),
                 output=None,
                 stamp=stamp,
                 parent=None,
@@ -343,6 +353,7 @@ class RequestForest(Forest[RequestTemplate]):
                 identifier=identifier,
                 source_id=old_request.source_id,
                 sink_id=old_request.sink_id,
+                input=old_request.input,
                 output=output,
                 stamp=stamp,
                 parent=self._heap.get(identifier, None),

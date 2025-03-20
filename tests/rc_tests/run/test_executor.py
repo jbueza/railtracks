@@ -18,6 +18,14 @@ async def many_calls(num_calls: int, parallel_calls: int):
         data.extend(results)
     return data
 
+async def nested_many_calls(num_calls: int, parallel_calls: int, depth: int):
+    data = []
+    for _ in range(num_calls):
+        contracts = [rc.call(many_calls, parallel_calls, 1) for _ in range(parallel_calls)]
+        results = await asyncio.gather(*contracts)
+        data.extend(results)
+    return data
+
 
 ManyCalls = rc.library.from_function(many_calls)
 
