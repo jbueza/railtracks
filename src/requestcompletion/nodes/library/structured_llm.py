@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 
 _TOutput = TypeVar("_TOutput", bound=BaseModel)
 
+
 def structured_llm(
     output_model: Type[_TOutput],
     pretty_name: str | None = None,

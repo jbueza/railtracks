@@ -3,6 +3,7 @@ from ..nodes import Node, ResetException
 
 from abc import ABC
 
+
 def terminal_llm(
     pretty_name: str | None = None,
 ):
