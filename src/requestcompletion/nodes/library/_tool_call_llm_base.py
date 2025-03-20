@@ -68,14 +68,17 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 # if the returned item is a list then it is a list of tool calls
                 if isinstance(returned_mess.message.content, list):
                     assert all([isinstance(x, ToolCall) for x in returned_mess.message.content])
-                    responses = [
+                    contracts = [
                         call(lambda arguments: self.create_node(tool_name=t_c.name, arguments=arguments), t_c.arguments)
                         for t_c in returned_mess.message.content
                     ]
 
+                    tool_responses = await asyncio.gather(*contracts, return_exceptions=True)
+                    tool_responses = [x if not isinstance(x, Exception) else "There was an error running the tool" for x in tool_responses]
+
                     for r_id, resp in zip(
                         [x.identifier for x in returned_mess.message.content],
-                        await asyncio.gather(*responses),
+                        tool_responses,
                     ):
                         self.message_hist.append(ToolMessage(ToolResponse(identifier=r_id, result=str(resp))))
 
