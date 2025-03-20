@@ -169,21 +169,25 @@ class RCState:
         Note this is the only way you can add node to the system.
 
         Args:
-            node_creator: The function that will create the node
-            *args: The arguments to pass to the node creator
-            **kwargs: The keyword arguments to pass to the node
+            parent_node_id: The parent node id of the node you are creating (used for tracking of requests)
+            node: The node you would like to run in the system.
 
         Returns:
-            A NodeTemplate object containing the node that was created
+            The request id of the request created between parent and child.
         """
-        # 1. collect the current parent node via context
 
-        # 2. Attach the registry components (i.e. hook for node creation and node invocation)
+        # 1. Make sure the node has not already been created.
         assert node.uuid not in self._node_heap, f"Node {node.uuid} has already been created"
+
+        # 2. Create the node and add it to the node heap.
         sc = self._stamper.stamp_creator()
         self._node_heap.update(node, sc(f"Creating {node.pretty_name()}"))
+
+
+        # 3. Attach the requests that will tied to this node.
         request_ids = self._create_new_request_set(parent_node_id, [node.uuid], sc)
-        # only returns after the node was successfully added.
+
+        # 4. Return the request id of the node that was created.
         return request_ids[0]
 
     async def call_nodes(
@@ -192,18 +196,17 @@ class RCState:
         node: Node[_TOutput],
     ) -> _TOutput:
         """
-        This function will handle the creation of new requests and the running of the new requests. It will return the
-        results of the requests.
+        This function will handle the creation of the node and the subsequent running of the node returning the result.
 
-        Note the returned list will match the order of the input list.
+        Important: If an exception was thrown during the execution of the request, it will pass through this function,
+        and will be raised.
 
         Args:
-            parent_node: The node that is calling the other nodes.
-            node_ids: The list of nodes, you would like to call
-            executor: A executor used for parallelization of the requests.
+            parent_node_id: The parent node id of the node you are calling.
+            node: The node you would like to call.
 
         Returns:
-            A list of the response from the nodes, in the order matching the input list.
+            The output of the node that was run. It will match the output type of the child node that was run.
 
         """
         request_id = self._create_node(parent_node_id, node)
@@ -226,15 +229,17 @@ class RCState:
         Note that all the identifiers for the
 
         Args:
-            parent_node: The node that is calling the other nodes.
+            parent_node: The identifier of the parent node which is calling the children.
             children: The list of node_ids that you would like to call.
             stamp_gen: A function that will create a new stamp of the same number.
-            executor: A executor used for parallelization of the requests.
         """
+
         # note it is assumed that all of the children id are valid and have already been created.
         assert all(
             [n in self._node_heap for n in children]
         ), "You cannot add a request for a node which has not yet been added"
+
+        # to simplify we are going to create a new request for each child node with the parent as its source.
         request_ids = list(
             map(
                 self._request_heap.create,
@@ -253,6 +258,23 @@ class RCState:
         return request_ids
 
     async def _run_request(self, request_id: str):
+        """
+        Runs the request for the given request id.
+
+        1. It will use the request to collect the identifier of the child node and then run the node.
+        2. It will then handle any errors thrown during execution.
+        3. It will save the new state to the state objects
+        4. It will return the result of the request. (or if any error was raised during execution it will throw the error)
+
+        Important: If an exception was thrown during the execution of the request, it will be be raised here.
+
+        Args:
+            request_id: The request you would like to run
+
+        Returns:
+            The result of the request. It will match the output type of the child node that was run.
+
+        """
         child_node_id = self._request_heap[request_id].sink_id
         node = self._node_heap[child_node_id].node
         try:
@@ -274,39 +296,26 @@ class RCState:
 
     def _handle_failed_request(self, request_id: str, exception: Exception):
         """
-        Error handling logic that takes in any node exception and handles it according to the logic presented in the
-        notion documentation.
+        Handles the provided exception for the given request identifier.
 
-        Critically there are 3 different types of errors which are handled as follows:
-        1.`FatalException`: This is a fatal error that will stop the execution of the graph. If this exception is raised
-        we will propagate the error up as an Execution Exception.
-        2. `ResetException`: This is a non fatal error that will trigger the scorched earth protocol.
-        We will pass up a `ScorchedEarthException` which will be handled by the parent node.
-        3. `CompletionException`: This is a special exception that is raised when a node would like to return a
-        predefined completion message instead of an error. In this case we will return the completion protocol and not
-        throw an error.
+        If the given exception is a `FatalException` or if the config flag for `end_on_error` is set to be true, then
+        the function will return a `ExecutionException` object wrapped in a `Failure` object.
 
-        There are a couple of other major things that this function will also check for:
-
-        - If we have gone over our maximum number of exceptions it will trigger an `ExecutionException`
-        - If we have turned off our scorched earth protocol it will throw an `ExecutionException`
-        - If an unknown exception is provided it will be thrown up the chain to be handled by above modules.
+        Otherwise, it will return a `Failure` object containing the exception that was thrown.
 
         Args:
             request_id: The request in which this error occurred
             exception: The exception thrown during this request.
 
         Returns:
-            The completion protocol if the exception was a `CompletionException` otherwise it will throw an exception
+            An object containing the error thrown during the request wrapped in a Failure object.
 
         Raises:
-            ExecutionException: If the exception was a `FatalException`, the number of exceptions has exceeded the
-            provided param, or you have turned off scorched earth protocol and a scorched earth exception had been
-            raised.
-            ScorchedEarthException: If the exception was a `ResetException` and scorched earth has been turned on.
+            ExecutionException: If the exception was a `FatalException`, or if the config flag for `end_on_error` is set
+            to be true.
 
         """
-
+        # before doing any handling we must make sure our exception history object is up to date.
         self.exception_history.append(exception)
 
         if self.executor_config.end_on_error:
@@ -318,6 +327,7 @@ class RCState:
             )
             return Failure(ee)
 
+        # fatal exceptions should only be thrown if there is something seriously wrong.
         if isinstance(exception, FatalException):
             self.logger.critical(f"Fatal exception encountered: {exception}")
             ee = ExecutionException(
@@ -327,11 +337,13 @@ class RCState:
             )
             return Failure(ee)
 
+        # for any other error we want it to bubble up so the user can handle.
         self.logger.exception(f"Error in request {request_id}: {exception}")
         return Failure(exception)
 
     @property
     def info(self):
+        """Returns the current state as an ExecutionInfo object."""
         return ExecutionInfo(
             node_heap=self._node_heap,
             request_heap=self._request_heap,
