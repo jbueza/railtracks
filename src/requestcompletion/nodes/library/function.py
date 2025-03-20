@@ -186,7 +186,8 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
             # Convert the value to the determined type
             return self._convert_value(value, element_type)
 
-        def pretty_name(self) -> str:
+        @classmethod
+        def pretty_name(cls) -> str:
             return f"{func.__name__} Node"
 
         @classmethod
