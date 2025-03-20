@@ -20,14 +20,34 @@ _P = ParamSpec("_P")
 
 
 class RunnerCreationError(Exception):
+    """
+    A basic exception to representing when a runner is created when one already exists.
+    """
+
     pass
 
 
 class RunnerNotFoundError(Exception):
+    """
+    A basic exception to representing when no runner can be found
+    """
+
     pass
 
 
 class Runner:
+    """
+    The main class used to run flows in the Request Completion framework.
+
+    Example Usage:
+    ```python
+    import requestcompletion as rc
+
+    with rc.Runner() as run:
+        result = run.run_sync(RNGNode)
+    ```
+    """
+
     # singleton pattern
     _instance = None
 
@@ -46,7 +66,6 @@ class Runner:
     ):
 
         executor_info = ExecutionInfo.create_new(executor_config=executor_config)
-        executor_config = executor_config
 
         self.rc_state = RCState(executor_info)
         if subscriber is None:
@@ -66,6 +85,7 @@ class Runner:
         Runner._instance = None
 
     def run_sync(self, start_node: Callable[..., Node] | None = None, *args, **kwargs):
+        """ Runs the provided node synchronously. """
         # If no loop is running, create one and run the coroutine.
         result = asyncio.run(self.run(start_node, *args, **kwargs))
         return result
@@ -76,7 +96,9 @@ class Runner:
         *args: _P.args,
         **kwargs: _P.kwargs,
     ):
+        """ Runs the rc framework with the given start node and provided arguments."""
 
+        # relevant if we ever want to have future support for optional start nodes
         if start_node is not None:
             node = start_node(*args, **kwargs)
             parent_id.set(node.uuid)
@@ -86,6 +108,7 @@ class Runner:
         try:
             await self.rc_state.execute(node)
         finally:
+            # The data streamer is a running on a separate thread
             threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
 
         return self.rc_state.info
@@ -105,14 +128,36 @@ class Runner:
         # self.rc_state = RCState(executor_info)
 
     async def call(self, parent_node_id: str, node: Node):
+        """
+        An internal method used to call a node using the state object tied to this runner.
+
+        The method will create a coroutine that you can interact with in whatever way using the `asyncio` framework.
+
+        Args:
+            parent_node_id: The parent node id of the node you are calling.
+            node: The node you would like to calling.
+        """
         return await self.rc_state.call_nodes(parent_node_id, node)
 
     # TODO add support for any general user defined streaming object
     def stream(self, item: str):
+        """
+        Streams the provided message using the data streamer tied to this runner.
+
+        Args:
+            item: The message you would like to stream.
+
+        """
         self._data_streamer.publish(item)
 
 
 def get_active_runner():
+    """
+    Collects the current instance of the runner.
+
+    Raises:
+        RunnerNotFoundError: If there is no active runner.
+    """
     if Runner._instance is None:
         raise RunnerNotFoundError("There is no active runner. Please start one using `with Runner(...):`")
     return Runner._instance

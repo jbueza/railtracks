@@ -15,6 +15,12 @@ _TOutput = TypeVar("_TOutput")
 
 # TODO add some the logic for an optional architecture requirement.
 class ExecutionInfo:
+    """
+    A class that contains the full details of the state of a run at any given point in time.
+
+    The class is designed to be used as a snapshot of the state which can be both used to view the state of the run and
+    to be used to continue the run from the point it was saved.
+    """
     def __init__(
         self,
         request_heap: RequestForest,
@@ -31,6 +37,7 @@ class ExecutionInfo:
 
     @classmethod
     def default(cls):
+        """ Creates a new "empty" instance of the ExecutionInfo class with the default values. """
         return cls.create_new()
 
     @classmethod
@@ -38,6 +45,12 @@ class ExecutionInfo:
         cls,
         executor_config: ExecutorConfig = ExecutorConfig(),
     ) -> ExecutionInfo:
+        """
+        Creates a new empty instance of state variables with the provided executor configuration.
+
+        Args:
+            executor_config: The configuration to use for the executor.
+        """
         request_heap = RequestForest()
         node_heap = NodeForest()
         stamper = StampManager()
@@ -61,4 +74,5 @@ class ExecutionInfo:
         return self.stamper.all_stamps
 
     def view_graph(self):
+        """A convenience method used to view a graph representation of the run."""
         AgentViewer(self.all_stamps, self.request_heap, self.node_heap).display_graph()
