@@ -18,9 +18,9 @@ def structured_llm(
 ):
     class StructuredLLMNode(StructuredLLM):
         def __init__(
-                self,
-                message_history: MessageHistory,
-                llm_model: ModelBase | None = None,
+            self,
+            message_history: MessageHistory,
+            llm_model: ModelBase | None = None,
         ):
             if system_message is not None:
                 if len([x for x in message_history if x.role == "system"]) > 0:
