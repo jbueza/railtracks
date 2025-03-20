@@ -115,3 +115,39 @@ def test_parallel_error_tester():
         assert isinstance(result.answer, list)
         assert len(result.answer) == n_c * p_c
         assert all([isinstance(x, TestError) for x in result.answer])
+
+
+# wraps the above error handler in a top level function
+async def error_handler_wrapper(num_calls: int, parallel_calls: int):
+    try:
+        return await rc.call(ParallelErrorHandler, num_calls, parallel_calls)
+    except TestError as e:
+        return "Caught the error"
+
+
+ErrorHandlerWrapper = rc.library.from_function(error_handler_wrapper)
+
+
+def test_parallel_error_wrapper():
+    for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
+        with rc.Runner() as run:
+            result = run.run_sync(ErrorHandlerWrapper, n_c, p_c)
+
+        assert len(result.answer) == n_c * p_c
+        assert all([isinstance(x, TestError) for x in result.answer])
+
+        i_r = result.request_heap.insertion_request
+
+        children = result.request_heap.children(i_r.sink_id)
+        assert len(children) == 1
+        full_children = result.request_heap.children(children[0].sink_id)
+
+        for r in children:
+            assert r.output == result.answer
+
+        for r in full_children:
+            assert isinstance(r.output, Failure)
+            assert isinstance(r.output.exception, TestError)
+
+        assert all([isinstance(e, TestError) for e in result.exception_history])
+        assert len(result.exception_history) == n_c * p_c
