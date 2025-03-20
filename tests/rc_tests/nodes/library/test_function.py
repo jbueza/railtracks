@@ -206,7 +206,6 @@ class TestPrimitiveInputTypes:
             assert isinstance(children.output, Failure)
 
 
-
 class TestSequenceInputTypes:
     @pytest.mark.parametrize("model_provider", MODEL_PROVIDERS)
     def test_single_list_input(self, model_provider):
