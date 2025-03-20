@@ -1,7 +1,50 @@
+import warnings
+
 from ...llm import MessageHistory, ModelBase, SystemMessage
 from ..nodes import Node, ResetException
 
-from abc import ABC, abstractmethod
+from abc import ABC
+
+
+def terminal_llm(
+    pretty_name: str | None = None,
+    system_message: SystemMessage | None = None,
+    model: ModelBase | None = None,
+):
+    class TerminalLLMNode(TerminalLLM):
+        def __init__(
+            self,
+            message_history: MessageHistory,
+            llm_model: ModelBase | None = None,
+        ):
+            if system_message is not None:
+                if len([x for x in message_history if x.role == "system"]) > 0:
+                    warnings.warn("System message already exists in message history. We will replace it.")
+                    message_history = [x for x in message_history if x.role != "system"]
+                    message_history.insert(0, system_message)
+                else:
+                    message_history.insert(0, system_message)
+
+            if llm_model is not None:
+                if model is not None:
+                    warnings.warn(
+                        "You have provided a model as a parameter and as a class variable. We will use the parameter."
+                    )
+            else:
+                if model is None:
+                    raise RuntimeError("You Must provide a model to the TerminalLLM class")
+                llm_model = model
+
+            super().__init__(message_history=message_history, model=llm_model)
+
+        @classmethod
+        def pretty_name(cls) -> str:
+            if pretty_name is None:
+                return "TerminalLLM"
+            else:
+                return pretty_name
+
+    return TerminalLLMNode
 
 
 class TerminalLLM(Node[str], ABC):
@@ -17,26 +60,17 @@ class TerminalLLM(Node[str], ABC):
         self.model = model
         self.message_hist = message_history
 
-    def invoke(self) -> str:
+    async def invoke(self) -> str:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
 
         Returns:
             (TerminalLLM.Output): The response message from the model
         """
-        try:
-            returned_mess = self.model.chat(self.message_hist)
-        except Exception as e:
-            raise ResetException(node=self, detail=f"{e}")
+
+        returned_mess = self.model.chat(self.message_hist)
 
         self.message_hist.append(returned_mess.message)
 
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
-            if cont is None:
-                raise ResetException(node=self, detail="The LLM returned no content")
             return cont
-
-        raise ResetException(
-            node=self,
-            detail="ModelLLM returned an unexpected message type.",
-        )

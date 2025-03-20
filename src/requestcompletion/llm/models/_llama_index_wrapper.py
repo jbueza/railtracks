@@ -19,45 +19,39 @@ from ..tools import Tool
 
 from pydantic import BaseModel, ValidationError
 
+
 class ToolMetadata:
     """Internal class to match LlamaIndex's ToolMetadata structure"""
-    
+
     def __init__(self, name: str, description: str, schema: Dict):
         self.name = name
         self.description = description
         self.schema = schema
-        
+
     def to_openai_tool(self):
         """Convert to OpenAI tool format"""
         return {
             "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.schema
-            }
+            "function": {"name": self.name, "description": self.description, "parameters": self.schema},
         }
+
 
 # Custom tool class that works with our implementation
 class CustomTool:
     """A simple tool class that can be used with LlamaIndex"""
-    
+
     def __init__(self, name: str, description: str, schema: Dict):
         self.name = name
         self.description = description
         self.schema = schema
         # Create a metadata object that matches LlamaIndex's expectations
-        self.metadata = ToolMetadata(name, description, schema)    
-        
+        self.metadata = ToolMetadata(name, description, schema)
+
     def to_openai_tool(self):
         """Convert to OpenAI tool format"""
         return {
             "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.schema
-            }
+            "function": {"name": self.name, "description": self.description, "parameters": self.schema},
         }
 
 
@@ -103,7 +97,7 @@ def _to_llama_tool(tool: Tool) -> CustomTool:
         if hasattr(tool.parameters, "model_json_schema"):
             # If it's a Pydantic model, get the schema
             schema = tool.parameters.model_json_schema()
-            
+
             # Ensure additionalProperties is set to false for OpenAI compatibility
             if "additionalProperties" not in schema:
                 schema["additionalProperties"] = False
@@ -114,23 +108,14 @@ def _to_llama_tool(tool: Tool) -> CustomTool:
                 schema["additionalProperties"] = False
             if "type" not in schema:
                 schema["type"] = "object"
-    
+
     # If we couldn't get a schema, create a minimal valid one
     if not schema:
         warnings.warn(f"Failed to get schema for tool '{tool.name}'. Using minimal valid schema with no parameters.")
-        schema = {
-            "type": "object",
-            "properties": {},
-            "required": [],
-            "additionalProperties": False
-        }
-    
+        schema = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+
     # Use our custom tool class
-    return CustomTool(
-        name=tool.name,
-        description=tool.detail,
-        schema=schema
-    )
+    return CustomTool(name=tool.name, description=tool.detail, schema=schema)
 
 
 class LlamaWrapper(ModelBase):
@@ -218,19 +203,19 @@ class LlamaWrapper(ModelBase):
     def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
         """
         Chat with the model using tools.
-        
+
         Args:
             messages: The message history to use as context
             tools: The tools to make available to the model
             **kwargs: Additional arguments to pass to the model
-            
+
         Returns:
             A Response object containing the model's response
         """
         # Convert our tools and messages to the format expected by the underlying implementation
         llama_tools = [_to_llama_tool(t) for t in tools]
         llama_chat = [_to_llama_chat(m, self.prepare_tool_calls) for m in messages]
-        
+
         # Use the default implementation for all models
         response = self.model.chat_with_tools(
             llama_tools,

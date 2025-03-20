@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Generic, TypeVar, Optional, Dict, List, Tuple, Iterable
 from typing_extensions import Self
 
-from ..tools.profiling import Stamp
+from ..utils.profiling import Stamp
 
 
 def get_all_open_heads(all_linked_objects: Iterable[T], active_pointers: Iterable[T]) -> Tuple[List[T], List[T]]:
@@ -103,6 +103,9 @@ class Forest(Generic[T]):
         if not isinstance(identifier, str):
             raise TypeError(f"Expected a string but got {type(identifier)}")
         return self._heap[identifier]
+
+    def __contains__(self, item):
+        return item in self._heap
 
     def _update_heap(self, item: T):
         """

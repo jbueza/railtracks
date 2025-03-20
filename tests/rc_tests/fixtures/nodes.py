@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import random
 import time
 
 from enum import Enum
 from typing import List, Callable
-from requestcompletion.nodes import Node, NodeFactory
-from requestcompletion.exceptions import *
+import requestcompletion as rc
 
 
 EMPHATIC_ERROR = "The Node has failed emphatically"
@@ -14,7 +14,7 @@ EMPHATIC_ERROR = "The Node has failed emphatically"
 REGULAR_ERROR = "The Node has failed regularly"
 
 
-class CapitalizeText(Node[str]):
+class CapitalizeText(rc.Node[str]):
     def __init__(self, data: str):
         super().__init__()
         self.data = data
@@ -27,7 +27,7 @@ class CapitalizeText(Node[str]):
         return self.data.capitalize()
 
 
-class FatalErrorNode(Node[str]):
+class FatalErrorNode(rc.Node[str]):
     def invoke(self):
         raise FatalException(
             self,
@@ -39,36 +39,7 @@ class FatalErrorNode(Node[str]):
         return "Fatal Error Node"
 
 
-class CompletionProtocolNode(Node[str]):
-    def __init__(self, completion_protocol: str):
-        super().__init__()
-        self.completion_protocol = completion_protocol
-
-    def invoke(self):
-        raise CompletionException(
-            self,
-            detail=REGULAR_ERROR,
-            completion_protocol=self.completion_protocol,
-        )
-
-    @classmethod
-    def pretty_name(cls) -> str:
-        return "Error Node"
-
-
-class ScorchedEarthNode(Node[str]):
-    def invoke(self):
-        raise ResetException(
-            self,
-            detail=REGULAR_ERROR,
-        )
-
-    @classmethod
-    def pretty_name(cls) -> str:
-        return "Scorched Earth Node"
-
-
-class UnknownErrorNode(Node):
+class UnknownErrorNode(rc.Node):
     def invoke(
         self,
     ):
@@ -79,7 +50,7 @@ class UnknownErrorNode(Node):
         return "Unknown Error Node"
 
 
-class RNGNode(Node[float]):
+class RNGNode(rc.Node[float]):
     def invoke(
         self,
     ) -> float:
@@ -90,12 +61,12 @@ class RNGNode(Node[float]):
         return "RNG Node"
 
 
-class CallNode(Node[List]):
+class CallNode(rc.Node[List]):
     def __init__(
         self,
         number_of_calls: int,
         parallel_call_num: int,
-        node_creator: Callable[[], Node],
+        node_creator: Callable[[], rc.Node],
     ):
         super().__init__()
         self.number_of_calls = number_of_calls
@@ -106,11 +77,10 @@ class CallNode(Node[List]):
 
     def invoke(self):
         for _ in range(self.number_of_calls):
-            response = self.call_nodes(
-                [NodeFactory(self.node_creator) for _ in range(self.parallel_call_num)]
-            )
+            contracts = [rc.call(self.node_creator) for _ in range(self.parallel_call_num)]
+            response = asyncio.gather(*contracts)
 
-            self.data.extend([d.data for d in response])
+            self.data.extend([d for d in response])
 
         return self.data
 
@@ -119,13 +89,13 @@ class CallNode(Node[List]):
         return "Call Node"
 
 
-class TimeoutNode(Node):
+class TimeoutNode(rc.Node):
     def __init__(self, timeout: float):
         super().__init__()
         self.timeout = timeout
 
-    def invoke(self) -> None:
-        time.sleep(self.timeout)
+    async def invoke(self) -> None:
+        await asyncio.sleep(self.timeout)
         return None
 
     @classmethod
@@ -149,11 +119,11 @@ class StreamingRNGNode(RNGNode):
 
     rng_template = "RNG collected {0}"
 
-    def invoke(
+    async def invoke(
         self,
     ) -> float:
         response = super().invoke()
-        self.data_streamer(self.rng_template.format(response))
+        rc.stream(self.rng_template.format(response))
         # this sleep is important for testing
         # if the thing returns too fast, the streamer will kill before it is able to finish its process.
         # time.sleep(0.01)
@@ -164,22 +134,12 @@ class StreamingCallNode(CallNode):
     call_template_call = "Creating Call with type {0}"
 
     def invoke(self):
-        for _ in range(self.number_of_calls):
-            nodes = [
-                NodeFactory(self.node_creator) for _ in range(self.parallel_call_num)
-            ]
-            for n in nodes:
-                self.data_streamer(self.call_template_call.format(n.new_node))
-            response = self.call_nodes(nodes)
 
-            self.data.extend([d.data for d in response])
+        for _ in range(self.number_of_calls):
+            contracts = [rc.call(self.node_creator) for _ in range(self.parallel_call_num)]
+            response = asyncio.gather(*contracts)
+            [rc.stream(r) for r in response]
+
+            self.data.extend([d for d in response])
 
         return self.data
-
-
-if __name__ == "__main__":
-    sen = ScorchedEarthNode()
-    from copy import deepcopy
-
-    copy = deepcopy(sen)
-    print(copy)

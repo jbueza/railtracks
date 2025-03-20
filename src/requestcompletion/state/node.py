@@ -3,19 +3,19 @@ from __future__ import annotations
 
 import warnings
 
-from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, Iterable
-
+from typing import Optional, Iterable, Callable, ParamSpec, List
 
 from .forest import (
     AbstractLinkedObject,
     Forest,
 )
-from ..tools.profiling import Stamp
-from ...nodes import (
+from ..utils.profiling import Stamp
+from ..nodes.nodes import (
     Node,
 )
+
+_P = ParamSpec("_P")
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ class LinkedNode(AbstractLinkedObject):
         """
         try:
             # special handling for
-            return deepcopy(self._node)
+            return self._node.safe_copy()
         except Exception as e:
             raise NodeCopyException(
                 "Every node must be able to be deep copied. Failed to copy node {0}, due to {1}.".format(
@@ -56,19 +56,17 @@ class NodeForest(Forest[LinkedNode]):
 
         self._hard_revert_list = set()
         self.id_type_mapping = {}
+        self.registration_details = None
 
     def __getitem__(self, item):
-        # note the node in item is mutable so we have to preform a deep copy for the sake of a safety.
+        """
+        Collects the node of the given id from the heap.
+
+        Note it will throw a NodeCopyException if the node cannot be copied.
+        """
+
         node = self._heap[item]
-        node.node
-        try:
-            return deepcopy(node)
-        except Exception as e:
-            raise NodeCopyException(
-                "Every node must be able to be deep copied. Failed to copy node {0}, due to {1}.".format(
-                    node.identifier, e
-                )
-            )
+        return node
 
     def update(self, new_node: Node, stamp: Stamp):
         """
@@ -85,6 +83,7 @@ class NodeForest(Forest[LinkedNode]):
         """
         with self._lock:
             parent = self._heap.get(new_node.uuid, None)
+
             new_linked_node = LinkedNode(
                 identifier=new_node.uuid,
                 _node=new_node,

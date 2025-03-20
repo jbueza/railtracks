@@ -87,7 +87,6 @@ class DataStream(Generic[T]):
         while self._running:
             try:
                 item = self._queues[subscriber].get(timeout=0.1)
-                print("collected item")
                 # emits a queue.Empty exception if the queue is empty for 0.01 seconds
                 try:
                     subscriber.handle(item)
