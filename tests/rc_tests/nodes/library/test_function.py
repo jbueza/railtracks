@@ -11,6 +11,7 @@ import pytest
 from typing import Callable, Set, Type, Tuple, List, Dict, Any
 from pydantic import BaseModel, Field
 
+from requestcompletion.state.request import Failure
 from .utils import create_top_level_node
 
 import requestcompletion as rc
@@ -187,17 +188,23 @@ class TestPrimitiveInputTypes:
             model_provider=model_provider,
         )
         with rc.Runner() as run:
-            with pytest.raises(Exception):
-                run.run_sync(
-                    agent,
-                    rc.llm.MessageHistory(
-                        [
-                            rc.llm.UserMessage(
-                                "What does the tool return for an input of 0? Only return the result, no other text."
-                            )
-                        ]
-                    ),
-                )
+
+            output = run.run_sync(
+                agent,
+                rc.llm.MessageHistory(
+                    [
+                        rc.llm.UserMessage(
+                            "What does the tool return for an input of 0? Only return the result, no other text."
+                        )
+                    ]
+                ),
+            )
+
+            i_r = output.request_heap.insertion_request
+            children = output.request_heap.children(i_r.sink_id)[0]
+
+            assert isinstance(children.output, Failure)
+
 
 
 class TestSequenceInputTypes:
