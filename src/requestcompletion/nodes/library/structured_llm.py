@@ -1,6 +1,7 @@
+import warnings
 from typing import TypeVar, Type
 
-from ...llm import MessageHistory, ModelBase
+from ...llm import MessageHistory, ModelBase, SystemMessage
 from ..nodes import Node, ResetException
 
 from pydantic import BaseModel
@@ -11,9 +12,36 @@ _TOutput = TypeVar("_TOutput", bound=BaseModel)
 
 def structured_llm(
     output_model: Type[_TOutput],
+    system_message: SystemMessage | None = None,
+    model: ModelBase | None = None,
     pretty_name: str | None = None,
 ):
     class StructuredLLMNode(StructuredLLM):
+        def __init__(
+                self,
+                message_history: MessageHistory,
+                llm_model: ModelBase | None = None,
+        ):
+            if system_message is not None:
+                if len([x for x in message_history if x.role == "system"]) > 0:
+                    warnings.warn("System message already exists in message history. We will replace it.")
+                    message_history = [x for x in message_history if x.role != "system"]
+                    message_history.insert(0, system_message)
+                else:
+                    message_history.insert(0, system_message)
+
+            if llm_model is not None:
+                if model is not None:
+                    warnings.warn(
+                        "You have provided a model as a parameter and as a class varaible. We will use the parameter."
+                    )
+            else:
+                if model is None:
+                    raise RuntimeError("You Must provide a model to the StructuredLLM class")
+                llm_model = model
+
+            super().__init__(message_history=message_history, model=llm_model)
+
         @classmethod
         def output_model(cls) -> Type[_TOutput]:
             return output_model
