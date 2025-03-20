@@ -6,7 +6,7 @@ import warnings
 from dataclasses import dataclass
 from typing import Optional, Iterable, Callable, ParamSpec, List
 
-from src.requestcompletion.state.forest import (
+from .forest import (
     AbstractLinkedObject,
     Forest,
 )

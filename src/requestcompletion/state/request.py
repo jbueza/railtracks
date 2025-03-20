@@ -7,7 +7,7 @@ from functools import reduce
 from typing import Optional, Dict, List, Tuple, Iterable, Set, FrozenSet, Any
 
 
-from src.requestcompletion.state.forest import (
+from .forest import (
     Forest,
     AbstractLinkedObject,
 )
