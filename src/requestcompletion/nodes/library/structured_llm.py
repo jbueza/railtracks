@@ -8,6 +8,24 @@ from abc import ABC, abstractmethod
 
 _TOutput = TypeVar("_TOutput", bound=BaseModel)
 
+def structured_llm(
+    output_model: Type[_TOutput],
+    pretty_name: str | None = None,
+):
+    class StructuredLLMNode(StructuredLLM):
+        @classmethod
+        def output_model(cls) -> Type[_TOutput]:
+            return output_model
+
+        @classmethod
+        def pretty_name(cls) -> str:
+            if pretty_name is None:
+                return output_model.__name__
+            else:
+                return pretty_name
+
+    return StructuredLLMNode
+
 
 class StructuredLLM(Node[_TOutput], ABC):
 

@@ -1,7 +1,20 @@
-from ...llm import MessageHistory, ModelBase
+from ...llm import MessageHistory, ModelBase, SystemMessage
 from ..nodes import Node, ResetException
 
 from abc import ABC
+
+def terminal_llm(
+    pretty_name: str | None = None,
+):
+    class TerminalLLMNode(TerminalLLM):
+        @classmethod
+        def pretty_name(cls) -> str:
+            if pretty_name is None:
+                return "TerminalLLM"
+            else:
+                return pretty_name
+
+    return TerminalLLMNode
 
 
 class TerminalLLM(Node[str], ABC):
