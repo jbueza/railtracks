@@ -1,5 +1,5 @@
 import pytest
-from railtownai_rc.llm import UserMessage, ToolMessage, ToolResponse
+from requestcompletion.llm import UserMessage, ToolMessage, ToolResponse
 
 
 def test_user_message():

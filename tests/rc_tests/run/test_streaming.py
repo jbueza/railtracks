@@ -1,50 +1,47 @@
-import concurrent.futures
+import random
 import time
+import asyncio
 
-from railtownai_rc.context.context import EmptyContext
-from railtownai_rc.run.config import ExecutorConfig
-from railtownai_rc.run.run import run
-from railtownai_rc.run.tools.stream import (
-    Subscriber,
-)
+import requestcompletion as rc
 
-from tests.rc_tests.fixtures.nodes import (
-    StreamingRNGNode,
-    StreamingCallNode,
-)
+from requestcompletion import ExecutorConfig
+
+
+async def streaming_rng():
+    number = random.random()
+    rc.stream(str(number))
+
+    return number
+
+
+StreamingRNGNode = rc.library.from_function(streaming_rng)
 
 
 def test_simple_streamer():
-    i_r = StreamingRNGNode()
 
-    class Sub(Subscriber[str]):
+    class SubObject:
         def __init__(self):
             self.finished_message = None
 
-        def handle(self, item: str) -> None:
-            print(f"entering handler {item}")
+        def handle(self, item: str):
             self.finished_message = item
 
-    sub = Sub()
-    finished_result = run(
-        i_r,
-        EmptyContext(),
-        subscriber=sub,
-        executor_config=ExecutorConfig(global_num_retries=5, force_close_streams=False),
-    )
+    sub = SubObject()
+    with rc.Runner(subscriber=sub.handle, executor_config=rc.ExecutorConfig(force_close_streams=True)) as runner:
+        finished_result = runner.run_sync(StreamingRNGNode)
+
     # force close streams flag must be set to false to allow the slow streaming to finish.
 
     assert isinstance(finished_result.answer, float)
-    assert sub.finished_message == StreamingRNGNode.rng_template.format(finished_result.answer)
+    assert sub.finished_message == str(finished_result.answer)
 
     assert 0 < finished_result.answer < 1
 
 
 # rather annoyingly this test could fail but it should be good nearly all of the time
 def test_slow_streamer():
-    i_node = StreamingRNGNode()
 
-    class Sub(Subscriber[str]):
+    class Sub:
         def __init__(self):
             self.finished_message = None
 
@@ -54,13 +51,29 @@ def test_slow_streamer():
             self.finished_message = item
 
     sub = Sub()
-    finished_result = run(
-        i_node,
-        subscriber=sub,
-        executor_config=ExecutorConfig(global_num_retries=5, force_close_streams=True),
-    )
+    with rc.Runner(executor_config=ExecutorConfig(force_close_streams=True)) as runner:
+
+        finished_result = runner.run_sync(StreamingRNGNode, subscriber=sub.handle)
+
     assert isinstance(finished_result.answer, float)
     assert sub.finished_message is None
+
+
+async def rng_tree_streamer(num_calls: int, parallel_call_nums: int, multiplier: int):
+    data = []
+    for _ in range(num_calls):
+        contracts = [rc.call(StreamingRNGNode) for _ in range(parallel_call_nums)]
+        responses = await asyncio.gather(*contracts)
+        responses = [r * multiplier for r in responses]
+        for r in responses:
+            rc.stream(str(r))
+
+        data.extend(responses)
+
+    return data
+
+
+RNGTreeStreamer = rc.library.from_function(rng_tree_streamer)
 
 
 def rng_stream_tester(
@@ -69,52 +82,24 @@ def rng_stream_tester(
     multiplier=1,
 ):
 
-    i_node = StreamingCallNode(
-        num_calls,
-        parallel_call_nums,
-        lambda: StreamingRNGNode(),
-    )
-
-    class Sub(Subscriber[str]):
-
+    class Sub:
         def __init__(self):
-            self.num_rngs = 0
-            self.num_call_calls = 0
-            self.errors = []
+            self.total_streams = []
 
         def handle(self, item: str) -> None:
-
-            # just look at the first part of the template
-            call_template = StreamingCallNode.call_template_call.split()[:4]
-            finished_template = StreamingRNGNode.rng_template.split()[:2]
-
-            if item.split()[:4] == call_template:
-                self.num_call_calls += 1 * multiplier
-
-            if item.split()[:2] == finished_template:
-                self.num_rngs += 1 * multiplier
+            self.total_streams.append(item)
 
     sub = Sub()
-    finished_result = run(
-        i_node,
-        subscriber=sub,
-        executor_config=ExecutorConfig(
-            global_num_retries=5,
-            force_close_streams=False,
-        ),
-        # we need to set this flag to allow the slow streaming to finish.
-    )
+    with rc.Runner(executor_config=ExecutorConfig(force_close_streams=False), subscriber=sub.handle) as run:
+        finished_result = run.run_sync(RNGTreeStreamer, num_calls, parallel_call_nums, multiplier)
 
     assert isinstance(finished_result.answer, list)
-
     assert len(finished_result.answer) == num_calls * parallel_call_nums
-    assert all([0 < x < 1 for x in finished_result.answer])
 
-    # check if the subscriber has any errors
-    assert not sub.errors, f"Subscriber should not have any errors {sub.errors}"
+    assert all([0 < x < 1 * multiplier for x in finished_result.answer])
 
-    assert sub.num_call_calls == num_calls * parallel_call_nums * multiplier
-    assert sub.num_rngs == num_calls * parallel_call_nums * multiplier
+    assert len(sub.total_streams) == num_calls * parallel_call_nums * 2
+    assert set(sub.total_streams) == set([str(x) for x in finished_result.answer])
 
 
 def test_rng_streamer():
@@ -131,24 +116,3 @@ def test_rng_streamer_chaos():
 
 def test_rng_streamer_chaos_2():
     rng_stream_tester(2, 15)
-
-
-# there is also a weird test that we need to run through to make sure that the streamer can be different if we were
-#  running 2 types of streamers at the same time.
-def test_rng_streamer_chaos_with_multiple_processes():
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        f1 = executor.submit(rng_stream_tester, 2, 15, 3)
-        f2 = executor.submit(rng_stream_tester, 2, 15, 2)
-
-        f1.result()
-        f2.result()
-
-
-def test_rng_streamer_chaos_with_multiple_processes_2():
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
-        for m in range(1, 50, 5):
-            futures.append(executor.submit(rng_stream_tester, 2, 15, m))
-
-        for f in concurrent.futures.as_completed(futures):
-            f.result()

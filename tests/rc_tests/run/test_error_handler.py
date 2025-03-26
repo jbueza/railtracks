@@ -1,217 +1,153 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
+import random
 
-import railtownai_rc.nodes.nodes as no
-from railtownai_rc.run.config import ExecutorConfig
-from railtownai_rc.run.run import run
+import requestcompletion as rc
 
-from railtownai_rc.run.state.execute import (
-    GlobalTimeOut,
-    GlobalRetriesExceeded,
-    ExecutionException,
-)
+from requestcompletion.state.request import Failure
 
-from railtownai_rc.exceptions import (
-    NodeException,
-    FatalException,
-    ResetException,
-)
-from tests.rc_tests.fixtures.nodes import (
-    RNGNode,
-    FatalErrorNode,
-    REGULAR_ERROR,
-    UnknownErrorNode,
-    CallNode,
-    TimeoutNode,
-    CompletionProtocolNode,
-    ScorchedEarthNode,
-)
+RNGNode = rc.library.from_function(random.random)
 
 
 def test_simple_request():
-
-    result = run(start_node=RNGNode())
+    with rc.Runner() as run:
+        result = run.run_sync(RNGNode)
 
     assert isinstance(result.answer, float)
     assert 0 < result.answer < 1
 
 
-def test_fatal_error():
-    i_node = FatalErrorNode()
-    with pytest.raises(ExecutionException) as e:
-        run(i_node)
-
-    assert e.value.failed_request.source_id is None
-    assert e.value.failed_request.sink_id == str(i_node.uuid)
-    assert isinstance(e.value.final_exception, FatalException)
-    assert e.value.exception_history == [e.value.final_exception]
+class TestError(Exception):
+    pass
 
 
-def test_regular_error_without_completion():
-    i_node = ScorchedEarthNode()
-
-    with pytest.raises(ExecutionException) as exc:
-        run(i_node, executor_config=ExecutorConfig(global_num_retries=6))
-
-    err = exc.value
-    print(err)
-
-    assert err.failed_request.sink_id == str(i_node.uuid)
-    assert isinstance(err.final_exception, GlobalRetriesExceeded)
-    assert len(err.exception_history) == 6
-    for error in err.exception_history:
-        assert isinstance(error, ResetException)
-        assert error.detail == REGULAR_ERROR
-        assert error.node.uuid == i_node.uuid
+async def error_thrower():
+    raise TestError("This is a test error")
 
 
-def test_regular_error_with_completion():
-    i_node = CompletionProtocolNode("Hello World")
-
-    finished_result = run(i_node, executor_config=ExecutorConfig(global_num_retries=6))
-
-    assert finished_result.answer == "Hello World"
-    assert len(finished_result.exception_history) == 1
+ErrorThrower = rc.library.from_function(error_thrower)
 
 
-def test_unknown_error():
-    i_node = UnknownErrorNode()
-
-    with pytest.raises(Exception) as err:
-        run(i_node)
-
-    assert isinstance(err.value, Exception)
+def test_error():
+    with rc.Runner() as run:
+        with pytest.raises(TestError):
+            run.run_sync(ErrorThrower)
 
 
-def test_override_scorched_earth():
-    i_node = ScorchedEarthNode()
-
-    with pytest.raises(ExecutionException) as err:
-        run(
-            i_node,
-            executor_config=ExecutorConfig(global_num_retries=6, retry_upstream_request_on_failure=False),
-        )
-    assert isinstance(err.value.final_exception, NodeException)
-    assert err.value.failed_request.sink_id == str(i_node.uuid)
-    assert len(err.value.exception_history) == 1
-
-
-def test_call_with_fatal_error():
-
-    i_node = CallNode(3, 3, FatalErrorNode)
-
-    with pytest.raises(ExecutionException) as err:
-        result = run(
-            i_node,
-        )
-
-    assert isinstance(err.value.final_exception, NodeException)
-    assert isinstance(err.value.final_exception.node, FatalErrorNode)
-    assert isinstance(err.value.final_exception, FatalException)
-
-
-def test_call_with_failed_retries():
-
-    i_node = CallNode(3, 10, lambda: ScorchedEarthNode())
-
-    with pytest.raises(ExecutionException) as err:
-        result = run(
-            i_node,
-            executor_config=ExecutorConfig(global_num_retries=15, timeout=5),
-        )
-
-    assert isinstance(err.value.final_exception, GlobalRetriesExceeded)
-    assert len(err.value.exception_history) >= 15
-    # greater than 15 here cuz a couple of extra errors will come during the overall error handling (it is not important)
-    for error in err.value.exception_history:
-        assert isinstance(error, ResetException)
-
-
-def test_call_with_inserted_data():
-
-    i_node = CallNode(
-        3,
-        3,
-        lambda: CompletionProtocolNode("Hello World"),
-    )
-
-    with pytest.raises(ExecutionException) as err:
-        finished_run = run(i_node, executor_config=ExecutorConfig(global_num_retries=6))
-
-    assert isinstance(err.value.final_exception, GlobalRetriesExceeded)
-    assert len(err.value.exception_history) == 6
-
-
-def test_crazy_errors():
-
-    num_calls = 10
-    parallel_calls = 5
-    i_node = CallNode(
-        num_calls,
-        parallel_calls,
-        lambda: CompletionProtocolNode("hello world"),
-    )
-
-    finished_result = run(i_node, executor_config=ExecutorConfig(global_num_retries=350, timeout=250))
-
-    assert isinstance(finished_result.answer, list)
-    assert len(finished_result.answer) == num_calls * parallel_calls
-    assert all([x == "hello world" for x in finished_result.answer])
-
-
-def test_even_crazier_errors():
-
-    i_node = CallNode(10, 50, lambda: RNGNode())
-
-    finished_result = run(
-        i_node,
-        executor_config=ExecutorConfig(global_num_retries=10000, timeout=250, workers=290),
-    )
-
-    assert isinstance(finished_result.answer, list)
-    assert len(finished_result.answer) == 10 * 50
-    assert all([0 <= x <= 1 for x in finished_result.answer])
-
-
-def test_time_out():
-
-    i_node = TimeoutNode(5)
-
-    with pytest.raises(ExecutionException) as err:
-        run(i_node, executor_config=ExecutorConfig(timeout=1))
-
-    assert isinstance(err.value.final_exception, GlobalTimeOut)
-    assert len(err.value.exception_history) == 0
-
-
-def test_passed_time_out():
-
-    i_node = TimeoutNode(1)
-
-    finished_result = run(i_node, executor_config=ExecutorConfig(global_num_retries=10, timeout=10))
-
-    assert finished_result.answer is None
-
-
-def test_complicated_graph_structure():
-    i_node = CallNode(3, 5, lambda: TimeoutNode(1))
-
+async def error_handler():
     try:
-        run(i_node, executor_config=ExecutorConfig(timeout=5, global_num_retries=10000))
-    except ExecutionException as err:
-        assert isinstance(err.final_exception, GlobalTimeOut)
+        answer = await rc.call(ErrorThrower)
+    except TestError as e:
+        return "Caught the error"
 
 
-def test_complicated_graph_structure_2():
+ErrorHandler = rc.library.from_function(error_handler)
 
-    i_node = CallNode(
-        3,
-        3,
-        lambda: CompletionProtocolNode("Hello World"),
-    )
 
+def test_error_handler():
+    with rc.Runner() as run:
+        result = run.run_sync(ErrorHandler)
+    assert result.answer == "Caught the error"
+
+
+def test_error_handler_wo_retry():
+    with pytest.raises(rc.state.execute.ExecutionException):
+        with rc.Runner(executor_config=rc.ExecutorConfig(end_on_error=True)) as run:
+            result = run.run_sync(ErrorHandler)
+
+
+async def error_handler_with_retry(retries: int):
+    for _ in range(retries):
+        try:
+            return await rc.call(ErrorThrower)
+        except TestError as e:
+            continue
+
+    return "Caught the error"
+
+
+ErrorHandlerWithRetry = rc.library.from_function(error_handler_with_retry)
+
+
+def test_error_handler_with_retry():
+    for num_retries in range(5, 15):
+        with rc.Runner() as run:
+            result = run.run_sync(ErrorHandlerWithRetry, num_retries)
+
+        assert result.answer == "Caught the error"
+        i_r = result.request_heap.insertion_request
+
+        children = result.request_heap.children(i_r.sink_id)
+        assert len(children) == num_retries
+
+        for r in children:
+            assert isinstance(r.output, Failure)
+            assert isinstance(r.output.exception, TestError)
+
+        assert all([isinstance(e, TestError) for e in result.exception_history])
+        assert len(result.exception_history) == num_retries
+
+
+async def parallel_error_handler(num_calls: int, parallel_calls: int):
+    data = []
+    for _ in range(num_calls):
+        contracts = [rc.call(ErrorThrower) for _ in range(parallel_calls)]
+
+        results = await asyncio.gather(*contracts, return_exceptions=True)
+
+        data += results
+
+    return data
+
+
+ParallelErrorHandler = rc.library.from_function(parallel_error_handler)
+
+
+def test_parallel_error_tester():
+
+    for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
+        with rc.Runner() as run:
+            result = run.run_sync(ParallelErrorHandler, n_c, p_c)
+
+        assert isinstance(result.answer, list)
+        assert len(result.answer) == n_c * p_c
+        assert all([isinstance(x, TestError) for x in result.answer])
+
+
+# wraps the above error handler in a top level function
+async def error_handler_wrapper(num_calls: int, parallel_calls: int):
     try:
-        run(i_node, executor_config=ExecutorConfig(timeout=10, global_num_retries=10))
-    except ExecutionException as err:
-        assert isinstance(err.final_exception, GlobalRetriesExceeded)
+        return await rc.call(ParallelErrorHandler, num_calls, parallel_calls)
+    except TestError as e:
+        return "Caught the error"
+
+
+ErrorHandlerWrapper = rc.library.from_function(error_handler_wrapper)
+
+
+def test_parallel_error_wrapper():
+    for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
+        with rc.Runner() as run:
+            result = run.run_sync(ErrorHandlerWrapper, n_c, p_c)
+
+        assert len(result.answer) == n_c * p_c
+        assert all([isinstance(x, TestError) for x in result.answer])
+
+        i_r = result.request_heap.insertion_request
+
+        children = result.request_heap.children(i_r.sink_id)
+        assert len(children) == 1
+        full_children = result.request_heap.children(children[0].sink_id)
+
+        for r in children:
+            assert r.output == result.answer
+
+        for r in full_children:
+            assert isinstance(r.output, Failure)
+            assert isinstance(r.output.exception, TestError)
+
+        assert all([isinstance(e, TestError) for e in result.exception_history])
+        assert len(result.exception_history) == n_c * p_c

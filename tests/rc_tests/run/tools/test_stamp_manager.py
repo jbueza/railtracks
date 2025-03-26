@@ -1,10 +1,6 @@
-import pytest
-
 import time
 
-from railtownai_rc.run.tools.profiling import StampManager, Stamp
-
-from src.railtownai_rc.run.tools.profiling import time_diff
+from requestcompletion.utils.profiling import StampManager, Stamp, time_diff
 
 
 def test_single_stamper():
