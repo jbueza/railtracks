@@ -2,13 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import random
-import time
-from typing import Dict, Any
 
 import requestcompletion as rc
-from typing_extensions import Self
-
-from src.requestcompletion.state.request import RequestTemplate
 
 RNGNode = rc.library.from_function(random.random)
 
@@ -46,7 +41,6 @@ def test_no_deadlock():
     parallel_calls = 55
 
     many_calls_tester(num_calls, parallel_calls)
-
 
 
 def test_small_no_deadlock():
