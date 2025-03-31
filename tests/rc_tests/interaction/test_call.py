@@ -1,7 +1,7 @@
 import pytest
 from copy import deepcopy
+from typing import List
 import src.requestcompletion as rc
-from tests.rc_tests.fixtures.nodes import ActionType, CapitalizeText, FatalErrorNode, UnknownErrorNode, TimeoutNode
 from pydantic import BaseModel, Field
 
 @pytest.fixture
@@ -15,13 +15,6 @@ def terminal_llms_system_messages():
     system_math_genius = rc.llm.SystemMessage("You are a math genius that will get a list of integers(loi) and another interger(x), your task is to predict what operation must be appled to the list of integers to get the result of x.")
     
     return system_rng, system_rng_operation, system_math_genius
-
-@pytest.fixture
-def sttructured_llms_system_messages():
-    system_undergrad_student = rc.llm.SystemMessage("You are an undergraduate university student. You are taking a math class where you need tto write proofs. Be concise and to the point.")
-    system_professor = rc.llm.SystemMessage("You are a senior Math professor at a university. You need to grade the students work (scale of 0 to 100) and give a reasoning for the grading.")
-
-    return system_undergrad_student, system_professor
 
 @pytest.fixture
 def terminal_nodes(request, model, terminal_llms_system_messages):
@@ -63,6 +56,13 @@ def terminal_nodes(request, model, terminal_llms_system_messages):
     
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
+
+@pytest.fixture
+def sttructured_llms_system_messages():
+    system_undergrad_student = rc.llm.SystemMessage("You are an undergraduate university student. You are taking a math class where you need tto write proofs. Be concise and to the point.")
+    system_professor = rc.llm.SystemMessage("You are a senior Math professor at a university. You need to grade the students work (scale of 0 to 100) and give a reasoning for the grading.")
+
+    return system_undergrad_student, system_professor
 
 @pytest.fixture
 def structured_nodes(request, model, sttructured_llms_system_messages):
@@ -112,7 +112,158 @@ def structured_nodes(request, model, sttructured_llms_system_messages):
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
     
+@pytest.fixture
+def tool_call_llm_system_messages():
+    system_currency_converter = rc.llm.SystemMessage("You are a currency converter that will convert currencies. you have access to AvailabelCurrencies and ConvertCurrency tools. Use them when you need to.")
+    system_travel_planner = rc.llm.SystemMessage("You are a travel planner that will plan a trip. you have access to AvailableLocations, CurrencyUsed and AverageLocationCost tools. Use them when you need to.")
+    return system_currency_converter, system_travel_planner
 
+@pytest.fixture
+def curreny_converter_tools():
+    def available_currencies() -> List[str]:
+        """Returns a list of available currencies.
+        Args:
+        Returns:
+            List[str]: A list of available currencies.
+        """
+        return ["USD", "EUR", "INR"]
+    
+    def convert_currency(amount: float, from_currency: str, to_currency: str) -> float:
+        """Converts currency using a static exchange rate (for testing purposes).
+        Args:
+            amount (float): The amount to convert.
+            from_currency (str): The currency to convert from.
+            to_currency (str): The currency to convert to.
+        Returns:
+            float: The converted amount.
+        Raises:
+            ValueError: If the exchange rate is not available.
+        """
+        exchange_rates = {
+            ("USD", "EUR"): 0.85,
+            ("EUR", "USD"): 1.1765,
+            ("USD", "INR"): 83.0,
+            ("INR", "USD"): 0.01205,
+            ("EUR", "INR"): 98.0,
+            ("INR", "EUR"): 0.0102,
+        }
+
+        rate = exchange_rates.get((from_currency, to_currency))
+        if rate is None:
+            raise ValueError("Exchange rate not available")
+        return amount * rate
+    
+    return available_currencies, convert_currency
+
+@pytest.fixture
+def travel_planner_tools():
+    def available_locations() -> List[str]:
+        """Returns a list of available locations.
+        Args:
+        Returns:
+            List[str]: A list of available locations.
+        """
+        return ["New York", "Los Angeles", "Chicago", "Delhi", "Mumbai", "Bangalore", "Paris", "Denmark", "Sweden", "Norway", "Germany"]
+    
+    def currency_used(location: str) -> str:
+        """Returns the currency used in a location.
+        Args:
+            location (str): The location to get the currency used for.
+        Returns:
+            str: The currency used in the location.
+        """
+        return {
+            "New York": "USD",
+            "Los Angeles": "USD",
+            "Chicago": "USD",
+            "Delhi": "INR",
+            "Mumbai": "INR",
+            "Bangalore": "INR",
+            "Paris": "EUR",
+            "Denmark": "EUR",
+            "Sweden": "EUR",
+            "Norway": "EUR",
+            "Germany": "EUR",
+        }
+    
+    def average_location_cost(location: str, num_days: int) -> float:
+        """Returns the average cost of living in a location for a given number of days.
+        Args:
+            location (str): The location to get the cost of living for.
+            num_days (int): The number of days for the trip.
+        Returns:
+            float: The average cost of living in the location.
+        """
+        daily_costs = {
+            "New York": 200.0,
+            "Los Angeles": 180.0,
+            "Chicago": 150.0,
+            "Delhi": 50.0,
+            "Mumbai": 55.0,
+            "Bangalore": 60.0,
+            "Paris": 220.0,
+            "Denmark": 250.0,
+            "Sweden": 240.0,
+            "Norway": 230.0,
+            "Germany": 210.0,
+        }
+        daily_cost = daily_costs.get(location)
+        if daily_cost is None:
+            raise ValueError(f"Cost information not available for location: {location}")
+        return daily_cost * num_days
+
+    return available_locations, currency_used, average_location_cost
+
+
+@pytest.fixture
+def tool_calling_nodes(request, model, tool_call_llm_system_messages, curreny_converter_tools, travel_planner_tools):
+    """
+    Returns the appropriate nodes based on the parametrized fixture name.
+    """
+    fixture_name = request.param
+    available_currencies, convert_currency = curreny_converter_tools
+    available_locations, currency_used, average_location_cost = travel_planner_tools
+    system_currency_converter, system_travel_planner = tool_call_llm_system_messages
+    
+    AvailableCurrencies = rc.library.from_function(available_currencies)
+    ConvertCurrency = rc.library.from_function(convert_currency)
+    AvailableLocations = rc.library.from_function(available_locations)
+    CurrencyUsed = rc.library.from_function(currency_used)
+    AverageLocationCost = rc.library.from_function(average_location_cost)
+
+    if fixture_name == "easy_wrapper":
+        currrency_converter_node = rc.library.tool_call_llm(connected_nodes=[AvailableCurrencies, ConvertCurrency], pretty_name="Currency Converter Node", system_message=system_currency_converter, model=model)
+        travel_planner_node = rc.library.tool_call_llm(connected_nodes=[AvailableLocations, CurrencyUsed, AverageLocationCost], pretty_name="Travel Planner Node", system_message=system_travel_planner, model=model)
+        
+        return currrency_converter_node, travel_planner_node
+    elif fixture_name == "class_based":
+        def make_tool_call_llm_class_version(pretty_name: str, system_message: rc.llm.SystemMessage, connected_nodes: List[rc.nodes.Node]):
+            class ToolCallLLMNode(rc.library.ToolCallLLM):
+                def __init__(
+                    self,
+                    message_history: rc.llm.MessageHistory,
+                    llm_model: rc.llm.ModelBase,
+                ):
+                    message_history = [x for x in message_history if x.role != "system"]
+                    message_history.insert(0, system_message)
+                    super().__init__(message_history=message_history, model=llm_model)
+
+                def connected_nodes(self):
+                    return connected_nodes
+                
+                def pretty_name(self) -> str:
+                    return pretty_name
+            
+            return ToolCallLLMNode
+
+        currrency_converter_node = make_tool_call_llm_class_version("Currency Converter Node", system_message=system_currency_converter, connected_nodes=[AvailableCurrencies, ConvertCurrency])
+        travel_planner_node = make_tool_call_llm_class_version("Travel Planner Node", system_message=system_travel_planner, connected_nodes=[AvailableLocations, CurrencyUsed, AverageLocationCost])
+        
+        return currrency_converter_node, travel_planner_node
+    
+    else:
+        raise ValueError(f"Unknown node fixture: {fixture_name}")
+    
 @pytest.mark.asyncio
 @pytest.mark.parametrize("terminal_nodes", ["class_based", "easy_wrapper"], indirect=True)
 async def test_message_history_not_mutated_terminal_llm(model, terminal_nodes):
@@ -204,4 +355,44 @@ async def test_message_history_not_mutated_structured_llm(model, structured_node
         message_history = rc.llm.MessageHistory([rc.llm.UserMessage("Prove that the sum of all numbers until infinity is -1/12")])
         original_message_history = deepcopy(message_history)
         _ = await runner.run(MathProofNode, message_history=message_history)
+        assert all(orig.content == new.content for orig, new in zip(original_message_history, message_history)), "Message history modified after runner run"
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool_calling_nodes", ["class_based", "easy_wrapper"], indirect=True)
+async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nodes):
+    """
+    Verify that message history is not modified after rc.call when passed to nodes constructed using different methods.
+    """
+    currrency_converter_node, travel_planner_node = tool_calling_nodes
+    
+    # Determine if we need to pass the model based on which fixture was used
+    needs_model = isinstance(tool_calling_nodes, tuple) and any(hasattr(node, '__call__') and node.__name__ == "ToolCallLLMNode" for node in tool_calling_nodes)
+
+    async def travel_summarizer_node(message_history: rc.llm.MessageHistory):
+        original_message_history = deepcopy(message_history)
+
+        # Common parameters for node calls
+        call_params = {"message_history": message_history}
+        if needs_model:
+            call_params["llm_model"] = model
+
+        # First node call
+        travel_planner_response = await rc.call(travel_planner_node, **call_params)
+        assert all(orig.content == new.content for orig, new in zip(original_message_history, message_history)), "Message history modified after rc.call 1"
+
+        message_history.append(rc.llm.AssistantMessage("The travel plan: " + str(travel_planner_response)))
+        original_message_history.append(rc.llm.AssistantMessage("The travel plan: " + str(travel_planner_response)))
+
+        # Second node call
+        response = await rc.call(currrency_converter_node, **call_params)
+        assert all(orig.content == new.content for orig, new in zip(original_message_history, message_history)), "Message history modified after rc.call 2"
+
+        return response
+
+    TrravelSummarizerNode = rc.library.from_function(travel_summarizer_node)
+
+    with rc.Runner() as runner:
+        message_history = rc.llm.MessageHistory([rc.llm.UserMessage("I want to plan a trip to from Delhi to New York for a week. Please provide me with a budget summary for the trip.")])
+        original_message_history = deepcopy(message_history)
+        _ = await runner.run(TrravelSummarizerNode, message_history=message_history)
         assert all(orig.content == new.content for orig, new in zip(original_message_history, message_history)), "Message history modified after runner run"
