@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+from .utils.logging.config import allowable_log_levels
 
 
 class ExecutorConfig(BaseModel):
@@ -22,4 +26,11 @@ class ExecutorConfig(BaseModel):
         default=False,
         description="If true the executor will stop execution when an error is encountered.",
     )
-    DEBUG: bool = Field(default=False, description="If true the executor will run in debug mode")
+    # Make sure that this default is in line with allowable_log_levels
+    logging_setting: allowable_log_levels = Field(
+        default="VERBOSE", description="The setting for the level of logging you would like to have."
+    )
+    logging_file: str | None = Field(
+        default=None,
+        description="If you would like to save the logs to a file, provide the file path here. Otherwise it will use the command line",
+    )
