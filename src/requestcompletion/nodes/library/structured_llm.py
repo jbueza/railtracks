@@ -1,6 +1,6 @@
 import warnings
 from typing import TypeVar, Type
-
+from copy import deepcopy
 from ...llm import MessageHistory, ModelBase, SystemMessage
 from ..nodes import Node, ResetException
 
@@ -22,13 +22,14 @@ def structured_llm(
             message_history: MessageHistory,
             llm_model: ModelBase | None = None,
         ):
+            message_history_copy = deepcopy(message_history)
             if system_message is not None:
-                if len([x for x in message_history if x.role == "system"]) > 0:
+                if len([x for x in message_history_copy if x.role == "system"]) > 0:
                     warnings.warn("System message already exists in message history. We will replace it.")
-                    message_history = [x for x in message_history if x.role != "system"]
-                    message_history.insert(0, system_message)
+                    message_history_copy = [x for x in message_history_copy if x.role != "system"]
+                    message_history_copy.insert(0, system_message)
                 else:
-                    message_history.insert(0, system_message)
+                    message_history_copy.insert(0, system_message)
 
             if llm_model is not None:
                 if model is not None:
@@ -40,7 +41,7 @@ def structured_llm(
                     raise RuntimeError("You Must provide a model to the StructuredLLM class")
                 llm_model = model
 
-            super().__init__(message_history=message_history, model=llm_model)
+            super().__init__(message_history=message_history_copy, model=llm_model)
 
         @classmethod
         def output_model(cls) -> Type[_TOutput]:
@@ -71,7 +72,7 @@ class StructuredLLM(Node[_TOutput], ABC):
         """
         super().__init__()
         self.model = model
-        self.message_hist = message_history
+        self.message_hist = deepcopy(message_history)
 
     async def invoke(self) -> _TOutput:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
