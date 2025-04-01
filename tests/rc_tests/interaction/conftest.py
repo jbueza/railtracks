@@ -236,10 +236,10 @@ def tool_calling_nodes(request, model, tool_call_llm_system_messages, curreny_co
     AverageLocationCost = rc.library.from_function(average_location_cost)
 
     if fixture_name == "easy_wrapper":
-        currrency_converter_node = rc.library.tool_call_llm(connected_nodes=[AvailableCurrencies, ConvertCurrency], pretty_name="Currency Converter Node", system_message=system_currency_converter, model=model)
+        currency_converter_node = rc.library.tool_call_llm(connected_nodes=[AvailableCurrencies, ConvertCurrency], pretty_name="Currency Converter Node", system_message=system_currency_converter, model=model)
         travel_planner_node = rc.library.tool_call_llm(connected_nodes=[AvailableLocations, CurrencyUsed, AverageLocationCost], pretty_name="Travel Planner Node", system_message=system_travel_planner, model=model)
         
-        return currrency_converter_node, travel_planner_node
+        return currency_converter_node, travel_planner_node
     elif fixture_name == "class_based":
         def make_tool_call_llm_class_version(pretty_name: str, system_message: rc.llm.SystemMessage, connected_nodes: List[rc.nodes.Node]):
             class ToolCallLLMNode(rc.library.ToolCallLLM):

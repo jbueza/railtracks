@@ -128,8 +128,7 @@ async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nod
 
         return response
 
-    TrravelSummarizerNode = rc.library.from_function(travel_summarizer_node)
-
+    TravelSummarizerNode = rc.library.from_function(travel_summarizer_node)
     with rc.Runner() as runner:
         message_history = rc.llm.MessageHistory([rc.llm.UserMessage("I want to plan a trip to from Delhi to New York for a week. Please provide me with a budget summary for the trip.")])
         original_message_history = deepcopy(message_history)
