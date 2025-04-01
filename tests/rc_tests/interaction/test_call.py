@@ -132,5 +132,5 @@ async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nod
     with rc.Runner() as runner:
         message_history = rc.llm.MessageHistory([rc.llm.UserMessage("I want to plan a trip to from Delhi to New York for a week. Please provide me with a budget summary for the trip.")])
         original_message_history = deepcopy(message_history)
-        _ = await runner.run(TrravelSummarizerNode, message_history=message_history)
+        _ = await runner.run(TravelSummarizerNode, message_history=message_history)
         assert all(orig.content == new.content for orig, new in zip(original_message_history, message_history)), "Message history modified after runner run"

@@ -241,7 +241,7 @@ def tool_calling_nodes(request, model, tool_call_llm_system_messages, curreny_co
         
         return currency_converter_node, travel_planner_node
     elif fixture_name == "class_based":
-        def make_tool_call_llm_class_version(pretty_name: str, system_message: rc.llm.SystemMessage, connected_nodes: List[rc.nodes.Node]):
+        def make_tool_call_llm_class_version(pretty_name: str, system_message: rc.llm.SystemMessage, connected_nodes: List[rc.Node]):
             class ToolCallLLMNode(rc.library.ToolCallLLM):
                 def __init__(
                     self,
