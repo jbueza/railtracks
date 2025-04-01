@@ -1,6 +1,6 @@
 import pytest
 from copy import deepcopy
-import src.requestcompletion as rc
+import requestcompletion as rc
 from tests.rc_tests.interaction.conftest import structured_nodes, tool_calling_nodes, terminal_nodes, model
 
 @pytest.mark.asyncio
