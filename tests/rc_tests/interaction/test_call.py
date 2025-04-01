@@ -1,7 +1,7 @@
 import pytest
 from copy import deepcopy
 import requestcompletion as rc
-from .conftest import structured_nodes, tool_calling_nodes, terminal_nodes, model
+from conftest import structured_nodes, tool_calling_nodes, terminal_nodes, model
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("terminal_nodes", ["class_based", "easy_wrapper"], indirect=True)
