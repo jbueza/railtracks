@@ -1,7 +1,7 @@
 import asyncio
 import warnings
 from functools import partial
-from typing import TypeVar, Generic, Set, Type, Dict, Any, Callable, Literal
+from typing import TypeVar, Generic, Set, Type, Dict, Any, Union, Literal
 from copy import deepcopy
 from ..nodes import Node, ResetException, FatalException
 
@@ -14,62 +14,6 @@ from abc import ABC, abstractmethod
 from ...llm.message import Role
 
 _T = TypeVar("_T")
-
-
-def tool_call_llm(
-    connected_nodes: Set[Type[Node]],
-    pretty_name: str | None = None,
-    model: ModelBase | None = None,
-    system_message: SystemMessage | None = None,
-    output_type: Literal["MessageHistory", "LastMessage"] = "LastMessage",
-):
-    OutputType = MessageHistory if output_type == "MessageHistory" else AssistantMessage
-
-    class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
-        def return_output(self):
-            if output_type == "MessageHistory":
-                return self.message_hist
-            else:
-                return self.message_hist[-1]
-
-        def __init__(
-            self,
-            message_history: MessageHistory,
-            llm_model: ModelBase | None = None,
-        ):
-            if system_message is not None:
-                message_history_copy = deepcopy(message_history)
-                if len([x for x in message_history_copy if x.role == Role.system]) > 0:
-                    warnings.warn("System message already exists in message history. We will replace it.")
-                    message_history_copy = [x for x in message_history_copy if x.role != Role.system]
-                    message_history_copy.insert(0, system_message)
-                else:
-                    message_history_copy.insert(0, system_message)
-
-            if llm_model is not None:
-                if model is not None:
-                    warnings.warn(
-                        "You have provided a model as a parameter and as a class varaible. We will use the parameter."
-                    )
-            else:
-                if model is None:
-                    raise RuntimeError("You Must provide a model to the ToolCallLLM class")
-                llm_model = model
-
-            super().__init__(message_history_copy, llm_model)
-
-        def connected_nodes(self) -> Set[Type[Node]]:
-            return connected_nodes
-
-        @classmethod
-        def pretty_name(cls) -> str:
-            if pretty_name is None:
-                return "ToolCallLLM(" + ", ".join([x.pretty_name() for x in connected_nodes]) + ")"
-            else:
-                return pretty_name
-
-    return ToolCallLLM
-
 
 class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     """A base class that is a node which contains
@@ -150,3 +94,61 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 )
 
         return self.return_output()
+
+
+def tool_call_llm(
+    connected_nodes: Set[Type[Node]],
+    pretty_name: str | None = None,
+    model: ModelBase | None = None,
+    system_message: SystemMessage | None = None,
+    output_type: Literal["MessageHistory", "LastMessage"] = "LastMessage",
+) -> Type[OutputLessToolCallLLM[Union[MessageHistory, AssistantMessage]]]:
+
+    OutputType = MessageHistory if output_type == "MessageHistory" else AssistantMessage
+
+    class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
+        def return_output(self):
+            if output_type == "MessageHistory":
+                return self.message_hist
+            else:
+                return self.message_hist[-1]
+
+        def __init__(
+            self,
+            message_history: MessageHistory,
+            llm_model: ModelBase | None = None,
+        ):
+            message_history_copy = deepcopy(message_history)
+            if system_message is not None:
+                if len([x for x in message_history_copy if x.role == Role.system]) > 0:
+                    warnings.warn("System message already exists in message history. We will replace it.")
+                    message_history_copy = [x for x in message_history_copy if x.role != Role.system]
+                    message_history_copy.insert(0, system_message)
+                else:
+                    message_history_copy.insert(0, system_message)
+
+            if llm_model is not None:
+                if model is not None:
+                    warnings.warn(
+                        "You have provided a model as a parameter and as a class varaible. We will use the parameter."
+                    )
+            else:
+                if model is None:
+                    raise RuntimeError("You Must provide a model to the ToolCallLLM class")
+                llm_model = model
+
+            super().__init__(message_history_copy, llm_model)
+
+        def connected_nodes(self) -> Set[Type[Node]]:
+            return connected_nodes
+
+        @classmethod
+        def pretty_name(cls) -> str:
+            if pretty_name is None:
+                return "ToolCallLLM(" + ", ".join([x.pretty_name() for x in connected_nodes]) + ")"
+            else:
+                return pretty_name
+
+    return ToolCallLLM
+
+
