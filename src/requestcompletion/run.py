@@ -5,6 +5,7 @@ from typing import TypeVar, ParamSpec, Callable
 from .config import ExecutorConfig
 from .utils.stream import DataStream, Subscriber
 from .nodes.nodes import Node
+from .utils.logging.config import prepare_logger
 
 
 from .info import (
@@ -64,10 +65,14 @@ class Runner:
         subscriber: Callable[[str], None] = None,
         executor_config: ExecutorConfig = ExecutorConfig(),
     ):
+        prepare_logger(
+            setting=executor_config.logging_setting,
+        )
 
-        executor_info = ExecutionInfo.create_new(executor_config=executor_config)
+        executor_info = ExecutionInfo.create_new()
 
-        self.rc_state = RCState(executor_info)
+        self.rc_state = RCState(executor_info, executor_config)
+
         if subscriber is None:
             self._data_streamer = DataStream()
         else:

@@ -1,7 +1,7 @@
 import warnings
 
 from ...llm import MessageHistory, ModelBase, SystemMessage
-from ..nodes import Node, ResetException
+from ..nodes import Node
 
 from abc import ABC
 

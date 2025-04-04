@@ -2,7 +2,7 @@ import warnings
 from typing import TypeVar, Type
 
 from ...llm import MessageHistory, ModelBase, SystemMessage
-from ..nodes import Node, ResetException
+from ..nodes import Node
 
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
