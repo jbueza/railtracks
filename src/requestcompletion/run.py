@@ -89,7 +89,7 @@ class Runner:
     def __exit__(self, exc_type, exc_val, exc_tb):
         Runner._instance = None
 
-    def run_sync(self, start_node: Callable[..., Node] | None = None, *args, **kwargs):
+    def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
         """Runs the provided node synchronously."""
         # If no loop is running, create one and run the coroutine.
         result = asyncio.run(self.run(start_node, *args, **kwargs))

@@ -7,7 +7,7 @@ import time
 from enum import Enum
 from typing import List, Callable
 import requestcompletion as rc
-
+from requestcompletion.nodes.nodes import FatalException
 
 EMPHATIC_ERROR = "The Node has failed emphatically"
 
