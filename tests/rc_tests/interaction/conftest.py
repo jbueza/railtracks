@@ -32,7 +32,7 @@ def tool_call_llm_system_messages():
 
 # ====================================== Tools ======================================
 @pytest.fixture
-def curreny_converter_tools():
+def currency_converter_tools():
     def available_currencies() -> List[str]:
         """Returns a list of available currencies.
         Args:
@@ -85,7 +85,7 @@ def travel_planner_tools():
         Returns:
             str: The currency used in the location.
         """
-        return {
+        currency_map = {
             "New York": "USD",
             "Los Angeles": "USD",
             "Chicago": "USD",
@@ -98,6 +98,10 @@ def travel_planner_tools():
             "Norway": "EUR",
             "Germany": "EUR",
         }
+        used_currency = currency_map.get(location)
+        if used_currency is None:
+            raise ValueError(f"Currency not available for location: {location}")
+        return used_currency
     
     def average_location_cost(location: str, num_days: int) -> float:
         """Returns the average cost of living in a location for a given number of days.
@@ -220,12 +224,12 @@ def structured_nodes(request, model, structured_llms_system_messages):
     
 
 @pytest.fixture
-def tool_calling_nodes(request, model, tool_call_llm_system_messages, curreny_converter_tools, travel_planner_tools):
+def tool_calling_nodes(request, model, tool_call_llm_system_messages, currency_converter_tools, travel_planner_tools):
     """
     Returns the appropriate nodes based on the parametrized fixture name.
     """
     fixture_name = request.param
-    available_currencies, convert_currency = curreny_converter_tools
+    available_currencies, convert_currency = currency_converter_tools
     available_locations, currency_used, average_location_cost = travel_planner_tools
     system_currency_converter, system_travel_planner = tool_call_llm_system_messages
     
@@ -236,8 +240,8 @@ def tool_calling_nodes(request, model, tool_call_llm_system_messages, curreny_co
     AverageLocationCost = rc.library.from_function(average_location_cost)
 
     if fixture_name == "easy_wrapper":
-        currency_converter_node = rc.library.tool_call_llm(connected_nodes=[AvailableCurrencies, ConvertCurrency], pretty_name="Currency Converter Node", system_message=system_currency_converter, model=model)
-        travel_planner_node = rc.library.tool_call_llm(connected_nodes=[AvailableLocations, CurrencyUsed, AverageLocationCost], pretty_name="Travel Planner Node", system_message=system_travel_planner, model=model)
+        currency_converter_node = rc.library.tool_call_llm(connected_nodes={AvailableCurrencies, ConvertCurrency}, pretty_name="Currency Converter Node", system_message=system_currency_converter, model=model)
+        travel_planner_node = rc.library.tool_call_llm(connected_nodes={AvailableLocations, CurrencyUsed, AverageLocationCost}, pretty_name="Travel Planner Node", system_message=system_travel_planner, model=model)
         
         return currency_converter_node, travel_planner_node
     elif fixture_name == "class_based":
@@ -260,10 +264,10 @@ def tool_calling_nodes(request, model, tool_call_llm_system_messages, curreny_co
             
             return ToolCallLLMNode
 
-        currrency_converter_node = make_tool_call_llm_class_version("Currency Converter Node", system_message=system_currency_converter, connected_nodes=[AvailableCurrencies, ConvertCurrency])
+        currency_converter_node = make_tool_call_llm_class_version("Currency Converter Node", system_message=system_currency_converter, connected_nodes=[AvailableCurrencies, ConvertCurrency])
         travel_planner_node = make_tool_call_llm_class_version("Travel Planner Node", system_message=system_travel_planner, connected_nodes=[AvailableLocations, CurrencyUsed, AverageLocationCost])
         
-        return currrency_converter_node, travel_planner_node
+        return currency_converter_node, travel_planner_node
     
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
