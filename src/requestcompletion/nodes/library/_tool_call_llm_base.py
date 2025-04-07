@@ -74,7 +74,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
                     tool_responses = await asyncio.gather(*contracts, return_exceptions=True)
                     tool_responses = [
-                        x if not isinstance(x, Exception) else "There was an error running the tool"
+                        x if not isinstance(x, Exception) else f"There was an error running the tool: \n Exception message: {x} "
                         for x in tool_responses
                     ]
 

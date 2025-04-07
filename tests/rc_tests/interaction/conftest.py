@@ -18,7 +18,7 @@ def terminal_llms_system_messages():
 
 @pytest.fixture
 def structured_llms_system_messages():
-    system_undergrad_student = rc.llm.SystemMessage("You are an undergraduate university student. You are taking a math class where you need tto write proofs. Be concise and to the point.")
+    system_undergrad_student = rc.llm.SystemMessage("You are an undergraduate university student. You are taking a math class where you need to write proofs. Be concise and to the point.")
     system_professor = rc.llm.SystemMessage("You are a senior Math professor at a university. You need to grade the students work (scale of 0 to 100) and give a reasoning for the grading.")
 
     return system_undergrad_student, system_professor
