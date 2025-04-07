@@ -3,7 +3,7 @@ import warnings
 from functools import partial
 from typing import TypeVar, Generic, Set, Type, Dict, Any, Union, Literal
 from copy import deepcopy
-from ..nodes import Node, ResetException, FatalException
+from ..nodes import Node
 
 from ...llm import MessageHistory, ModelBase, ToolCall, ToolResponse, ToolMessage, SystemMessage, AssistantMessage
 
@@ -12,6 +12,8 @@ from ...interaction.call import call
 from abc import ABC, abstractmethod
 
 from ...llm.message import Role
+
+from ...exceptions import FatalError
 
 _T = TypeVar("_T")
 
@@ -40,11 +42,10 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         """
         node = [x for x in self.connected_nodes() if x.tool_info().name == tool_name]
         if node is []:
-            raise ResetException(node=self, detail=f"Tool {tool_name} cannot be create a node")
+            raise RuntimeError(f"Tool {tool_name} cannot be create a node")
         if len(node) > 1:
-            raise FatalException(
-                node=self,
-                detail=f"Tool {tool_name} has multiple nodes, this is not allowed. Current Node include {[x.tool_info().name for x in self.connected_nodes()]}",
+            raise FatalError(
+                f"Tool {tool_name} has multiple nodes, this is not allowed. Current Node include {[x.tool_info().name for x in self.connected_nodes()]}",
             )
         return node[0].prepare_tool(arguments)
 
@@ -88,9 +89,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     break
             else:
                 # the message is malformed from the model
-                raise ResetException(
-                    node=self,
-                    detail="ModelLLM returned an unexpected message type.",
+                raise RuntimeError("ModelLLM returned an unexpected message type.",
                 )
 
         return self.return_output()

@@ -28,13 +28,11 @@ class ExecutionInfo:
         node_heap: NodeForest,
         stamper: StampManager,
         exception_history: List[Exception] = None,
-        executor_config: ExecutorConfig = ExecutorConfig(),
     ):
         self.request_heap = request_heap
         self.node_heap = node_heap
         self.stamper = stamper
         self.exception_history = exception_history or []
-        self.executor_config = executor_config
 
     @classmethod
     def default(cls):
@@ -44,13 +42,10 @@ class ExecutionInfo:
     @classmethod
     def create_new(
         cls,
-        executor_config: ExecutorConfig = ExecutorConfig(),
     ) -> ExecutionInfo:
         """
         Creates a new empty instance of state variables with the provided executor configuration.
 
-        Args:
-            executor_config: The configuration to use for the executor.
         """
         request_heap = RequestForest()
         node_heap = NodeForest()
@@ -61,7 +56,6 @@ class ExecutionInfo:
             node_heap=node_heap,
             stamper=stamper,
             exception_history=[],
-            executor_config=executor_config,
         )
 
     @property

@@ -2,7 +2,7 @@ import warnings
 from typing import TypeVar, Type
 from copy import deepcopy
 from ...llm import MessageHistory, ModelBase, SystemMessage
-from ..nodes import Node, ResetException
+from ..nodes import Node
 
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
@@ -32,24 +32,22 @@ class StructuredLLM(Node[_TOutput], ABC):
         Returns:
             (TerminalLLM.Output): The response message from the model
         """
-        try:
-            returned_mess = self.model.structured(self.message_hist, schema=self.output_model())
-        except Exception as e:
-            raise ResetException(node=self, detail=f"{e}")
+
+        returned_mess = self.model.structured(self.message_hist, schema=self.output_model())
+
 
         self.message_hist.append(returned_mess.message)
 
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
             if cont is None:
-                raise ResetException(node=self, detail="The LLM returned no content")
+                raise RuntimeError("ModelLLM returned None content")
             if isinstance(cont, self.output_model()):
                 return cont
-            raise ResetException(node=self, detail="The LLM returned content does not match the expected return type")
+            raise RuntimeError("The LLM returned content does not match the expected return type")
 
-        raise ResetException(
-            node=self,
-            detail="ModelLLM returned an unexpected message type.",
+        raise RuntimeError(
+            "ModelLLM returned an unexpected message type.",
         )
 
 

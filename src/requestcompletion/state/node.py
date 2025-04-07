@@ -4,7 +4,7 @@ from __future__ import annotations
 import warnings
 
 from dataclasses import dataclass
-from typing import Optional, Iterable, Callable, ParamSpec, List
+from typing import Optional, Iterable, Callable, ParamSpec, List, Dict, Type
 
 from .forest import (
     AbstractLinkedObject,
@@ -55,7 +55,7 @@ class NodeForest(Forest[LinkedNode]):
         super().__init__()
 
         self._hard_revert_list = set()
-        self.id_type_mapping = {}
+        self.id_type_mapping: Dict[str, Type[Node]] = {}
         self.registration_details = None
 
     def __getitem__(self, item):
@@ -92,6 +92,9 @@ class NodeForest(Forest[LinkedNode]):
             )
             self._update_heap(new_linked_node)
             self.id_type_mapping[str(new_node.uuid)] = type(new_node)
+
+    def get_node_type(self, identifier: str):
+        return self.id_type_mapping.get(identifier, None)
 
     def hard_revert(self, node_ids: Iterable[str], to_step: int):
         """

@@ -1,0 +1,6 @@
+class RCException(Exception):
+    """
+    A simple base class for all RCExceptions to inherit from.
+    """
+
+    pass

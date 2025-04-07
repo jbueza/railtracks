@@ -63,9 +63,9 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
 
             except Exception as e:
                 warnings.warn(
-                    f"Error invoking function {func.__name__}\nProvidedArgs: {self.args}\nProvided kwargs:\n{self.kwargs}.\n: {str(e)}"
+                    f"Error invoking function {func.__name__}\n ProvidedArgs: {self.args}\nProvided kwargs:\n{self.kwargs}.\n: {str(e)}"
                 )
-                raise e
+                raise
 
         def _convert_kwargs_to_appropriate_types(self) -> Dict[str, Any]:
             """Convert kwargs to appropriate types based on function signature."""
@@ -213,15 +213,13 @@ class FunctionNode(Node[_TOutput]):
         self.kwargs = kwargs
 
     async def invoke(self) -> _TOutput:
-        try:
-            if asyncio.iscoroutinefunction(self.func):
-                result = await self.func(*self.args, **self.kwargs)
-            else:
-                result = asyncio.to_thread(self.func(*self.args, **self.kwargs))
 
-            return result
-        except Exception as e:
-            raise RuntimeError(f"Error invoking function: {str(e)}")
+        if asyncio.iscoroutinefunction(self.func):
+            result = await self.func(*self.args, **self.kwargs)
+        else:
+            result = asyncio.to_thread(self.func(*self.args, **self.kwargs))
+
+        return result
 
     def pretty_name(self) -> str:
         return f"Function Node - {self.__class__.__name__}({self.func.__name__})"

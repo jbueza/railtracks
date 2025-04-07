@@ -5,23 +5,27 @@ import uuid
 from collections import deque
 
 
-from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict
+from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING
 
+# all the things we need to import from RC directly.
 from .request import Cancelled, Failure
+from ..utils.logging.action import RequestCreationAction, RequestCompletionAction, NodeExceptionAction
+
+if TYPE_CHECKING:
+    from .. import ExecutorConfig
 from ..context import parent_id
-
-from ..nodes.nodes import Node, FatalException
-
+from ..exceptions import FatalError
+from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..state.request import (
-    RequestTemplate,
-)
+from ..exceptions import ExecutionException, GlobalTimeOut
 from ..utils.profiling import Stamp
+from ..utils.logging.create import get_rc_logger
 
-import logging
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
+
+LOGGER_NAME = "RUNNER"
 
 
 class RCState:
@@ -42,7 +46,7 @@ class RCState:
 
     # the main role of this object is to augment the executor object with all the things it needs to track state as the
     #  the graph runs.
-    def __init__(self, execution_info: ExecutionInfo):
+    def __init__(self, execution_info: ExecutionInfo, executor_config: ExecutorConfig):
 
         self._node_heap = execution_info.node_heap
         self._request_heap = execution_info.request_heap
@@ -50,15 +54,16 @@ class RCState:
 
         self.exception_history = deque[Exception](execution_info.exception_history)
 
-        self.executor_config = execution_info.executor_config
+        self.executor_config = executor_config
 
         ## These are the elements which need to be created as new objects every time. They should not serialized.
 
         self._answer = None
 
         # each new instance of a state object should have its own logger.
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_rc_logger(LOGGER_NAME)
 
+    # TODO move this logic into create request to better DRY the code.
     def create_first_entry(self, start_node: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs):
         """
         Creates the provided node in the system.
@@ -91,6 +96,15 @@ class RCState:
             sink_id=created_node.uuid,
             stamp=first_stamp,
         )
+
+        request_creation_obj = RequestCreationAction(
+            parent_node_name="START",
+            child_node_name=created_node.pretty_name(),
+            input_args=args,
+            input_kwargs=kwargs,
+        )
+
+        self.logger.info(request_creation_obj.to_logging_msg())
 
         return request_id
 
@@ -125,7 +139,7 @@ class RCState:
 
     async def cancel(self, node_id: str):
         if node_id not in self._node_heap.heap():
-            self.logger.warning(f"Node {node_id} not found in the heap")
+            assert False
 
         r_id = self._request_heap.get_request_from_child_id(node_id)
         self._request_heap.update(r_id, Cancelled, self._stamper.create_stamp(f"Cancelled request {r_id}"))
@@ -177,6 +191,16 @@ class RCState:
         # 3. Attach the requests that will tied to this node.
         request_ids = self._create_new_request_set(parent_node_id, [node.uuid], [args], [kwargs], sc)
 
+        parent_node_type = self._node_heap.get_node_type(parent_node_id)
+        parent_node_name = parent_node_type.pretty_name() if parent_node_type else "Unknown"
+        request_creation_obj = RequestCreationAction(
+            parent_node_name=parent_node_name,
+            child_node_name=node.pretty_name(),
+            input_args=args,
+            input_kwargs=kwargs,
+        )
+
+        self.logger.info(request_creation_obj.to_logging_msg())
         # 4. Return the request id of the node that was created.
         return request_ids[0]
 
@@ -276,11 +300,16 @@ class RCState:
         try:
             result = await self._run_node(node)
         except Exception as e:
-            handled_error = self._handle_failed_request(request_id, e)
+            handled_error = self._handle_failed_request(node.pretty_name(), request_id, e)
             result = handled_error
 
         stamp = self._stamper.create_stamp(f"Finished executing {node.pretty_name()}")
-        self.logger.info(f"Finished running {node.pretty_name()}")
+        request_completion_obj = RequestCompletionAction(
+            child_node_name=node.pretty_name(),
+            output=result,
+        )
+
+        self.logger.info(request_completion_obj.to_logging_msg())
 
         self._request_heap.update(request_id, result, stamp)
         self._node_heap.update(node, stamp)
@@ -290,7 +319,7 @@ class RCState:
 
         return result
 
-    def _handle_failed_request(self, request_id: str, exception: Exception):
+    def _handle_failed_request(self, failed_node_name: str, request_id: str, exception: Exception):
         """
         Handles the provided exception for the given request identifier.
 
@@ -313,9 +342,13 @@ class RCState:
         """
         # before doing any handling we must make sure our exception history object is up to date.
         self.exception_history.append(exception)
+        node_exception_action = NodeExceptionAction(
+            node_name=failed_node_name,
+            exception=exception,
+        )
 
         if self.executor_config.end_on_error:
-            self.logger.critical(f"Encountered an Error: {exception}")
+            self.logger.critical(node_exception_action.to_logging_msg())
             ee = ExecutionException(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
@@ -324,8 +357,8 @@ class RCState:
             return Failure(ee)
 
         # fatal exceptions should only be thrown if there is something seriously wrong.
-        if isinstance(exception, FatalException):
-            self.logger.critical(f"Fatal exception encountered: {exception}")
+        if isinstance(exception, FatalError):
+            self.logger.critical(node_exception_action.to_logging_msg())
             ee = ExecutionException(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
@@ -334,7 +367,7 @@ class RCState:
             return Failure(ee)
 
         # for any other error we want it to bubble up so the user can handle.
-        self.logger.exception(f"Error in request {request_id}: {exception}")
+        self.logger.exception(node_exception_action.to_logging_msg())
         return Failure(exception)
 
     @property
@@ -345,41 +378,4 @@ class RCState:
             request_heap=self._request_heap,
             stamper=self._stamper,
             exception_history=list(self.exception_history),
-            executor_config=self.executor_config,
         )
-
-
-class GlobalTimeOut(Exception):
-    """A general exception to be thrown when a global timeout has been exceeded during execution."""
-
-    def __init__(self, timeout: float):
-        super().__init__(f"Execution timed out after {timeout} seconds")
-
-
-class ExecutionException(Exception):
-    """A general exception thrown when an error occurs during the execution of the graph."""
-
-    def __init__(
-        self,
-        failed_request: RequestTemplate,
-        execution_info: ExecutionInfo,
-        final_exception: Exception,
-    ):
-        """
-        Creates a new instance of an ExecutionException
-
-        Args:
-            failed_request: The request that failed during the execution that triggered this exception
-            final_exception: The last exception that was thrown during the execution (this is likely the one that cause the execution exception)
-        """
-        self.failed_request = failed_request
-        self.execution_info = execution_info
-        self.final_exception = final_exception
-        super().__init__(
-            f"The final nodes exception was {final_exception}, in the failed request {failed_request}."
-            f"A complete history of errors seen is seen here: \n {self.exception_history}"
-        )
-
-    @property
-    def exception_history(self):
-        return self.execution_info.exception_history
