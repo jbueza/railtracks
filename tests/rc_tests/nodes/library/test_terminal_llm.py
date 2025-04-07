@@ -1,5 +1,5 @@
 import pytest
-import requestcompletion as rc
+import src.requestcompletion as rc  # TODO Change this
 
 
 class CapitalizeText(rc.Node[str]):
@@ -14,15 +14,21 @@ class CapitalizeText(rc.Node[str]):
     def pretty_name(cls) -> str:
         return "Capitalize Text"
 
-
+@pytest.mark.asyncio
 async def test_call_capitalize_text():
     node = CapitalizeText("hello world")
     assert await node.invoke() == "Hello world"
     assert node.pretty_name() == "Capitalize Text"
 
-
+@pytest.mark.asyncio
 async def test_call_capitalize_text_stream():
     node = CapitalizeText("")
 
     assert await node.invoke() == ""
     assert node.pretty_name() == "Capitalize Text"
+
+
+# ======== Using TerminalLLMs as tools ==========
+
+        
+    
