@@ -1,8 +1,8 @@
 import warnings
-from typing import Type
-from ...llm import MessageHistory, ModelBase, SystemMessage
+from typing import Type, Dict, Any
+from ...llm import MessageHistory, ModelBase, SystemMessage, UserMessage
 from ..nodes import Node
-
+from ...llm.tools import Parameter, Tool
 from abc import ABC
 from copy import deepcopy
 
@@ -38,6 +38,8 @@ def terminal_llm(
     pretty_name: str | None = None,
     system_message: SystemMessage | None = None,
     model: ModelBase | None = None,
+    tool_details: str | None = None,
+    tool_params: set[Parameter] | None = None,
 ) -> Type[TerminalLLM]:
     class TerminalLLMNode(TerminalLLM):
         def __init__(
@@ -69,9 +71,32 @@ def terminal_llm(
         @classmethod
         def pretty_name(cls) -> str:
             if pretty_name is None:
+                if tool_details and tool_params:
+                    raise RuntimeError("You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool.")
                 return "TerminalLLM"
             else:
                 return pretty_name
+            
+        if tool_details and tool_params:
+            @classmethod
+            def tool_info(cls) -> Tool:
+                return Tool(
+                    name=cls.pretty_name(),
+                    detail=tool_details,
+                    parameters=tool_params,
+                )
+            
+            @classmethod
+            def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> TerminalLLM:
+                message_hist = MessageHistory([UserMessage(f"{param.name}: '{tool_parameters[param.name]}'") for param in tool_params])
+                return cls(message_hist)
+                
+    if tool_details and not tool_params:
+        raise RuntimeError("Tool details provided but no tool parameters provided.")
+    elif tool_params and not tool_details:
+        raise RuntimeError("Tool parameters provided but no tool details provided.")
+    elif tool_details and tool_params:
+        warnings.warn("Tool details and tool parameters provided. TerminalLLM will be used as a tool in a tool_call_llm node.")
 
     return TerminalLLMNode
 
