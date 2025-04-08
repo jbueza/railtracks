@@ -81,7 +81,7 @@ def terminal_llm(
             @classmethod
             def tool_info(cls) -> Tool:
                 return Tool(
-                    name=cls.pretty_name(),
+                    name=cls.pretty_name().replace(" ", "_"),
                     detail=tool_details,
                     parameters=tool_params,
                 )
