@@ -96,6 +96,8 @@ def terminal_llm(
     elif tool_params and not tool_details:
         raise RuntimeError("Tool parameters provided but no tool details provided.")
     elif tool_details and tool_params:
+        if len([x.name for x in tool_params]) != len(set([x.name for x in tool_params])):
+            raise ValueError("Duplicate parameter names are not allowed")
         warnings.warn("Tool details and tool parameters provided. TerminalLLM will be used as a tool in a tool_call_llm node.")
 
     return TerminalLLMNode
