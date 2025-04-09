@@ -1,8 +1,8 @@
 import warnings
 from typing import Type, Dict, Any
-from src.requestcompletion.llm import MessageHistory, ModelBase, SystemMessage, UserMessage
-from src.requestcompletion import Node
-from src.requestcompletion.llm.tools import Parameter, Tool
+from ...llm import MessageHistory, ModelBase, SystemMessage, UserMessage
+from ..nodes import Node
+from ...llm.tools import Parameter, Tool
 from abc import ABC
 from copy import deepcopy
 
