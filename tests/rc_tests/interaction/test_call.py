@@ -3,10 +3,10 @@ from copy import deepcopy
 import requestcompletion as rc
 from conftest import structured_nodes, tool_calling_nodes, terminal_nodes, model
 
-NODE_INIT_METTHODS = ["class_based", "easy_wrapper"]
+NODE_INIT_METHODS = ["class_based", "easy_wrapper"]
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("terminal_nodes", NODE_INIT_METTHODS, indirect=True)
+@pytest.mark.parametrize("terminal_nodes", NODE_INIT_METHODS, indirect=True)
 async def test_message_history_not_mutated_terminal_llm(model, terminal_nodes):
     """
     Verify that message history is not modified after rc.call when passed to nodes constructed using different methods.
@@ -54,7 +54,7 @@ async def test_message_history_not_mutated_terminal_llm(model, terminal_nodes):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("structured_nodes", NODE_INIT_METTHODS, indirect=True)
+@pytest.mark.parametrize("structured_nodes", NODE_INIT_METHODS, indirect=True)
 async def test_message_history_not_mutated_structured_llm(model, structured_nodes):
     """
     Verify that message history is not modified after rc.call when passed to nodes constructed using different methods.
@@ -99,7 +99,7 @@ async def test_message_history_not_mutated_structured_llm(model, structured_node
         assert all(orig.content == new.content for orig, new in zip(original_message_history, message_history)), "Message history modified after runner run"
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("tool_calling_nodes", NODE_INIT_METTHODS, indirect=True)
+@pytest.mark.parametrize("tool_calling_nodes", NODE_INIT_METHODS, indirect=True)
 async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nodes):
     """
     Verify that message history is not modified after rc.call when passed to nodes constructed using different methods.
