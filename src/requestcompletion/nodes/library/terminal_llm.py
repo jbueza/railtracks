@@ -93,7 +93,7 @@ def terminal_llm(
                 
     if tool_params and not tool_details:
         raise RuntimeError("Tool parameters provided but no tool details provided.")
-    elif tool_details and tool_params == {}:
+    elif tool_details and tool_params is not None and len(tool_params) == 0:
         raise RuntimeError("If you want no params for the tool, tool_params must be set to None.")
     elif tool_details:
         if tool_params and len([x.name for x in tool_params]) != len(set([x.name for x in tool_params])):
