@@ -77,7 +77,7 @@ def terminal_llm(
             else:
                 return pretty_name
             
-        if tool_details and tool_params:
+        if tool_details:    # params might be empty
             @classmethod
             def tool_info(cls) -> Tool:
                 return Tool(
@@ -88,13 +88,13 @@ def terminal_llm(
             
             @classmethod
             def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> TerminalLLM:
-                message_hist = MessageHistory([UserMessage(f"{param.name}: '{tool_parameters[param.name]}'") for param in tool_params])
+                message_hist = MessageHistory([UserMessage(f"{param.name}: '{tool_parameters[param.name]}'") for param in (tool_params if tool_params else [])])
                 return cls(message_hist)
                 
-    if tool_details and not tool_params:
-        raise RuntimeError("Tool details provided but no tool parameters provided.")
-    elif tool_params and not tool_details:
+    if tool_params and not tool_details:
         raise RuntimeError("Tool parameters provided but no tool details provided.")
+    elif tool_details and tool_params == {}:
+        raise RuntimeError("If you want no params for the tool, tool_params must be set to None.")
     elif tool_details and tool_params:
         if len([x.name for x in tool_params]) != len(set([x.name for x in tool_params])):
             raise ValueError("Duplicate parameter names are not allowed")

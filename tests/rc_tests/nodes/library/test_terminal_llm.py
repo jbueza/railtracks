@@ -102,6 +102,41 @@ async def test_terminal_llm_as_tool_correct_initialization(model, encoder_system
             for message in response.answer
         )  # inside tool_call_llm's invoke function is this exact string in case of error
 
+@pytest.mark.asyncio
+async def test_terminal_llm_as_tool_correct_initialization_no_params(model):
+
+    rng_tool_details = "A tool that generates 5 random integers between 1 and 100."
+
+    rng_node = rc.library.terminal_llm(
+        pretty_name="RNG Tool",
+        system_message=rc.llm.SystemMessage(
+            "You are a helful assistant that can generate 5 random numbers between 1 and 100."
+        ),
+        model=model,
+        tool_details=rng_tool_details,
+        tool_params=None,
+    )
+    
+    assert rng_node.tool_info().name == "RNG_Tool"
+    assert rng_node.tool_info().detail == rng_tool_details 
+    assert rng_node.tool_info().parameters is None
+
+    system_message = rc.llm.SystemMessage("You are a math genius that calls the RNG tool to generate 5 random numbers between 1 and 100 and gives the sum of those numbers.")
+    math_node = rc.library.tool_call_llm(connected_nodes={rng_node},
+                                  pretty_name="Math Node", 
+                                  system_message=system_message, 
+                                  model=rc.llm.OpenAILLM("gpt-4o"),
+                                  output_type="MessageHistory",
+                                  )
+    
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
+        message_history = rc.llm.MessageHistory([rc.llm.UserMessage("Start the Math node.")])
+        response = await runner.run(math_node, message_history=message_history)
+        assert any(
+            message.role == "tool" and "There was an error running the tool" not in message.content
+            for message in response.answer
+        )
+
 
 @pytest.mark.asyncio
 async def test_terminal_llm_missing_tool_details(model, encoder_system_message):
@@ -114,20 +149,6 @@ async def test_terminal_llm_missing_tool_details(model, encoder_system_message):
             system_message=encoder_system_message,
             model=model,
             tool_params=encoder_tool_params,  # Intentionally omitting tool_details
-        )
-
-
-@pytest.mark.asyncio
-async def test_terminal_llm_missing_tool_params(model, encoder_system_message):
-    # Test case where tool_details is provided but tool_params is not
-    encoder_tool_details = "A tool used to encode text into bytes."
-
-    with pytest.raises(RuntimeError, match="Tool details provided but no tool parameters provided."):
-        _ = rc.library.terminal_llm(
-            pretty_name="Encoder",
-            system_message=encoder_system_message,
-            model=model,
-            tool_details=encoder_tool_details,  # Intentionally omitting tool_params
         )
 
 
@@ -192,7 +213,7 @@ async def test_terminal_llm_tool_empty_parameters(model, encoder_system_message)
     encoder_tool_details = "A tool that doesn't need any parameters."
     encoder_tool_params = set()  # Empty set
 
-    with pytest.raises(RuntimeError, match="Tool details provided but no tool parameters provided."):
+    with pytest.raises(RuntimeError, match="If you want no params for the tool, tool_params must be set to None."):
         encoder = rc.library.terminal_llm(
             pretty_name="EmptyParamEncoder",
             system_message=encoder_system_message,
