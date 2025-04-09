@@ -71,7 +71,7 @@ def terminal_llm(
         @classmethod
         def pretty_name(cls) -> str:
             if pretty_name is None:
-                if tool_details and tool_params:
+                if tool_details:    # at this point if tool_details is not None, then terminal_llm is being used as a tool
                     raise RuntimeError("You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool.")
                 return "TerminalLLM"
             else:
