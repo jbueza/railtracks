@@ -92,7 +92,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 raise RuntimeError("ModelLLM returned an unexpected message type.",
                 )
 
-        return self.return_output()
+        return await self.return_output()
 
 
 def tool_call_llm(

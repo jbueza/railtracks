@@ -21,37 +21,46 @@ def decoder_system_message():
     return rc.llm.SystemMessage("You are a text decoder. Decode the bytes into a string.")
 
 # ============ Output Models ===========
+class SimpleOutput(BaseModel):  # simple structured output case
+    text: str = Field(description="The text to return")
+    number: int = Field(description="The number to return")
+
+class TravelPlannerOutput(BaseModel):   # structured using tool calls
+    travel_plan: str = Field(description="The travel plan")
+    Total_cost: float = Field(description="The total cost of the trip")
+    Currency: str = Field(description="The currency used for the trip")
+
+class MathOutput(BaseModel):    # structured using terminal llm as tool
+    sum: float = Field(description="The sum of the random numbers")
+    random_numbers: List[int] = Field(description="The list of random numbers generated")
+
+class EmptyModel(BaseModel):    # empty structured output case
+    pass
+
+class PersonOutput(BaseModel):  # complex structured output case
+    name: str = Field(description="The name of the person")
+    age: int = Field(description="The age of the person")
+    Favourites: SimpleOutput = Field(description="The favourite text and number of the person")
+
 @pytest.fixture
 def travel_planner_output_model():
-    class TravelPlannerOutput(BaseModel):
-        travel_plan: str = Field(description="The travel plan")
-        Total_cost: float = Field(description="The total cost of the trip")
-        Currency: str = Field(description="The currency used for the trip")
-
     return TravelPlannerOutput
 
 @pytest.fixture
 def math_output_model():
-    class MathOutput(BaseModel):
-        sum: float = Field(description="The sum of the random numbers")
-        random_numbers: List[int] = Field(description="The list of random numbers generated")
-
     return MathOutput
 
 @pytest.fixture
 def simple_output_model():
-    class SimpleOutput(BaseModel):
-        text: str = Field(description="The text to return")
-        number: int = Field(description="The number to return")
-
     return SimpleOutput
 
 @pytest.fixture
 def empty_output_model():
-    class EmptyModel(BaseModel):
-        pass
-
     return EmptyModel
+
+@pytest.fixture
+def person_output_model():    
+    return PersonOutput
 # ============ Tools ===========
 @pytest.fixture
 def travel_planner_tools():
@@ -145,7 +154,7 @@ def travel_planner_tools():
 @pytest.fixture
 def simple_node(request, model, simple_output_model, empty_output_model):
 
-    system_simple = rc.llm.SystemMessage("Return a simple text and number.")
+    system_simple = rc.llm.SystemMessage("Return a simple text and number. Don't use any tools.")
     fixture_name, output_model_name = request.param
 
     match output_model_name: 
@@ -177,10 +186,12 @@ def simple_node(request, model, simple_output_model, empty_output_model):
                 message_history.insert(0, system_simple)
                 super().__init__(message_history=message_history, llm_model=llm_model, output_model=output_model)
 
-            def connected_nodes(self):
+            @classmethod
+            def connected_nodes(cls):
                 return {rc.library.from_function(random.random)}
             
-            def pretty_name(self) -> str:
+            @classmethod
+            def pretty_name(cls) -> str:
                 return "Simple Node"
             
         return SimpleNode
@@ -221,10 +232,12 @@ def travel_planner_node(request, model, travel_planner_tools, travel_planner_out
                 message_history.insert(0, system_travel_planner)
                 super().__init__(message_history=message_history, llm_model=llm_model, output_model=output_model)
 
-            def connected_nodes(self):
+            @classmethod
+            def connected_nodes(cls):
                 return {convert_currency_node, available_locations_node, currency_used_node, average_location_cost_node}
             
-            def pretty_name(self) -> str:
+            @classmethod
+            def pretty_name(cls) -> str:
                 return "Travel Planner Node"
 
         return TravelPlannerNode
@@ -263,13 +276,53 @@ def math_node(request, model, math_output_model):
                 message_history.insert(0, system_math_genius)
                 super().__init__(message_history=message_history, llm_model=llm_model, output_model=output_model)
 
-            def connected_nodes(self):
+            @classmethod
+            def connected_nodes(cls):
                 return {rng_node}
             
-            def pretty_name(self) -> str:
+            @classmethod
+            def pretty_name(cls) -> str:
                 return "Math Node"
             
         return MathNode
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
     
+@pytest.fixture
+def complex_node(request, model, person_output_model):
+
+    system_complex = rc.llm.SystemMessage("You are an all knowing sentient being. You can answer any question asked to you. You may make up any answer you want. Just provide all info asked for.")
+    fixture_name = request.param
+
+    if fixture_name == "easy_wrapper":
+        sentient_node = rc.library.tool_call_llm(
+                connected_nodes={rc.library.from_function(random.random)},  # providing a tool to the node becuase providing an empty set will cause an error
+                pretty_name="Complex Node",
+                system_message=system_complex,
+                model=model,
+                output_model=person_output_model,
+            )
+        return sentient_node
+    elif fixture_name == "class_based":
+        class SentientNode(rc.library.StructuredToolCallLLM):
+            def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+                output_model: BaseModel = person_output_model,
+                llm_model: rc.llm.ModelBase = model,
+            ):
+                message_history = [x for x in message_history if x.role != "system"]
+                message_history.insert(0, system_complex)
+                super().__init__(message_history=message_history, llm_model=llm_model, output_model=output_model)
+
+            @classmethod
+            def connected_nodes(cls):
+                return {rc.library.from_function(random.random)}
+            
+            @classmethod
+            def pretty_name(cls) -> str:
+                return "Complex Node"
+            
+        return SentientNode
+    else:
+        raise ValueError(f"Unknown node fixture: {fixture_name}")
