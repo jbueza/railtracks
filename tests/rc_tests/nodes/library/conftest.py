@@ -1,14 +1,16 @@
 import pytest
 import src.requestcompletion as rc
-from typing import List
+from typing import List, Callable
 from pydantic import BaseModel, Field
 import random
+
 
 # ============ Model ===========
 @pytest.fixture
 def model():
     return rc.llm.OpenAILLM("gpt-4o")
-    
+
+
 # ============ System Messages ===========
 @pytest.fixture
 def encoder_system_message():
@@ -16,51 +18,114 @@ def encoder_system_message():
         "You are a text encoder. Encode the input string into bytes and do a random operation on them. You can use the following operations: reverse the byte order, or repeat each byte twice, or jumble the bytes."
     )
 
+
 @pytest.fixture
 def decoder_system_message():
     return rc.llm.SystemMessage("You are a text decoder. Decode the bytes into a string.")
+
+# ============ Helper function for test_function.py ===========
+@pytest.fixture
+def create_top_level_node():
+    """
+    Returns a factory function that creates top-level nodes for testing.
+    """
+    def _create_node(test_function: Callable, model_provider: str = "openai"):
+        """
+        Creates a top-level node for testing function nodes.
+
+        Args:
+            test_function: The function to test.
+            model_provider: The model provider to use (default: "openai").
+
+        Returns:
+            A ToolCallLLM node that can be used to test the function.
+        """
+        class TopLevelNode(rc.library.ToolCallLLM):
+            def __init__(self, message_history: rc.llm.MessageHistory):
+                message_history.insert(0, rc.llm.SystemMessage(self.system_message()))
+
+                super().__init__(
+                    message_history=message_history,
+                    model=self.create_model(),
+                )
+
+            @classmethod
+            def system_message(cls) -> str:
+                return "You are a helpful assistant that can call the tools available to you to answer user queries"
+
+            @classmethod
+            def create_model(cls):
+                if model_provider == "openai":
+                    return rc.llm.OpenAILLM("gpt-4o")
+                elif model_provider == "anthropic":
+                    return rc.llm.AnthropicLLM("claude-3-5-sonnet-20241022")
+                else:
+                    raise ValueError(f"Invalid model provider: {model_provider}")
+
+            @classmethod
+            def connected_nodes(cls):
+                return {rc.library.from_function(test_function)}
+
+            @classmethod
+            def pretty_name(cls) -> str:
+                return "Top Level Node"
+
+        return TopLevelNode
+    
+    return _create_node
 
 # ============ Output Models ===========
 class SimpleOutput(BaseModel):  # simple structured output case
     text: str = Field(description="The text to return")
     number: int = Field(description="The number to return")
 
-class TravelPlannerOutput(BaseModel):   # structured using tool calls
+
+class TravelPlannerOutput(BaseModel):  # structured using tool calls
     travel_plan: str = Field(description="The travel plan")
     Total_cost: float = Field(description="The total cost of the trip")
     Currency: str = Field(description="The currency used for the trip")
 
-class MathOutput(BaseModel):    # structured using terminal llm as tool
+
+class MathOutput(BaseModel):  # structured using terminal llm as tool
     sum: float = Field(description="The sum of the random numbers")
     random_numbers: List[int] = Field(description="The list of random numbers generated")
 
-class EmptyModel(BaseModel):    # empty structured output case
+
+class EmptyModel(BaseModel):  # empty structured output case
     pass
+
 
 class PersonOutput(BaseModel):  # complex structured output case
     name: str = Field(description="The name of the person")
     age: int = Field(description="The age of the person")
     Favourites: SimpleOutput = Field(description="The favourite text and number of the person")
 
+
 @pytest.fixture
 def travel_planner_output_model():
     return TravelPlannerOutput
+
 
 @pytest.fixture
 def math_output_model():
     return MathOutput
 
+
 @pytest.fixture
 def simple_output_model():
     return SimpleOutput
+
 
 @pytest.fixture
 def empty_output_model():
     return EmptyModel
 
+
 @pytest.fixture
-def person_output_model():    
+def person_output_model():
     return PersonOutput
+
+
 # ============ Tools ===========
 @pytest.fixture
 def travel_planner_tools():
@@ -70,8 +135,20 @@ def travel_planner_tools():
         Returns:
             List[str]: A list of available locations.
         """
-        return ["New York", "Los Angeles", "Chicago", "Delhi", "Mumbai", "Bangalore", "Paris", "Denmark", "Sweden", "Norway", "Germany"]
-    
+        return [
+            "New York",
+            "Los Angeles",
+            "Chicago",
+            "Delhi",
+            "Mumbai",
+            "Bangalore",
+            "Paris",
+            "Denmark",
+            "Sweden",
+            "Norway",
+            "Germany",
+        ]
+
     def currency_used(location: str) -> str:
         """Returns the currency used in a location.
         Args:
@@ -96,7 +173,7 @@ def travel_planner_tools():
         if used_currency is None:
             raise ValueError(f"Currency not available for location: {location}")
         return used_currency
-    
+
     def average_location_cost(location: str, num_days: int) -> float:
         """Returns the average cost of living in a location for a given number of days.
         Args:
@@ -147,8 +224,9 @@ def travel_planner_tools():
         if rate is None:
             raise ValueError("Exchange rate not available")
         return amount * rate
-    
+
     return convert_currency, available_locations, currency_used, average_location_cost
+
 
 # ============ Nodes ===========
 @pytest.fixture
@@ -157,7 +235,7 @@ def simple_node(request, model, simple_output_model, empty_output_model):
     system_simple = rc.llm.SystemMessage("Return a simple text and number. Don't use any tools.")
     fixture_name, output_model_name = request.param
 
-    match output_model_name: 
+    match output_model_name:
         case "simple_model":
             output_model = simple_output_model
         case "empty_model":
@@ -167,14 +245,17 @@ def simple_node(request, model, simple_output_model, empty_output_model):
 
     if fixture_name == "easy_wrapper":
         simple_node = rc.library.tool_call_llm(
-                connected_nodes={rc.library.from_function(random.random)},  # providing a tool to the node becuase providing an empty set will cause an error
-                pretty_name="Simple Node",
-                system_message=system_simple,
-                model=model,
-                output_model=output_model,
-            )
+            connected_nodes={
+                rc.library.from_function(random.random)
+            },  # providing a tool to the node becuase providing an empty set will cause an error
+            pretty_name="Simple Node",
+            system_message=system_simple,
+            model=model,
+            output_model=output_model,
+        )
         return simple_node
     elif fixture_name == "class_based":
+
         class SimpleNode(rc.library.StructuredToolCallLLM):
             def __init__(
                 self,
@@ -189,15 +270,16 @@ def simple_node(request, model, simple_output_model, empty_output_model):
             @classmethod
             def connected_nodes(cls):
                 return {rc.library.from_function(random.random)}
-            
+
             @classmethod
             def pretty_name(cls) -> str:
                 return "Simple Node"
-            
+
         return SimpleNode
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
-    
+
+
 @pytest.fixture
 def travel_planner_node(request, model, travel_planner_tools, travel_planner_output_model):
     """
@@ -205,7 +287,9 @@ def travel_planner_node(request, model, travel_planner_tools, travel_planner_out
     """
     fixture_name = request.param
     convert_currency, available_locations, currency_used, average_location_cost = travel_planner_tools
-    system_travel_planner = rc.llm.SystemMessage("You are a travel planner that will plan a trip. you have access to AvailableLocations, ConvertCurrency, CurrencyUsed and AverageLocationCost tools. Use them when you need to.")
+    system_travel_planner = rc.llm.SystemMessage(
+        "You are a travel planner that will plan a trip. you have access to AvailableLocations, ConvertCurrency, CurrencyUsed and AverageLocationCost tools. Use them when you need to."
+    )
 
     convert_currency_node = rc.library.from_function(convert_currency)
     available_locations_node = rc.library.from_function(available_locations)
@@ -213,14 +297,22 @@ def travel_planner_node(request, model, travel_planner_tools, travel_planner_out
     average_location_cost_node = rc.library.from_function(average_location_cost)
 
     if fixture_name == "easy_wrapper":
-        travel_planner_node = rc.library.tool_call_llm(connected_nodes={convert_currency_node, available_locations_node, currency_used_node, average_location_cost_node}, 
-                                                       pretty_name="Travel Planner Node", 
-                                                       system_message=system_travel_planner, 
-                                                       model=model,
-                                                       output_model=travel_planner_output_model)
-        
+        travel_planner_node = rc.library.tool_call_llm(
+            connected_nodes={
+                convert_currency_node,
+                available_locations_node,
+                currency_used_node,
+                average_location_cost_node,
+            },
+            pretty_name="Travel Planner Node",
+            system_message=system_travel_planner,
+            model=model,
+            output_model=travel_planner_output_model,
+        )
+
         return travel_planner_node
     elif fixture_name == "class_based":
+
         class TravelPlannerNode(rc.library.StructuredToolCallLLM):
             def __init__(
                 self,
@@ -235,36 +327,45 @@ def travel_planner_node(request, model, travel_planner_tools, travel_planner_out
             @classmethod
             def connected_nodes(cls):
                 return {convert_currency_node, available_locations_node, currency_used_node, average_location_cost_node}
-            
+
             @classmethod
             def pretty_name(cls) -> str:
                 return "Travel Planner Node"
 
         return TravelPlannerNode
-    
+
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
 
+
 @pytest.fixture
 def math_node(request, model, math_output_model):
-    system_math_genius = rc.llm.SystemMessage("You are a math genius that calls the RNG tool to generate 5 random numbers between 1 and 100 and gives the sum of those numbers.")
+    system_math_genius = rc.llm.SystemMessage(
+        "You are a math genius that calls the RNG tool to generate 5 random numbers between 1 and 100 and gives the sum of those numbers."
+    )
 
-    rng_node = rc.library.terminal_llm(pretty_name="RNG Tool", 
-                                       system_message=rc.llm.SystemMessage("You are a helful assistant that can generate 5 random numbers between 1 and 100."), 
-                                       model=model, 
-                                       tool_details="A tool used to generate 5 random integers between 1 and 100.", 
-                                       tool_params=None)
+    rng_node = rc.library.terminal_llm(
+        pretty_name="RNG Tool",
+        system_message=rc.llm.SystemMessage(
+            "You are a helful assistant that can generate 5 random numbers between 1 and 100."
+        ),
+        model=model,
+        tool_details="A tool used to generate 5 random integers between 1 and 100.",
+        tool_params=None,
+    )
 
     fixture_name = request.param
     if fixture_name == "easy_wrapper":
-        math_node = rc.library.tool_call_llm(connected_nodes={rng_node},
-                                            pretty_name="Math Node", 
-                                            system_message=system_math_genius, 
-                                            model=model,
-                                            output_model=math_output_model,
-                                            )
+        math_node = rc.library.tool_call_llm(
+            connected_nodes={rng_node},
+            pretty_name="Math Node",
+            system_message=system_math_genius,
+            model=model,
+            output_model=math_output_model,
+        )
         return math_node
     elif fixture_name == "class_based":
+
         class MathNode(rc.library.StructuredToolCallLLM):
             def __init__(
                 self,
@@ -279,31 +380,37 @@ def math_node(request, model, math_output_model):
             @classmethod
             def connected_nodes(cls):
                 return {rng_node}
-            
+
             @classmethod
             def pretty_name(cls) -> str:
                 return "Math Node"
-            
+
         return MathNode
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
-    
+
+
 @pytest.fixture
 def complex_node(request, model, person_output_model):
 
-    system_complex = rc.llm.SystemMessage("You are an all knowing sentient being. You can answer any question asked to you. You may make up any answer you want. Just provide all info asked for.")
+    system_complex = rc.llm.SystemMessage(
+        "You are an all knowing sentient being. You can answer any question asked to you. You may make up any answer you want. Just provide all info asked for."
+    )
     fixture_name = request.param
 
     if fixture_name == "easy_wrapper":
         sentient_node = rc.library.tool_call_llm(
-                connected_nodes={rc.library.from_function(random.random)},  # providing a tool to the node becuase providing an empty set will cause an error
-                pretty_name="Complex Node",
-                system_message=system_complex,
-                model=model,
-                output_model=person_output_model,
-            )
+            connected_nodes={
+                rc.library.from_function(random.random)
+            },  # providing a tool to the node becuase providing an empty set will cause an error
+            pretty_name="Complex Node",
+            system_message=system_complex,
+            model=model,
+            output_model=person_output_model,
+        )
         return sentient_node
     elif fixture_name == "class_based":
+
         class SentientNode(rc.library.StructuredToolCallLLM):
             def __init__(
                 self,
@@ -318,11 +425,11 @@ def complex_node(request, model, person_output_model):
             @classmethod
             def connected_nodes(cls):
                 return {rc.library.from_function(random.random)}
-            
+
             @classmethod
             def pretty_name(cls) -> str:
                 return "Complex Node"
-            
+
         return SentientNode
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
