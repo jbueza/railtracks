@@ -261,7 +261,7 @@ def math_node(request, model, math_output_model):
                                             pretty_name="Math Node", 
                                             system_message=system_math_genius, 
                                             model=model,
-                                            output_type=math_output_model,
+                                            output_model=math_output_model,
                                             )
         return math_node
     elif fixture_name == "class_based":

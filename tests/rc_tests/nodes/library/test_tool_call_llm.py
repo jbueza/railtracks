@@ -1,6 +1,5 @@
 import pytest
 import src.requestcompletion as rc
-from pydantic import BaseModel, Field
 from itertools import product
 
 # ============ TEST CASES ===========
@@ -72,3 +71,24 @@ async def test_structured_with_complex_output_model(complex_node, person_output_
         assert isinstance(response.answer.Favourites, simple_output_model)
         assert isinstance(response.answer.Favourites.text, str)
         assert isinstance(response.answer.Favourites.number, int)
+
+@pytest.mark.asyncio        # can remove this test once we have support for output_model with output_type = MessageHistory. See 
+async def test_structured_tool_call_with_output_model_and_output_type(model, math_output_model):
+    """Tool call llm init with output model and output_type = message_history should raise an error."""
+    rng_node = rc.library.terminal_llm(pretty_name="RNG Tool", 
+                                       system_message=rc.llm.SystemMessage("You are a helful assistant that can generate 5 random numbers between 1 and 100."), 
+                                       model=model, 
+                                       tool_details="A tool used to generate 5 random integers between 1 and 100.", 
+                                       tool_params=None)
+    
+    math_node = rc.library.tool_call_llm(connected_nodes={rng_node},
+                                            pretty_name="Math Node", 
+                                            system_message=rc.llm.SystemMessage("You are a math genius that calls the RNG tool to generate 5 random numbers between 1 and 100 and gives the sum of those numbers."), 
+                                            model=model,
+                                            output_model=math_output_model,
+                                            )
+    
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET")) as runner:
+        message_history = rc.llm.MessageHistory([rc.llm.UserMessage("Start the Math node.")])
+        with pytest.raises(NotImplementedError, match="MessageHistory output type is not supported with output_model at the moment."):
+            _ = await runner.run(math_node, message_history=message_history, output_type="MessageHistory", output_model=math_output_model)
