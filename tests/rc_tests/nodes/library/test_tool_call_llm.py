@@ -1,5 +1,5 @@
 import pytest
-import src.requestcompletion as rc
+import requestcompletion as rc
 from itertools import product
 
 # ============ TEST CASES ===========
@@ -100,7 +100,7 @@ async def test_structured_tool_call_with_output_model_and_output_type(model, mat
     with pytest.raises(
                 NotImplementedError, match="MessageHistory output type is not supported with output_model at the moment."
             ):
-        math_node = rc.library.tool_call_llm(
+        _ = rc.library.tool_call_llm(
             connected_nodes={rng_node},
             pretty_name="Math Node",
             system_message=rc.llm.SystemMessage(

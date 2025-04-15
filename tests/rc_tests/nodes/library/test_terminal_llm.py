@@ -1,5 +1,5 @@
 import pytest
-import src.requestcompletion as rc
+import requestcompletion as rc
 from pydantic import BaseModel
 
 

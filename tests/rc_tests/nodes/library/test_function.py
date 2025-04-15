@@ -11,8 +11,8 @@ import pytest
 from typing import Tuple, List, Dict
 from pydantic import BaseModel, Field
 
-from src.requestcompletion.state.request import Failure
-import src.requestcompletion as rc
+from requestcompletion.state.request import Failure
+import requestcompletion as rc
 
 # ===== Test Models =====
 
