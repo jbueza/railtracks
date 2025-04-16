@@ -64,6 +64,8 @@ def tool_call_llm(
                     raise RuntimeError("You Must provide a model to the ToolCallLLM class")
                 llm_model = model
 
+            super().__init__(message_history_copy, llm_model)
+
             if output_model:
                 system_structured = SystemMessage(
                     "You are a structured LLM that can convert the response into a structured output."
@@ -71,8 +73,6 @@ def tool_call_llm(
                 self.structured_resp_node = structured_llm(
                     output_model, system_message=system_structured, model=llm_model
                 )
-
-            super().__init__(message_history_copy, llm_model)
 
         def connected_nodes(self) -> Set[Type[Node]]:
             return connected_nodes

@@ -23,6 +23,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         super().__init__()
         self.model = model
         self.message_hist = deepcopy(message_history)
+        self.structured_resp_node = None    # The structured LLM node
 
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
@@ -85,7 +86,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 raise RuntimeError("ModelLLM returned an unexpected message type.",
                 )
         
-        if self.structured_resp_node is not None:
+        if self.structured_resp_node:
             last_message = self.message_hist[-1]
             try:
                 self.structured_output =  await call(
