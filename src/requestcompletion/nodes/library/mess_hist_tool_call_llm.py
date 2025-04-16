@@ -6,5 +6,5 @@ from abc import ABC
 
 class MessageHistoryToolCallLLM(OutputLessToolCallLLM[MessageHistory], ABC):
 
-    async def return_output(self) -> MessageHistory:
+    def return_output(self) -> MessageHistory:
         return self.message_hist

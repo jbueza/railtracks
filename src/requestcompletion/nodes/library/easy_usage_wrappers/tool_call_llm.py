@@ -30,19 +30,15 @@ def tool_call_llm(
         raise NotImplementedError("MessageHistory output type is not supported with output_model at the moment.")
 
     class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
-        async def return_output(self):
-            last_message = self.message_hist[-1]
+        def return_output(self):
             if output_model:
-                try:
-                    return await call(
-                        self.structured_resp_node, message_history=MessageHistory([UserMessage(last_message.content)])
-                    )
-                except Exception as e:
-                    raise ValueError(f"Failed to parse assistant response into structured output: {e}")
+                if isinstance(self.structured_output, Exception):
+                    raise self.structured_output
+                return self.structured_output
             elif output_type == "MessageHistory":
                 return self.message_hist
             else:
-                return last_message
+                return self.message_hist[-1]
 
         def __init__(
             self,

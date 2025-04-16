@@ -21,11 +21,8 @@ class StructuredToolCallLLM(OutputLessToolCallLLM[str], ABC):
         )
         self.structured_resp_node = structured_llm(output_model, system_message=system_structured, model=self.model)
 
-    async def return_output(self) -> BaseModel:
-        last_message = self.message_hist[-1]
-        try:
-            return await call(
-                self.structured_resp_node, message_history=MessageHistory([UserMessage(last_message.content)])
-            )
-        except Exception as e:
-            raise ValueError(f"Failed to parse assistant response into structured output: {e}")
+    def return_output(self) -> BaseModel:
+        # Return the structured output or raise the exception if it was an error
+        if isinstance(self.structured_output, Exception):
+            raise self.structured_output
+        return self.structured_output

@@ -2,7 +2,7 @@ import asyncio
 from typing import TypeVar, Generic, Set, Type, Dict, Any
 from copy import deepcopy
 from ..nodes import Node
-from ...llm import MessageHistory, ModelBase, ToolCall, ToolResponse, ToolMessage
+from ...llm import MessageHistory, ModelBase, ToolCall, ToolResponse, ToolMessage, UserMessage
 from ...interaction.call import call
 from abc import ABC, abstractmethod
 from ...exceptions import FatalError
@@ -46,7 +46,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         return [x.tool_info() for x in self.connected_nodes()]
 
     @abstractmethod
-    async def return_output(self) -> _T: ...
+    def return_output(self) -> _T: ...
 
     async def invoke(
         self,
@@ -85,6 +85,15 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 raise RuntimeError("ModelLLM returned an unexpected message type.",
                 )
         
-        return await self.return_output()
+        if self.structured_resp_node is not None:
+            last_message = self.message_hist[-1]
+            try:
+                self.structured_output =  await call(
+                    self.structured_resp_node, message_history=MessageHistory([UserMessage(last_message.content)])
+                )
+            except Exception as e:
+                self.structured_output = ValueError(f"Failed to parse assistant response into structured output: {e}")
+        
+        return self.return_output()
 
 
