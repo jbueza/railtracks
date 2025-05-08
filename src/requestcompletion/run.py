@@ -13,7 +13,7 @@ from .info import (
 )
 from .state.execute import RCState
 
-from .context import parent_id
+from .context import active_runner
 
 
 _TOutput = TypeVar("_TOutput")
@@ -52,14 +52,6 @@ class Runner:
     # singleton pattern
     _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is not None:
-            raise RunnerCreationError(
-                "You can only create one instance of Runner at a time. To create a other you must create a new process instead (see docs for more details)."
-            )
-        cls._instance = super(Runner, cls).__new__(cls)
-        return cls._instance
-
     def __init__(
         self,
         subscriber: Callable[[str], None] = None,
@@ -84,10 +76,11 @@ class Runner:
             self._data_streamer = DataStream(subscribers=[DynamicSubscriber()])
 
     def __enter__(self):
+        active_runner.set(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        Runner._instance = None
+        active_runner.set(None)
 
     def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
         """Runs the provided node synchronously."""
@@ -167,6 +160,7 @@ def get_active_runner():
     Raises:
         RunnerNotFoundError: If there is no active runner.
     """
-    if Runner._instance is None:
+    curr_runner = active_runner.get()
+    if curr_runner is None:
         raise RunnerNotFoundError("There is no active runner. Please start one using `with Runner(...):`")
-    return Runner._instance
+    return curr_runner
