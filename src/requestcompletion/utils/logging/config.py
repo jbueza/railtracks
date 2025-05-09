@@ -1,6 +1,8 @@
 import logging
 import warnings
 from typing import Literal, Optional
+import re
+from colorama import Fore, Style, init
 
 allowable_log_levels = Literal["VERBOSE", "REGULAR", "QUIET", "NONE"]
 # the temporary name for the logger that RC will use.
@@ -9,6 +11,45 @@ rc_logger = logging.getLogger(rc_logger_name)
 
 
 _default_format_string = "[+%(relative_seconds)-7ss] %(name)-12s: %(levelname)-8s - %(message)s"
+
+# Initialize colorama
+init(autoreset=True)
+
+
+class ColorfulFormatter(logging.Formatter):
+    def __init__(self, fmt=None, datefmt=None):
+        super().__init__(fmt, datefmt)
+        self.level_colors = {
+            logging.INFO: Fore.WHITE,  # White for logger.info
+            logging.ERROR: Fore.RED,  # Red for logger.exception or logger.error
+            logging.WARNING: Fore.YELLOW,
+            logging.DEBUG: Fore.CYAN,
+        }
+        self.keyword_colors = {
+            "FAILED": Fore.RED,
+            "WARNING": Fore.YELLOW,
+            "CREATED": Fore.GREEN,
+            "DONE": Fore.BLUE,
+        }
+        self.default_color = Style.RESET_ALL + Fore.WHITE
+
+    def format(self, record):
+        # Apply color based on log level
+        level_color = self.level_colors.get(record.levelno, self.default_color)
+        record.msg = f"{level_color}{record.getMessage()}{self.default_color}"
+
+        # Highlight specific keywords in the log message
+        for keyword, color in self.keyword_colors.items():
+            record.msg = re.sub(
+                rf"(?i)\b({keyword})\b",
+                f"{color}\\1{self.default_color}",
+                record.msg,
+            )
+
+        # Apply color to the log level name
+        record.levelname = f"{level_color}{record.levelname}{self.default_color}"
+        record.relative_seconds = f"{record.relativeCreated / 1000:.3f}"
+        return super().format(record)
 
 
 class RelativeTimeFormatter(logging.Formatter):
@@ -22,7 +63,7 @@ def setup_verbose_logger_config():
     # in the verbose case we would like to use the debug level.
     console_handler.setLevel(logging.DEBUG)
 
-    verbose_formatter = RelativeTimeFormatter(
+    verbose_formatter = ColorfulFormatter(
         fmt=_default_format_string,
     )
 
