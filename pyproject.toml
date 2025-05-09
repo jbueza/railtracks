@@ -15,6 +15,7 @@ license = { file = "LICENSE" }
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 dependencies = [
+    "colorama >= 0.4.6",
     "requests >=2.31,<3",
     "pydantic >= 2.5.3,<3",
     "requests-mock >= 1.12.1",
