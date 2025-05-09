@@ -48,10 +48,12 @@ def test_more_complex_request(caplog):
     with rc.Runner() as run:
         result = run.run_sync(TopLevelNode, subcalls)
 
-    assert len(caplog.messages) == subcalls * 2 + 2
-    assert caplog.messages[0] == "START CREATED top_level Node - (10, )"
-    assert caplog.messages[1] == "top_level Node CREATED random Node - (, )"
-    assert caplog.messages[-1] == f"top_level Node DONE {result.answer}"
+    stripped_messages = [strip_ansi_colors(msg) for msg in caplog.messages]
+
+    assert len(stripped_messages) == subcalls * 2 + 2
+    assert stripped_messages[0] == "START CREATED top_level Node - (10, )"
+    assert stripped_messages[1] == "top_level Node CREATED random Node - (, )"
+    assert stripped_messages[-1] == f"top_level Node DONE {result.answer}"
 
 
 def test_more_complex_request_regular(caplog):
@@ -59,10 +61,12 @@ def test_more_complex_request_regular(caplog):
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="REGULAR")) as run:
         result = run.run_sync(TopLevelNode, subcalls)
 
+    stripped_messages = [strip_ansi_colors(msg) for msg in caplog.messages]
+
     assert len(caplog.messages) == subcalls * 2 + 2
-    assert caplog.messages[0] == "START CREATED top_level Node - (10, )"
-    assert caplog.messages[1] == "top_level Node CREATED random Node - (, )"
-    assert caplog.messages[-1] == f"top_level Node DONE {result.answer}"
+    assert stripped_messages[0] == "START CREATED top_level Node - (10, )"
+    assert stripped_messages[1] == "top_level Node CREATED random Node - (, )"
+    assert stripped_messages[-1] == f"top_level Node DONE {result.answer}"
 
 
 def test_more_complex_request_regular_quiet(caplog):
@@ -70,7 +74,9 @@ def test_more_complex_request_regular_quiet(caplog):
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET")) as run:
         result = run.run_sync(TopLevelNode, subcalls)
 
-    assert len(caplog.messages) == 0
+    stripped_messages = [strip_ansi_colors(msg) for msg in caplog.messages]
+
+    assert len(stripped_messages) == 0
 
 
 def test_more_complex_request_regular_none(caplog):
@@ -78,4 +84,6 @@ def test_more_complex_request_regular_none(caplog):
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(TopLevelNode, subcalls)
 
-    assert len(caplog.messages) == 0
+    stripped_messages = [strip_ansi_colors(msg) for msg in caplog.messages]
+
+    assert len(stripped_messages) == 0

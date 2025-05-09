@@ -9,8 +9,7 @@ allowable_log_levels = Literal["VERBOSE", "REGULAR", "QUIET", "NONE"]
 rc_logger_name = "RC"
 rc_logger = logging.getLogger(rc_logger_name)
 
-
-_default_format_string = "[+%(relative_seconds)-7ss] %(name)-12s: %(levelname)-8s - %(message)s"
+_default_format_string = "%(timestamp_color)s[+%(relative_seconds)-7ss] %(level_color)s%(name)-12s: %(levelname)-8s - %(message)s%(default_color)s"
 
 # Initialize colorama
 init(autoreset=True)
@@ -31,23 +30,28 @@ class ColorfulFormatter(logging.Formatter):
             "CREATED": Fore.GREEN,
             "DONE": Fore.BLUE,
         }
-        self.default_color = Style.RESET_ALL + Fore.WHITE
+        self.timestamp_color = Fore.LIGHTBLACK_EX
+        self.default_color = Fore.WHITE
 
     def format(self, record):
         # Apply color based on log level
         level_color = self.level_colors.get(record.levelno, self.default_color)
-        record.msg = f"{level_color}{record.getMessage()}{self.default_color}"
+        record.msg = record.getMessage()
 
         # Highlight specific keywords in the log message
         for keyword, color in self.keyword_colors.items():
             record.msg = re.sub(
                 rf"(?i)\b({keyword})\b",
-                f"{color}\\1{self.default_color}",
+                f"{color}\\1{level_color}",
                 record.msg,
             )
 
-        # Apply color to the log level name
-        record.levelname = f"{level_color}{record.levelname}{self.default_color}"
+        # Apply color to the log
+        record.timestamp_color = self.timestamp_color
+        record.level_color = level_color
+        record.default_color = self.default_color
+
+        # record.levelname = f"{level_color}{record.levelname}{self.default_color}"
         record.relative_seconds = f"{record.relativeCreated / 1000:.3f}"
         return super().format(record)
 
@@ -78,7 +82,7 @@ def setup_regular_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
 
-    regular_formatter = RelativeTimeFormatter(
+    regular_formatter = ColorfulFormatter(
         fmt=_default_format_string,
     )
 
@@ -93,7 +97,7 @@ def setup_quiet_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.WARNING)
 
-    quiet_formatter = RelativeTimeFormatter(fmt=_default_format_string)
+    quiet_formatter = ColorfulFormatter(fmt=_default_format_string)
 
     console_handler.setFormatter(quiet_formatter)
 
