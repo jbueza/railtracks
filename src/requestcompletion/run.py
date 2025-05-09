@@ -153,7 +153,7 @@ class Runner:
         self._data_streamer.publish(item)
 
 
-def get_active_runner():
+def get_runner():
     """
     Collects the current instance of the runner.
 

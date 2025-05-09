@@ -3,7 +3,7 @@ import warnings
 
 from typing import ParamSpec, Callable, TypeVar
 
-from ..run import get_active_runner, Runner
+from ..run import get_runner, Runner
 from ..context import parent_id
 from ..nodes.nodes import Node
 
@@ -13,7 +13,7 @@ _P = ParamSpec("_P")
 
 async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.kwargs):
     """
-    Call another node from within a node inside the framework. This will return a coroutine that you can interact with
+    Call a node from within a node inside the framework. This will return a coroutine that you can interact with
     in whatever way using the `asyncio` framework.
 
     Args:
@@ -23,7 +23,8 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
 
 
     """
-    runner: Runner = get_active_runner()
+    runner: Runner = get_runner()
+    # in the case that the runner does exist we
 
     # the reference to current node running must be collected and passed into the state object
     p_n_id = parent_id.get()
@@ -45,5 +46,5 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
 
 # TODO add support for any general user defined streaming object
 def stream(item: str):
-    runner: Runner = get_active_runner()
+    runner: Runner = get_runner()
     return runner.stream(item)
