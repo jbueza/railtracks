@@ -56,12 +56,6 @@ class ColorfulFormatter(logging.Formatter):
         return super().format(record)
 
 
-class RelativeTimeFormatter(logging.Formatter):
-    def format(self, record):
-        record.relative_seconds = f"{record.relativeCreated / 1000:.3f}"
-        return super().format(record)
-
-
 def setup_verbose_logger_config():
     console_handler = logging.StreamHandler()
     # in the verbose case we would like to use the debug level.

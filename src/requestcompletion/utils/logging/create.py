@@ -1,6 +1,6 @@
 import logging
 
-from .config import rc_logger_name, ColorfulFormatter
+from .config import rc_logger_name
 
 
 def get_rc_logger(name: str | None):
@@ -13,19 +13,8 @@ def get_rc_logger(name: str | None):
     If the name is not provided it returns the root RC logger.
     """
     if name is None:
-        logger = logging.getLogger(rc_logger_name)
-    else:
-        logger = logging.getLogger(f"{rc_logger_name}.{name}")
+        return logging.getLogger(rc_logger_name)
 
-    # Ensure the logger has the ColorfulFormatter applied
-    if not logger.handlers:  # Avoid adding duplicate handlers
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)  # Adjust the level as needed
-        formatter = ColorfulFormatter(
-            fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    l = logging.getLogger(f"{rc_logger_name}.{name}")
 
-    return logger
+    return l
