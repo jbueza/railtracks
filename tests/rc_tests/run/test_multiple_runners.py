@@ -69,7 +69,5 @@ NestedRunner = rc.library.from_function(nested_runner_call)
 
 def test_nested_runners():
     with rc.Runner() as run:
-        result = run.run_sync(
-            NestedRunner,
-        )
-        assert isinstance(result.answer, float), "Expected a float result from RNGNode"
+        with pytest.raises(rc.run.RunnerCreationError):
+            run.run_sync(NestedRunner)

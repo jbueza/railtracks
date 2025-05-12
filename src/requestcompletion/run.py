@@ -93,6 +93,10 @@ class Runner:
             self._data_streamer = DataStream(subscribers=[DynamicSubscriber()])
 
     def __enter__(self):
+        if active_runner.get() is not None:
+            raise RunnerCreationError(
+                "A runner already exists, you cannot create nested Runners. Replace this runner with the simpler `rc.call` to call the node."
+            )
         active_runner.set(self)
         return self
 
