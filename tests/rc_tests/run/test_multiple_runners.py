@@ -40,6 +40,7 @@ async def test_async_runners_w_async():
 
     for c in collected_data:
         assert isinstance(c.answer, float), "Expected a float result from RNGNode"
+        assert len(c.node_heap.heap()) == 1
 
 
 @pytest.mark.asyncio
@@ -55,3 +56,20 @@ async def test_async_runners_w_executor():
 
         for m in mapped_results:
             assert isinstance(m.answer, float), "Expected a float result from RNGNode"
+
+
+def nested_runner_call():
+    with rc.Runner() as run:
+        result = run.run_sync(SlowRNG, 0.2)
+        return result.answer
+
+
+NestedRunner = rc.library.from_function(nested_runner_call)
+
+
+def test_nested_runners():
+    with rc.Runner() as run:
+        result = run.run_sync(
+            NestedRunner,
+        )
+        assert isinstance(result.answer, float), "Expected a float result from RNGNode"
