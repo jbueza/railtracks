@@ -1,11 +1,12 @@
 import asyncio
 import threading
+import warnings
 from typing import TypeVar, ParamSpec, Callable
 
 from .config import ExecutorConfig
 from .utils.stream import DataStream, Subscriber
 from .nodes.nodes import Node
-from .utils.logging.config import prepare_logger
+from .utils.logging.config import prepare_logger, delete_loggers
 
 
 from .info import (
@@ -13,8 +14,7 @@ from .info import (
 )
 from .state.execute import RCState
 
-from .context import active_runner
-
+from .context import active_runner, streamer, config, parent_id
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -55,8 +55,25 @@ class Runner:
     def __init__(
         self,
         subscriber: Callable[[str], None] = None,
-        executor_config: ExecutorConfig = ExecutorConfig(),
+        executor_config: ExecutorConfig = None,
     ):
+
+        # first lets read from defaults if nessecary for the provided input config
+        if executor_config is None:
+            saved_config = config.get()
+            if saved_config is None:
+                executor_config = ExecutorConfig()
+            else:
+                executor_config = saved_config
+
+        if subscriber is None:
+            saved_subscriber = streamer.get()
+            if saved_subscriber is None:
+                subscriber = None
+            else:
+                subscriber = saved_subscriber
+
+        # TODO see issue about logger
         prepare_logger(
             setting=executor_config.logging_setting,
         )
@@ -80,13 +97,29 @@ class Runner:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        active_runner.set(None)
+        self._close()
 
     def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
         """Runs the provided node synchronously."""
         # If no loop is running, create one and run the coroutine.
         result = asyncio.run(self.run(start_node, *args, **kwargs))
         return result
+
+    def _close(self):
+        threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
+        delete_loggers()
+        # by deleting all of the state variables we are ensuring that the next time we create a runner it is fresh
+        active_runner.set(None)
+        parent_id.set(None)
+
+    @property
+    def info(self) -> ExecutionInfo:
+        """
+        Returns the current state of the runner.
+
+        This is useful for debugging and viewing the current state of the run.
+        """
+        return self.rc_state.info
 
     async def run(
         self,
@@ -97,15 +130,10 @@ class Runner:
         """Runs the rc framework with the given start node and provided arguments."""
 
         # relevant if we ever want to have future support for optional start nodes
-        if start_node is not None:
-            node_id = self.rc_state.create_first_entry(start_node, *args, **kwargs)
-        else:
-            raise RuntimeError("We currently do not support running without a start node.")
-        try:
-            await self.rc_state.execute(node_id)
-        finally:
-            # The data streamer is a running on a separate thread
-            threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
+        if not self.rc_state.is_empty:
+            raise RuntimeError("The run function can only be used to start not in the middle of a run.")
+
+        await self.call(None, start_node, *args, **kwargs)
 
         return self.rc_state.info
 
@@ -125,11 +153,12 @@ class Runner:
 
     async def call(
         self,
-        parent_node_id: str,
+        parent_node_id: str | None,
         node: Callable[_P, Node[_TOutput]],
         *args: _P.args,
         **kwargs: _P.kwargs,
     ):
+        # TODO refactor this to handle keyword arugments
         """
         An internal method used to call a node using the state object tied to this runner.
 
@@ -153,14 +182,36 @@ class Runner:
         self._data_streamer.publish(item)
 
 
-def get_runner():
+def get_runner() -> Runner | None:
     """
-    Collects the current instance of the runner.
+    Collects the current instance of the runner. If none exists it will return none.
+    """
 
-    Raises:
-        RunnerNotFoundError: If there is no active runner.
-    """
     curr_runner = active_runner.get()
     if curr_runner is None:
-        raise RunnerNotFoundError("There is no active runner. Please start one using `with Runner(...):`")
+        return None
     return curr_runner
+
+
+def set_config(executor_config: ExecutorConfig):
+    """
+    Sets the executor config for the current runner.
+    """
+    if get_runner() is not None:
+        warnings.warn(
+            "The executor config is being set after the runner has been created, changes will not be propagated to the current runner"
+        )
+
+    config.set(executor_config)
+
+
+def set_streamer(subscriber: Callable[[str], None]):
+    """
+    Sets the data streamer for the current runner.
+    """
+    if get_runner() is not None:
+        warnings.warn(
+            "The data streamer is being set after the runner has been created, changes will not be propagated to the current runner"
+        )
+
+    streamer.set(subscriber)

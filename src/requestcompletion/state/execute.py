@@ -58,55 +58,12 @@ class RCState:
 
         ## These are the elements which need to be created as new objects every time. They should not serialized.
 
-        self._answer = None
-
         # each new instance of a state object should have its own logger.
         self.logger = get_rc_logger(LOGGER_NAME)
 
-    # TODO move this logic into create request to better DRY the code.
-    def create_first_entry(self, start_node: Callable[_P, Node], *args: _P.args, **kwargs: _P.kwargs):
-        """
-        Creates the provided node in the system.
-
-        This function will only work if the graph is empty
-
-        Args:
-            start_node: The node that you would like to start
-            *args: The arguments to pass to the node
-            **kwargs: The keyword arguments to pass to the node
-        """
-        assert len(self._request_heap.heap()) == 0, "The state must be empty to create a starting point"
-        assert len(self._node_heap.heap()) == 0, "The state must be empty to create a starting point"
-
-        created_node = start_node(*args, **kwargs)
-        # we have this akward interaction with the parent_id context manager to make sure that the parent_id is set
-        # this is the same logic as seen when a new node is created
-        parent_id.set(created_node.uuid)
-
-        first_stamp = self._stamper.create_stamp(
-            f"Opened a new request between the start and the {created_node.pretty_name()}"
-        )
-
-        self._node_heap.update(created_node, first_stamp)
-        request_id = self._request_heap.create(
-            identifier="START",
-            source_id=None,
-            input_args=args,
-            input_kwargs=kwargs,
-            sink_id=created_node.uuid,
-            stamp=first_stamp,
-        )
-
-        request_creation_obj = RequestCreationAction(
-            parent_node_name="START",
-            child_node_name=created_node.pretty_name(),
-            input_args=args,
-            input_kwargs=kwargs,
-        )
-
-        self.logger.info(request_creation_obj.to_logging_msg())
-
-        return request_id
+    @property
+    def is_empty(self):
+        return len(self._node_heap.heap()) == 0 and len(self._request_heap.heap()) == 0
 
     def add_stamp(self, message: str):
         """
@@ -128,7 +85,6 @@ class RCState:
 
             output = await asyncio.wait_for(self._run_request(request_id), timeout=self.executor_config.timeout)
             # Note that since this is the insertion requests, its output is our answer.
-            self._answer = output
 
         except asyncio.TimeoutError:
             raise ExecutionException(
@@ -206,7 +162,7 @@ class RCState:
 
     async def call_nodes(
         self,
-        parent_node_id: str,
+        parent_node_id: str | None,
         node: Callable[_P, Node[_TOutput]],
         *args: _P.args,
         **kwargs: _P.kwargs,
@@ -218,7 +174,7 @@ class RCState:
         and will be raised.
 
         Args:
-            parent_node_id: The parent node id of the node you are calling.
+            parent_node_id: The parent node id of the node you are calling. None if it has no parent.
             node: The node you would like to call.
 
         Returns:
@@ -233,7 +189,7 @@ class RCState:
     # TODO handle the business around parent node with automatic checkpointing.
     def _create_new_request_set(
         self,
-        parent_node: str,
+        parent_node: str | None,
         children: List[str],
         input_args: List[Tuple],
         input_kwargs: List[Dict[str, Tuple]],
@@ -247,7 +203,7 @@ class RCState:
         Note that all the identifiers for the
 
         Args:
-            parent_node: The identifier of the parent node which is calling the children.
+            parent_node: The identifier of the parent node which is calling the children. If none is provided
             children: The list of node_ids that you would like to call.
             stamp_gen: A function that will create a new stamp of the same number.
         """
@@ -256,20 +212,18 @@ class RCState:
         assert all(
             [n in self._node_heap for n in children]
         ), "You cannot add a request for a node which has not yet been added"
-
+        parent_node_name = self._node_heap.id_type_mapping[parent_node] if parent_node else "START"
         # to simplify we are going to create a new request for each child node with the parent as its source.
         request_ids = list(
             map(
                 self._request_heap.create,
-                [str(uuid.uuid4()) for _ in children],
+                [str(uuid.uuid4()) if parent_node else "START" for _ in children],
                 [parent_node] * len(children),
                 children,
                 input_args,
                 input_kwargs,
                 [
-                    stamp_gen(
-                        f"Adding request between {self._node_heap.id_type_mapping[parent_node]} and {self._node_heap.id_type_mapping[n]}"
-                    )
+                    stamp_gen(f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n]}")
                     for n in children
                 ],
             )

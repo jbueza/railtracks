@@ -116,6 +116,8 @@ def prepare_logger(
     #             "File logging config provided but no file was provided. The file logging config will be ignored"
     #
 
+    # TODO: write logic to figure out how to check to make sure a logger has not already been created.
+
     # now for each of our predefined settings we will set up the logger.
     if setting == "VERBOSE":
         setup_verbose_logger_config()
@@ -127,3 +129,8 @@ def prepare_logger(
         setup_none_logger_config()
     else:
         raise ValueError("Invalid log level setting")
+
+
+def delete_loggers():
+    # TODO implement this
+    pass
