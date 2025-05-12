@@ -12,7 +12,8 @@ class RCAction(ABC):
         """Creates a string representation of this action designed to be logged"""
         pass
 
-    # TODO consider from an enacapsulation perspective if it would be better to handle the logging in this module or just return the messahge as normal
+
+    # TODO consider from an enacapsulation perspective if it would be better to handle the logging in this module or just return the message as normal
 
 
 class RequestCreationAction(RCAction):
