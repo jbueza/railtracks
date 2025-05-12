@@ -148,7 +148,7 @@ class RCState:
         request_ids = self._create_new_request_set(parent_node_id, [node.uuid], [args], [kwargs], sc)
 
         parent_node_type = self._node_heap.get_node_type(parent_node_id)
-        parent_node_name = parent_node_type.pretty_name() if parent_node_type else "Unknown"
+        parent_node_name = parent_node_type.pretty_name() if parent_node_type else "START"
         request_creation_obj = RequestCreationAction(
             parent_node_name=parent_node_name,
             child_node_name=node.pretty_name(),
