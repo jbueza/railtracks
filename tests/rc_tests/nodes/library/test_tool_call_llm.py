@@ -2,11 +2,14 @@ import pytest
 import requestcompletion as rc
 from itertools import product
 
+from src.requestcompletion.nodes.library import from_function
+
 # ============ TEST CASES ===========
 NODE_INIT_METHODS = ["easy_wrapper", "class_based"]
 
-
 simple_model_test_cases = list(product(NODE_INIT_METHODS, ["simple_model"]))
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("simple_node", simple_model_test_cases, indirect=True, ids=lambda x: f"{x[0]}_with_{x[1]}")
 async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
@@ -20,6 +23,8 @@ async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
 
 
 empty_model_test_cases = list(product(NODE_INIT_METHODS, ["empty_model"]))
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("simple_node", empty_model_test_cases, indirect=True, ids=lambda x: f"{x[0]}_with_{x[1]}")
 async def test_empty_output_model(simple_node, empty_output_model):
@@ -98,8 +103,8 @@ async def test_structured_tool_call_with_output_model_and_output_type(model, mat
     )
 
     with pytest.raises(
-                NotImplementedError, match="MessageHistory output type is not supported with output_model at the moment."
-            ):
+            NotImplementedError, match="MessageHistory output type is not supported with output_model at the moment."
+    ):
         _ = rc.library.tool_call_llm(
             connected_nodes={rng_node},
             pretty_name="Math Node",
@@ -110,3 +115,59 @@ async def test_structured_tool_call_with_output_model_and_output_type(model, mat
             output_type="MessageHistory",
             output_model=math_output_model,
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("nested_tool_node", NODE_INIT_METHODS, indirect=True)
+async def test_nested_tool_functionality(nested_tool_node):
+    """Test the functionality of nested ToolCallLLM nodes."""
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET")) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Use the nested tool to perform a task."
+                )
+            ]
+        )
+        response = await runner.run(nested_tool_node, message_history=message_history)
+        assert response.answer is not None
+        assert "nested" in response.answer.lower()
+
+
+@pytest.mark.asyncio
+async def test_tool_with_llm_tool_as_input():
+    """Test a tool that uses another LLM tool as input."""
+    def print_hello(true_to_call: bool = True):
+        return "Hello!"
+
+    # Define the child tool
+    child_tool = rc.library.tool_call_llm(
+        connected_nodes={from_function(print_hello)},
+        pretty_name="Child_Tool",
+        system_message=rc.llm.SystemMessage("Provide a simple response when asked."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        tool_details="A tool that generates a simple response.",
+        tool_params={rc.llm.Parameter(name="response_request", param_type="string",
+                                      description="A sentence that requests a response.")},
+    )
+
+    # Define the parent tool that uses the child tool
+    parent_tool = rc.library.tool_call_llm(
+        connected_nodes={child_tool},
+        pretty_name="Parent_Tool",
+        system_message=rc.llm.SystemMessage("Respond Hello using the child tool."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+    )
+
+    # Run the parent tool
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Give me a response."
+                )
+            ]
+        )
+        response = await runner.run(parent_tool, message_history=message_history)
+
+    assert response.answer is not None

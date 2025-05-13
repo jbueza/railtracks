@@ -7,8 +7,8 @@ from ...interaction.call import call
 from abc import ABC, abstractmethod
 from ...exceptions import FatalError
 
-
 _T = TypeVar("_T")
+
 
 class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     """A base class that is a node which contains
@@ -16,14 +16,14 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     as calls or if there is a response, the response will be returned as an output"""
 
     def __init__(
-        self,
-        message_history: MessageHistory,
-        model: ModelBase,
+            self,
+            message_history: MessageHistory,
+            model: ModelBase,
     ):
         super().__init__()
         self.model = model
         self.message_hist = deepcopy(message_history)
-        self.structured_resp_node = None    # The structured LLM node
+        self.structured_resp_node = None  # The structured LLM node
 
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
@@ -50,7 +50,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     def return_output(self) -> _T: ...
 
     async def invoke(
-        self,
+            self,
     ) -> _T:
         while True:
             # collect the response from the model
@@ -84,17 +84,15 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
             else:
                 # the message is malformed from the model
                 raise RuntimeError("ModelLLM returned an unexpected message type.",
-                )
-        
+                                   )
+
         if self.structured_resp_node:
             last_message = self.message_hist[-1]
             try:
-                self.structured_output =  await call(
+                self.structured_output = await call(
                     self.structured_resp_node, message_history=MessageHistory([UserMessage(last_message.content)])
                 )
             except Exception as e:
                 self.structured_output = ValueError(f"Failed to parse assistant response into structured output: {e}")
-        
+
         return self.return_output()
-
-
