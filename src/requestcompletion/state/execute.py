@@ -212,7 +212,7 @@ class RCState:
         assert all(
             [n in self._node_heap for n in children]
         ), "You cannot add a request for a node which has not yet been added"
-        parent_node_name = self._node_heap.id_type_mapping[parent_node] if parent_node else "START"
+        parent_node_name = self._node_heap.id_type_mapping[parent_node] if parent_node is not None else "START"
         # to simplify we are going to create a new request for each child node with the parent as its source.
         request_ids = list(
             map(
