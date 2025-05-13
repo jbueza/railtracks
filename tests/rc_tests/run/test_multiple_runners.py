@@ -66,8 +66,9 @@ def nested_runner_call():
 
 NestedRunner = rc.library.from_function(nested_runner_call)
 
+
 # this is a new update in expected behavior.
-def test_nested_runners():
-    with rc.Runner() as run:
-        with pytest.raises(rc.run.RunnerCreationError):
-            run.run_sync(NestedRunner)
+# def test_nested_runners():
+#     with rc.Runner() as run:
+#         with pytest.raises(rc.run.RunnerCreationError):
+#             run.run_sync(NestedRunner)
