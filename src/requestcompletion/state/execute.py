@@ -203,7 +203,7 @@ class RCState:
         Note that all the identifiers for the
 
         Args:
-            parent_node: The identifier of the parent node which is calling the children. If none is provided
+            parent_node: The identifier of the parent node which is calling the children. If none is provided we assume there is no parent.
             children: The list of node_ids that you would like to call.
             stamp_gen: A function that will create a new stamp of the same number.
         """
