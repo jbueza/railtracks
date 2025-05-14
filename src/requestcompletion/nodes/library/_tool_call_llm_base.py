@@ -16,9 +16,9 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     as calls or if there is a response, the response will be returned as an output"""
 
     def __init__(
-            self,
-            message_history: MessageHistory,
-            model: ModelBase,
+        self,
+        message_history: MessageHistory,
+        model: ModelBase,
     ):
         super().__init__()
         self.model = model

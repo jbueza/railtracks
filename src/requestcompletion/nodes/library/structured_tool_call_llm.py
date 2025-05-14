@@ -13,6 +13,8 @@ class StructuredToolCallLLM(OutputLessToolCallLLM[str], ABC):
         message_history: MessageHistory,
         llm_model: ModelBase,
         output_model: BaseModel,
+        tool_details: str | None = None,
+        tool_params: dict | None = None,
     ):
 
         super().__init__(message_history, llm_model)

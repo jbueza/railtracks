@@ -1,14 +1,15 @@
 import warnings
-from typing_extensions import Self
-from typing import Set, Type, Union, Literal, Dict, Any
 from copy import deepcopy
-from .structured_llm import structured_llm
-from .._tool_call_llm_base import OutputLessToolCallLLM
-from ...nodes import Node
-from ....llm import MessageHistory, ModelBase, SystemMessage, AssistantMessage, UserMessage, Tool
-from ....interaction.call import call
-from ....llm.message import Role
+from typing import Set, Type, Union, Literal, Dict, Any
+
 from pydantic import BaseModel
+from requestcompletion.llm import MessageHistory, ModelBase, SystemMessage, AssistantMessage, UserMessage, Tool
+from requestcompletion.nodes.library import structured_llm
+from requestcompletion.nodes.library._tool_call_llm_base import OutputLessToolCallLLM
+from requestcompletion.nodes.nodes import Node
+from requestcompletion.llm.message import Role
+
+from typing_extensions import Self
 
 
 def tool_call_llm(
@@ -85,6 +86,7 @@ def tool_call_llm(
 
         @classmethod
         def pretty_name(cls) -> str:
+
             if pretty_name is None:
                 return "ToolCallLLM(" + ", ".join([x.pretty_name() for x in connected_nodes]) + ")"
             else:
@@ -95,7 +97,7 @@ def tool_call_llm(
             if not tool_details:
                 raise ValueError("Tool details are not provided.")
             return Tool(
-                name=cls.pretty_name(),
+                name=cls.pretty_name().replace(" ", "_"),
                 detail=tool_details,
                 parameters=tool_params,
             )

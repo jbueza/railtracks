@@ -3,6 +3,7 @@ from ..nodes import Node
 from abc import ABC
 from copy import deepcopy
 
+
 class TerminalLLM(Node[str], ABC):
     """A simple LLM nodes that takes in a message and returns a response. It is the simplest of all llms."""
 
@@ -29,5 +30,7 @@ class TerminalLLM(Node[str], ABC):
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
             return cont
+
+
 
 
