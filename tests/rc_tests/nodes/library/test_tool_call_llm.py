@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, Any
 
 import pytest
@@ -174,7 +175,10 @@ async def test_tool_with_llm_tool_as_input_class_easy():
             self,
             message_history: rc.llm.MessageHistory,
         ):
-            super().__init__(message_history=rc.llm.MessageHistory("Provide a simple response when asked."),
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+
+            super().__init__(message_history=message_history_copy,
                              model=rc.llm.OpenAILLM("gpt-4o"))
 
         @classmethod
@@ -187,13 +191,13 @@ async def test_tool_with_llm_tool_as_input_class_easy():
                 name="Child_Tool",
                 detail="A tool that generates a simple response.",
                 parameters={rc.llm.Parameter(name="response_request", param_type="string",
-                                      description="A sentence that requests a response.")},
+                                             description="A sentence that requests a response.")},
             )
 
         @classmethod
         def prepare_tool(cls, tool_parameters: Dict[str, Any]):
             message_hist = MessageHistory(
-                [UserMessage(f"Request Prompt: '{tool_parameters['Child_Tool']}'")]
+                [UserMessage(f"response_request: '{tool_parameters['response_request']}'")]
             )
             return cls(message_hist)
 
@@ -201,11 +205,13 @@ async def test_tool_with_llm_tool_as_input_class_easy():
         def pretty_name(cls) -> str:
             return "Child Tool"
 
+
     # Define the parent tool that uses the child tool
     parent_tool = rc.library.tool_call_llm(
         connected_nodes={ChildTool},
         pretty_name="Parent_Tool",
-        system_message=rc.llm.SystemMessage("Respond Hello using the child tool."),
+        system_message=rc.llm.SystemMessage("Respond Using the Child Tool. "
+                                            "If the tool does not work, response 'it didn't work'"),
         model=rc.llm.OpenAILLM("gpt-4o"),
     )
 
@@ -233,7 +239,7 @@ async def test_tool_with_llm_tool_as_input_easy_class():
     child_tool = rc.library.tool_call_llm(
         connected_nodes={from_function(print_hello)},
         pretty_name="Child_Tool",
-        system_message=rc.llm.SystemMessage("Provide a simple response when asked."),
+        system_message=rc.llm.SystemMessage("Provide a response using the print_hello tool when asked."),
         model=rc.llm.OpenAILLM("gpt-4o"),
         tool_details="A tool that generates a simple response.",
         tool_params={rc.llm.Parameter(name="response_request", param_type="string",
@@ -242,11 +248,17 @@ async def test_tool_with_llm_tool_as_input_easy_class():
 
     # Define the parent tool that uses the child tool
     class ParentTool(rc.library.ToolCallLLM):
+        def return_output(self):
+            return self.message_hist[-1]
+
         def __init__(
                 self,
                 message_history: rc.llm.MessageHistory,
         ):
-            super().__init__(message_history=rc.llm.MessageHistory("Respond Hello using the child tool."),
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+
+            super().__init__(message_history=message_history_copy,
                              model=rc.llm.OpenAILLM("gpt-4o"))
 
         @classmethod
@@ -283,7 +295,10 @@ async def test_tool_with_llm_tool_as_input_class_tools():
                 self,
                 message_history: rc.llm.MessageHistory,
         ):
-            super().__init__(message_history=rc.llm.MessageHistory("Provide a simple response when asked."),
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+
+            super().__init__(message_history=message_history_copy,
                              model=rc.llm.OpenAILLM("gpt-4o"))
 
         @classmethod
@@ -302,7 +317,7 @@ async def test_tool_with_llm_tool_as_input_class_tools():
         @classmethod
         def prepare_tool(cls, tool_parameters: Dict[str, Any]):
             message_hist = MessageHistory(
-                [UserMessage(f"Request Prompt: '{tool_parameters['Child_Tool']}'")]
+                [UserMessage(f"response_request: '{tool_parameters['response_request']}'")]
             )
             return cls(message_hist)
 
@@ -312,11 +327,17 @@ async def test_tool_with_llm_tool_as_input_class_tools():
 
     # Define the parent tool that uses the child tool
     class ParentTool(rc.library.ToolCallLLM):
+        def return_output(self):
+            return self.message_hist[-1]
+
         def __init__(
                 self,
                 message_history: rc.llm.MessageHistory,
         ):
-            super().__init__(message_history=rc.llm.MessageHistory("Respond Hello using the child tool."),
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+
+            super().__init__(message_history=message_history_copy,
                              model=rc.llm.OpenAILLM("gpt-4o"))
 
         @classmethod
