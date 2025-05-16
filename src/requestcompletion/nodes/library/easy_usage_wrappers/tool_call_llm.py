@@ -78,9 +78,6 @@ def tool_call_llm(
                     output_model, system_message=system_structured, model=llm_model
                 )
 
-            self.tool_details = tool_details
-            self.tool_params = tool_params
-
         def connected_nodes(self) -> Set[Type[Node]]:
             return connected_nodes
 

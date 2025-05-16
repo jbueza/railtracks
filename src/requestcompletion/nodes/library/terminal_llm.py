@@ -30,7 +30,3 @@ class TerminalLLM(Node[str], ABC):
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
             return cont
-
-
-
-

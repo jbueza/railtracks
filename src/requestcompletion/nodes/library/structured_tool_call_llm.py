@@ -27,7 +27,8 @@ class StructuredToolCallLLM(OutputLessToolCallLLM[str], ABC):
             "Do not summarize, speculate, or reinterpret the original intent—only extract information that is directly supported by the conversation content.\n"\
             "Respond only with the structured output in the specified format."
         )
-        self.structured_resp_node = structured_llm(output_model, system_message=system_structured, model=self.model)
+        self.structured_resp_node = structured_llm(output_model, system_message=system_structured, model=self.model,
+                                                   tool_details=tool_details, tool_params=tool_params)
 
     def return_output(self) -> BaseModel:
         # Return the structured output or raise the exception if it was an error

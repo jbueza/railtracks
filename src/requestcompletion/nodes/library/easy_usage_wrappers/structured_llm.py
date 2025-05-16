@@ -75,4 +75,11 @@ def structured_llm(
             )
             return cls(message_hist)
 
+    if tool_params and not tool_details:
+        raise RuntimeError("Tool parameters are provided, but tool details are missing.")
+    elif tool_details and (tool_params is not None and not tool_params):
+        raise RuntimeError("If no parameters are required for the tool, `tool_params` must be set to None.")
+    elif tool_details and tool_params and len({param.name for param in tool_params}) != len(tool_params):
+        raise ValueError("Duplicate parameter names are not allowed.")
+
     return StructuredLLMNode
