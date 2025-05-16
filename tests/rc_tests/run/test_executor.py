@@ -5,6 +5,7 @@ import random
 import time
 from typing import Dict, Any
 
+import pytest
 import requestcompletion as rc
 from typing_extensions import Self
 
@@ -140,3 +141,11 @@ def test_nested_no_deadlock_harder_2():
     depth = 3
 
     nested_many_calls_tester(num_calls, parallel_calls, depth)
+
+
+def test_multiple_runs():
+    with rc.Runner() as run:
+        result = run.run_sync(RNGNode)
+        assert 0 < result.answer < 1
+        with pytest.raises(RuntimeError):
+            run.run_sync(RNGNode)

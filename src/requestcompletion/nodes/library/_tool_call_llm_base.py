@@ -50,7 +50,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     def return_output(self) -> _T: ...
 
     async def invoke(
-            self,
+        self,
     ) -> _T:
         while True:
             # collect the response from the model
@@ -87,8 +87,8 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                                    )
 
         if self.structured_resp_node:
-            last_message = self.message_hist[-1]
             try:
+                last_message = self.message_hist[-1]
                 self.structured_output = await call(
                     self.structured_resp_node, message_history=MessageHistory([UserMessage(last_message.content)])
                 )
