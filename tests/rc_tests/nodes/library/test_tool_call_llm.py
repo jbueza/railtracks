@@ -134,7 +134,7 @@ async def test_tool_with_llm_tool_as_input_easy_tools():
     child_tool = rc.library.tool_call_llm(
         connected_nodes={from_function(print_hello)},
         pretty_name="Child Tool",
-        system_message=rc.llm.SystemMessage("Provide a simple response when asked."),
+        system_message=rc.llm.SystemMessage("When asked for a response, provide the output of the tool."),
         model=rc.llm.OpenAILLM("gpt-4o"),
         tool_details="A tool that generates a simple response.",
         tool_params={rc.llm.Parameter(name="response_request", param_type="string",
@@ -145,7 +145,7 @@ async def test_tool_with_llm_tool_as_input_easy_tools():
     parent_tool = rc.library.tool_call_llm(
         connected_nodes={child_tool},
         pretty_name="Parent Tool",
-        system_message=rc.llm.SystemMessage("Respond Hello using the child tool."),
+        system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
         model=rc.llm.OpenAILLM("gpt-4o"),
     )
 
@@ -178,7 +178,10 @@ async def test_tool_with_llm_tool_as_input_class_easy():
             message_history: rc.llm.MessageHistory,
         ):
             message_history_copy = deepcopy(message_history)
-            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+            message_history_copy.insert(
+                0,
+                rc.llm.SystemMessage("When asked for a response, provide the output of the tool.")
+            )
 
             super().__init__(message_history=message_history_copy,
                              model=rc.llm.OpenAILLM("gpt-4o"))
@@ -207,13 +210,11 @@ async def test_tool_with_llm_tool_as_input_class_easy():
         def pretty_name(cls) -> str:
             return "Child Tool"
 
-
     # Define the parent tool that uses the child tool
     parent_tool = rc.library.tool_call_llm(
         connected_nodes={ChildTool},
         pretty_name="Parent_Tool",
-        system_message=rc.llm.SystemMessage("Respond Using the Child Tool. "
-                                            "If the tool does not work, response 'it didn't work'"),
+        system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
         model=rc.llm.OpenAILLM("gpt-4o"),
     )
 
@@ -231,6 +232,7 @@ async def test_tool_with_llm_tool_as_input_class_easy():
     assert response.answer is not None
     assert response.answer.content == "Hello!"
 
+
 @pytest.mark.asyncio
 async def test_tool_with_llm_tool_as_input_easy_class():
     """Test a tool that uses another LLM tool as input."""
@@ -241,7 +243,7 @@ async def test_tool_with_llm_tool_as_input_easy_class():
     child_tool = rc.library.tool_call_llm(
         connected_nodes={from_function(print_hello)},
         pretty_name="Child_Tool",
-        system_message=rc.llm.SystemMessage("Provide a response using the print_hello tool when asked."),
+        system_message=rc.llm.SystemMessage("When asked for a response, provide the output of the tool."),
         model=rc.llm.OpenAILLM("gpt-4o"),
         tool_details="A tool that generates a simple response.",
         tool_params={rc.llm.Parameter(name="response_request", param_type="string",
@@ -285,6 +287,7 @@ async def test_tool_with_llm_tool_as_input_easy_class():
     assert response.answer is not None
     assert response.answer.content == "Hello!"
 
+
 @pytest.mark.asyncio
 async def test_tool_with_llm_tool_as_input_class_tools():
     """Test a tool that uses another LLM tool as input."""
@@ -298,7 +301,7 @@ async def test_tool_with_llm_tool_as_input_class_tools():
                 message_history: rc.llm.MessageHistory,
         ):
             message_history_copy = deepcopy(message_history)
-            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+            message_history_copy.insert(0, rc.llm.SystemMessage("When asked for a response, provide the output of the tool."))
 
             super().__init__(message_history=message_history_copy,
                              model=rc.llm.OpenAILLM("gpt-4o"))
