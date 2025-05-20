@@ -5,6 +5,8 @@ import pytest
 import requestcompletion as rc
 from itertools import product
 
+from pydantic import BaseModel
+
 from requestcompletion.llm import MessageHistory, UserMessage
 
 from src.requestcompletion.nodes.library import from_function
@@ -361,3 +363,56 @@ async def test_tool_with_llm_tool_as_input_class_tools():
 
     assert response.answer is not None
     assert response.answer.content == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_tool_with_structured_output_child_tool():
+    """Test a tool that uses another LLM tool with structured output as input."""
+
+    # Define a structured output model
+    class ChildResponse(BaseModel):
+        message: str
+        word_count: int
+
+    class ParentResponse(BaseModel):
+        message: str
+        word_count: int
+        success: bool
+
+    # Define the child tool with structured output
+    child_tool = rc.library.structured_llm(
+        output_model=ChildResponse,
+        system_message=rc.llm.SystemMessage("Generate a structured response."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        pretty_name="Structured Child Tool",
+        tool_details="A tool that generates a structured response that includes word count.",
+        tool_params={rc.llm.Parameter(name="request", param_type="string",
+                                      description="A sentence to generate a response for.")},
+    )
+
+    # Define the parent tool that uses the child tool
+    parent_tool = rc.library.tool_call_llm(
+        output_model=ParentResponse,
+        connected_nodes={child_tool},
+        pretty_name="Parent Tool",
+        system_message=rc.llm.SystemMessage("Use the child tool to generate a structured response."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+    )
+
+    # Run the parent tool
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="VERBOSE", timeout=1000)) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Generate a structured response for 'Hello World'."
+                )
+            ]
+        )
+        response = await runner.run(parent_tool, message_history=message_history)
+
+    # Assertions
+    assert response.answer is not None
+    assert isinstance(response.answer, ParentResponse)
+    assert response.answer.message == "Hello World"
+    assert response.answer.word_count == 2
+    assert response.answer.success is True
