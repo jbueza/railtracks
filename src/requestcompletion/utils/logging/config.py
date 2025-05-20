@@ -1,18 +1,57 @@
 import logging
 import warnings
 from typing import Literal, Optional
+import re
+from colorama import Fore, Style, init
 
 allowable_log_levels = Literal["VERBOSE", "REGULAR", "QUIET", "NONE"]
 # the temporary name for the logger that RC will use.
 rc_logger_name = "RC"
 rc_logger = logging.getLogger(rc_logger_name)
 
+_default_format_string = "%(timestamp_color)s[+%(relative_seconds)-7ss] %(level_color)s%(name)-12s: %(levelname)-8s - %(message)s%(default_color)s"
 
-_default_format_string = "[+%(relative_seconds)-7ss] %(name)-12s: %(levelname)-8s - %(message)s"
+# Initialize colorama
+init(autoreset=True)
 
 
-class RelativeTimeFormatter(logging.Formatter):
+class ColorfulFormatter(logging.Formatter):
+    def __init__(self, fmt=None, datefmt=None):
+        super().__init__(fmt, datefmt)
+        self.level_colors = {
+            logging.INFO: Fore.WHITE,  # White for logger.info
+            logging.ERROR: Fore.RED,  # Red for logger.exception or logger.error
+            logging.WARNING: Fore.YELLOW,
+            logging.DEBUG: Fore.CYAN,
+        }
+        self.keyword_colors = {
+            "FAILED": Fore.RED,
+            "WARNING": Fore.YELLOW,
+            "CREATED": Fore.GREEN,
+            "DONE": Fore.BLUE,
+        }
+        self.timestamp_color = Fore.LIGHTBLACK_EX
+        self.default_color = Fore.WHITE
+
     def format(self, record):
+        # Apply color based on log level
+        level_color = self.level_colors.get(record.levelno, self.default_color)
+        record.msg = record.getMessage()
+
+        # Highlight specific keywords in the log message
+        for keyword, color in self.keyword_colors.items():
+            record.msg = re.sub(
+                rf"(?i)\b({keyword})\b",
+                f"{color}\\1{level_color}",
+                record.msg,
+            )
+
+        # Apply color to the log
+        record.timestamp_color = self.timestamp_color
+        record.level_color = level_color
+        record.default_color = self.default_color
+
+        # record.levelname = f"{level_color}{record.levelname}{self.default_color}"
         record.relative_seconds = f"{record.relativeCreated / 1000:.3f}"
         return super().format(record)
 
@@ -22,7 +61,7 @@ def setup_verbose_logger_config():
     # in the verbose case we would like to use the debug level.
     console_handler.setLevel(logging.DEBUG)
 
-    verbose_formatter = RelativeTimeFormatter(
+    verbose_formatter = ColorfulFormatter(
         fmt=_default_format_string,
     )
 
@@ -37,7 +76,7 @@ def setup_regular_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
 
-    regular_formatter = RelativeTimeFormatter(
+    regular_formatter = ColorfulFormatter(
         fmt=_default_format_string,
     )
 
@@ -52,7 +91,7 @@ def setup_quiet_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.WARNING)
 
-    quiet_formatter = RelativeTimeFormatter(fmt=_default_format_string)
+    quiet_formatter = ColorfulFormatter(fmt=_default_format_string)
 
     console_handler.setFormatter(quiet_formatter)
 
@@ -116,6 +155,8 @@ def prepare_logger(
     #             "File logging config provided but no file was provided. The file logging config will be ignored"
     #
 
+    # TODO: write logic to figure out how to check to make sure a logger has not already been created.
+
     # now for each of our predefined settings we will set up the logger.
     if setting == "VERBOSE":
         setup_verbose_logger_config()
@@ -127,3 +168,8 @@ def prepare_logger(
         setup_none_logger_config()
     else:
         raise ValueError("Invalid log level setting")
+
+
+def delete_loggers():
+    # TODO implement this
+    pass

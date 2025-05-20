@@ -7,7 +7,6 @@ import time
 from enum import Enum
 from typing import List, Callable
 import requestcompletion as rc
-from requestcompletion.nodes.nodes import FatalException
 
 EMPHATIC_ERROR = "The Node has failed emphatically"
 
@@ -25,18 +24,6 @@ class CapitalizeText(rc.Node[str]):
 
     def invoke(self) -> str:
         return self.data.capitalize()
-
-
-class FatalErrorNode(rc.Node[str]):
-    def invoke(self):
-        raise FatalException(
-            self,
-            detail=EMPHATIC_ERROR,
-        )
-
-    @classmethod
-    def pretty_name(cls) -> str:
-        return "Fatal Error Node"
 
 
 class UnknownErrorNode(rc.Node):
