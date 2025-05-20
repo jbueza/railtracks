@@ -419,3 +419,57 @@ async def test_tool_with_structured_output_child_tool():
     assert response.answer.message == "Hello World"
     assert response.answer.word_count == 2
     assert response.answer.success is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "llm_function, connected_nodes",
+    [
+        (rc.library.tool_call_llm, {rc.library.from_function(lambda: "test")}),
+        (rc.library.structured_llm, None),
+    ],
+    ids=["tool_call_llm", "structured_llm"]
+)
+@pytest.mark.parametrize(
+    "output_model, tool_details, tool_params, expected_exception, match",
+    [
+        # Test: tool_params provided but tool_details is missing
+        (
+            BaseModel,
+            None,
+            [rc.llm.Parameter(name="param1", param_type="string", description="A test parameter.")],
+            RuntimeError,
+            "Tool parameters are provided, but tool details are missing.",
+        ),
+        # Test: tool_details provided but tool_params is empty
+        (
+            BaseModel,
+            "A test tool",
+            [],
+            RuntimeError,
+            "If no parameters are required for the tool, `tool_params` must be set to None.",
+        ),
+        # Test: Duplicate parameter names in tool_params
+        (
+            BaseModel,
+            "A test tool",
+            [
+                rc.llm.Parameter(name="param1", param_type="string", description="A test parameter."),
+                rc.llm.Parameter(name="param1", param_type="string", description="A duplicate parameter."),
+            ],
+            ValueError,
+            "Duplicate parameter names are not allowed.",
+        ),
+    ],
+)
+def test_structured_llm_tool_errors(output_model, tool_details, tool_params, llm_function, connected_nodes, expected_exception, match):
+        kwargs = {
+            "output_model": output_model,
+            "tool_details": tool_details,
+            "tool_params": tool_params,
+        }
+        if connected_nodes is not None:
+            kwargs["connected_nodes"] = connected_nodes
+
+        with pytest.raises(expected_exception, match=match):
+            llm_function(**kwargs)
