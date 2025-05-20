@@ -170,6 +170,17 @@ def prepare_logger(
         raise ValueError("Invalid log level setting")
 
 
-def delete_loggers():
-    # TODO implement this
-    pass
+def detach_logging_handlers():
+    """
+    Shuts down the logging system and detaches all logging handlers.
+    """
+    # Get the root logger
+    root_logger = logging.getLogger(rc_logger_name)
+
+    # Remove all handlers from the root logger
+    for handler in root_logger.handlers[:]:  # Use a copy of the list
+        root_logger.removeHandler(handler)
+        handler.close()
+
+    # Shut down the logging system
+    logging.shutdown()

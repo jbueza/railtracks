@@ -40,13 +40,13 @@ class EnsureInvokeCoroutineMeta(ABCMeta):
         method_name = "invoke"
         if method_name in dct and callable(dct[method_name]):
             method = dct[method_name]
-            if not inspect.iscoroutinefunction(method):
+            if inspect.iscoroutinefunction(method):
 
-                # a simple async wrapper of the sequential method.
-                async def async_wrapper(self, *args, **kwargs):
-                    return await asyncio.to_thread(method(self, *args, **kwargs))
+                # a simple wrapper to convert any async function to a non async one.
+                def non_async_wrapper(self, *args, **kwargs):
+                    return asyncio.run(method(self, *args, **kwargs))
 
-                setattr(cls, method_name, async_wrapper)
+                setattr(cls, method_name, non_async_wrapper)
 
 
 # TODO add generic for required context object
@@ -65,9 +65,10 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         """
         Returns a pretty name for the node. This name is used to identify the node type of the system.
         """
+        pass
 
     @abstractmethod
-    async def invoke(self) -> Coroutine[Any, Any, _TOutput]:
+    def invoke(self) -> _TOutput:
         """
         The main method that runs when this node is called
         """
@@ -128,3 +129,6 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         for k, v in self.__dict__.items():
             setattr(result, k, deepcopy(v))
         return result
+
+    def __repr__(self):
+        return f"{self.pretty_name()}: {self.state_details()}"

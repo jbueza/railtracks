@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import threading
 import warnings
 from typing import TypeVar, ParamSpec, Callable
@@ -6,13 +7,13 @@ from typing import TypeVar, ParamSpec, Callable
 from .config import ExecutorConfig
 from .utils.stream import DataStream, Subscriber
 from .nodes.nodes import Node
-from .utils.logging.config import prepare_logger, delete_loggers
+from .utils.logging.config import prepare_logger, detach_logging_handlers
 
 
 from .info import (
     ExecutionInfo,
 )
-from .state.execute import RCState
+from .state.state import RCState
 
 from .context import active_runner, streamer, config, parent_id
 
@@ -97,6 +98,7 @@ class Runner:
         #     raise RunnerCreationError(
         #         "A runner already exists, you cannot create nested Runners. Replace this runner with the simpler `rc.call` to call the node."
         #     )
+
         active_runner.set(self)
         return self
 
@@ -111,7 +113,8 @@ class Runner:
 
     def _close(self):
         threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
-        delete_loggers()
+        self.rc_state.shutdown()
+        detach_logging_handlers()
         # by deleting all of the state variables we are ensuring that the next time we create a runner it is fresh
         active_runner.set(None)
         parent_id.set(None)
@@ -162,7 +165,7 @@ class Runner:
         *args: _P.args,
         **kwargs: _P.kwargs,
     ):
-        # TODO refactor this to handle keyword arugments
+        # TODO refactor this to handle keyword arguments
         """
         An internal method used to call a node using the state object tied to this runner.
 
@@ -172,7 +175,7 @@ class Runner:
             parent_node_id: The parent node id of the node you are calling.
             node: The node you would like to calling.
         """
-        return await self.rc_state.call_nodes(parent_node_id, node, *args, **kwargs)
+        return asyncio.wrap_future(self.rc_state.call_nodes(parent_node_id, node, *args, **kwargs))
 
     # TODO add support for any general user defined streaming object
     def stream(self, item: str):
