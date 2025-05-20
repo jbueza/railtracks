@@ -150,7 +150,7 @@ async def test_tool_with_llm_tool_as_input_easy_tools():
     )
 
     # Run the parent tool
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="VERBOSE", timeout=1000)) as runner:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
         message_history = rc.llm.MessageHistory(
             [
                 rc.llm.UserMessage(
@@ -219,7 +219,7 @@ async def test_tool_with_llm_tool_as_input_class_easy():
     )
 
     # Run the parent tool
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="VERBOSE", timeout=1000)) as runner:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
         message_history = rc.llm.MessageHistory(
             [
                 rc.llm.UserMessage(
@@ -274,7 +274,7 @@ async def test_tool_with_llm_tool_as_input_easy_class():
             return "Parent Tool"
 
     # Run the parent tool
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="VERBOSE", timeout=1000)) as runner:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
         message_history = rc.llm.MessageHistory(
             [
                 rc.llm.UserMessage(
@@ -354,7 +354,7 @@ async def test_tool_with_llm_tool_as_input_class_tools():
             return "Parent Tool"
 
     # Run the parent tool
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="VERBOSE", timeout=1000)) as runner:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
         message_history = rc.llm.MessageHistory(
             [
                 rc.llm.UserMessage(
@@ -403,7 +403,7 @@ async def test_tool_with_structured_output_child_tool():
     )
 
     # Run the parent tool
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="VERBOSE", timeout=1000)) as runner:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
         message_history = rc.llm.MessageHistory(
             [
                 rc.llm.UserMessage(
