@@ -38,7 +38,7 @@ name = "requestcompletion"
 target-version = "py310"
 [tool.ruff.format]
 indent-style = "tab"
-docstring-code-format = "true"
+docstring-code-format = true
 
 [tool.ruff.lint]
 select = [
