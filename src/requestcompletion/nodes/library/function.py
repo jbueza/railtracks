@@ -48,7 +48,7 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
             self.args = args
             self.kwargs = kwargs
 
-        async def invoke(self) -> _TOutput:
+        def invoke(self) -> _TOutput:
             """Invoke the function with converted arguments."""
             try:
                 # Convert kwargs to appropriate types based on function signature
@@ -56,9 +56,9 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
 
                 # we want to have different behavior if the function is a coroutine or not
                 if inspect.iscoroutinefunction(func):
-                    result = await func(*self.args, **converted_kwargs)
+                    result = asyncio.run(func(*self.args, **converted_kwargs))
                 else:
-                    result = await asyncio.to_thread(func, *self.args, **converted_kwargs)
+                    result = func(*self.args, **converted_kwargs)
                 return result
 
             except Exception as e:

@@ -1,32 +1,33 @@
-import concurrent.futures
-import contextvars
+import requestcompletion as rc
 
-parent_id = contextvars.ContextVar("parent_id", default=None)
-state_obj = contextvars.ContextVar("state_obj", default={})
-
-buffer = []
+import time
 
 
-def thread_action(new_parent_id, new_state_obj):
-
-    buffer.append(f"1. parent_id: {parent_id.get()}, state_obj: {state_obj.get()}, id={new_parent_id}")
-    parent_id.set(new_parent_id)
-
-    new_dict = state_obj.get()
-    new_dict.update(new_state_obj)
-    state_obj.set(new_dict)
-    buffer.append(f"2. parent_id: {parent_id.get()}, state_obj: {state_obj.get()}, id={new_parent_id}")
-    return True
+def timeout_node(_t: float):
+    print(f"Sleeping for {_t}")
+    time.sleep(_t)
+    return _t
 
 
-with concurrent.futures.ThreadPoolExecutor() as executor:
-    rs = executor.map(
-        thread_action,
-        [1, 2, 3, 4, 5],
-        [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}, {"id": 5}],
-    )
+TimeoutNode = rc.library.from_function(timeout_node)
 
-    for r in rs:
-        print(r)
 
-    print("\n".join(buffer))
+def future_parallel():
+
+    uno = rc.submit(TimeoutNode, 1)
+    dos = rc.submit(TimeoutNode, 2)
+    tres = rc.submit(TimeoutNode, 3)
+    quatro = rc.submit(TimeoutNode, 2)
+    cinco = rc.submit(TimeoutNode, 1)
+
+    finished_results = [f.result() for f in [uno, dos, tres, quatro, cinco]]
+
+    return finished_results
+
+
+FutureParallel = rc.library.from_function(future_parallel)
+
+
+with rc.Runner() as run:
+    result = run.run_sync(FutureParallel)
+    assert result.answer == [1, 2, 3, 2, 1]

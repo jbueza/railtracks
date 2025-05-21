@@ -30,11 +30,15 @@ async def error_thrower():
 
 ErrorThrower = rc.library.from_function(error_thrower)
 
+import json
+
 
 def test_error():
     with rc.Runner() as run:
         with pytest.raises(TestError):
             run.run_sync(ErrorThrower)
+
+            print(run.info.node_heap.heap())
 
 
 async def error_handler():
@@ -55,7 +59,7 @@ def test_error_handler():
 
 
 def test_error_handler_wo_retry():
-    with pytest.raises(rc.state.execute.ExecutionException):
+    with pytest.raises(rc.state.state.ExecutionException):
         with rc.Runner(executor_config=rc.ExecutorConfig(end_on_error=True)) as run:
             result = run.run_sync(ErrorHandler)
 
@@ -80,6 +84,9 @@ def test_error_handler_with_retry():
 
         assert result.answer == "Caught the error"
         i_r = result.request_heap.insertion_request
+
+        print(result.request_heap.heap())
+        print(result.node_heap.heap())
 
         children = result.request_heap.children(i_r.sink_id)
         assert len(children) == num_retries

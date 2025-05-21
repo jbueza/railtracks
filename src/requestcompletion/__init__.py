@@ -12,7 +12,7 @@ __all__ = [
     "library",
     "Runner",
     "call",
-    "stream",
+    "submit" "stream",
     "ExecutionInfo",
     "ExecutorConfig",
     "llm",
@@ -23,7 +23,7 @@ __all__ = [
 
 from .nodes import library
 from .nodes.nodes import Node
-from .interaction.call import call, stream
+from .interaction.call import call, stream, submit
 from .run import Runner, ExecutionInfo, set_config, set_streamer
 from .config import ExecutorConfig
 from . import llm

@@ -1,3 +1,6 @@
+import concurrent.futures
+import threading
+
 import pytest
 import requestcompletion as rc
 import asyncio
@@ -60,4 +63,36 @@ def test_regular_style_parallel():
 def test_async_style_parallel():
     with rc.Runner() as run:
         result = run.run_sync(TopLevelAsync)
+        assert result.answer == [1, 2, 3, 2, 1]
+
+
+@pytest.mark.timeout(4)
+@pytest.mark.asyncio
+async def test_async_style_parallel_2():
+    with rc.Runner() as run:
+        result = await run.run(TopLevelAsync)
+        assert result.answer == [1, 2, 3, 2, 1]
+
+
+def future_parallel():
+    print(f"Future running in {threading.get_ident()}")
+
+    uno = rc.submit(TimeoutNode, 1)
+    dos = rc.submit(TimeoutNode, 2)
+    tres = rc.submit(TimeoutNode, 3)
+    quatro = rc.submit(TimeoutNode, 2)
+    cinco = rc.submit(TimeoutNode, 1)
+
+    finished_results = [f.result() for f in [uno, dos, tres, quatro, cinco]]
+
+    return finished_results
+
+
+FutureParallel = rc.library.from_function(future_parallel)
+
+
+@pytest.mark.timeout(4)
+def test_futures_parallel():
+    with rc.Runner() as run:
+        result = run.run_sync(FutureParallel)
         assert result.answer == [1, 2, 3, 2, 1]

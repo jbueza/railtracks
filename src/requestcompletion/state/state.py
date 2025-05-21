@@ -21,7 +21,6 @@ from ..utils.logging.action import RequestCreationAction, RequestCompletionActio
 
 if TYPE_CHECKING:
     from .. import ExecutorConfig
-from ..context import parent_id
 from ..exceptions import FatalError
 from ..nodes.nodes import Node
 from ..info import ExecutionInfo
@@ -71,17 +70,8 @@ class RCState:
         # each new instance of a state object should have its own logger.
         self.logger = get_rc_logger(LOGGER_NAME)
 
-        # TODO verify logic around daemon threads
-        self.thread_handler_thread = threading.Thread(target=self.handle_thread_loop, daemon=True)
-        self.process_handler_thread = threading.Thread(target=self.handle_process_loop, daemon=True)
-
-        self.thread_handler_thread.start()
-        self.process_handler_thread.start()
-
     def shutdown(self):
         self.rc_executor.shutdown(wait=True)
-        self.thread_handler_thread.join()
-        self.process_handler_thread.join()
 
     @property
     def is_empty(self):
@@ -129,7 +119,7 @@ class RCState:
     ):
         """Runs the provided node and returns the output of the node."""
         # TODO update this logic to allow processes submitting
-        node_future = self.rc_executor.thread_submit(request_id=request_id, node=node)
+        node_future = self.rc_executor.thread_submit(request_id=request_id, node=node, handler=self.handle_result)
         return node_future
 
     def _create_node_and_request(
@@ -161,8 +151,7 @@ class RCState:
         # 1. Create the node here
         node = node(*args, **kwargs)
 
-        # This is a critical registration step so other elements are away that we have officially created the node.
-        parent_id.set(node.uuid)
+        # This is a critical registration step so other elements are aware that we have officially created the node.
 
         # 2. Add it to the node heap.
         sc = self._stamper.stamp_creator()
@@ -205,10 +194,13 @@ class RCState:
             The output of the node that was run. It will match the output type of the child node that was run.
 
         """
+        import time
 
+        # print(f"1. [{time.time():.3f}] call_nodes {parent_node_id}, {args} START  on thread {threading.get_ident()}")
         request_id = self._create_node_and_request(parent_node_id, node, *args, **kwargs)
-
+        # print(f"2. [{time.time():.3f}] call_nodes {request_id} created  on thread {threading.get_ident()}")
         outputs: Future[_TOutput] = self._run_request(request_id)
+        # print(f"3. [{time.time():.3f}]")
         return outputs
 
     # TODO handle the business around parent node with automatic checkpointing.
@@ -342,8 +334,8 @@ class RCState:
     def handle_result(self, result: Result):
 
         if result.error is not None:
-            self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
-            return
+            failed_request = self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
+            return failed_request.exception
 
         stamp = self._stamper.create_stamp(f"Finished executing {result.node.pretty_name()}")
         request_completion_obj = RequestCompletionAction(
@@ -356,15 +348,4 @@ class RCState:
         self._request_heap.update(result.request_id, result.result, stamp)
         self._node_heap.update(result.node, stamp)
 
-        return
-
-    def handle_thread_loop(self):
-        # TODO remove hardcoded refresh value
-        for result in self.rc_executor.thread_result_iter(refresh=0.01):
-            print(result)
-            self.handle_result(result)
-
-    def handle_process_loop(self):
-        # TODO remove hardcoded refresh value
-        for result in self.rc_executor.process_result_iter(refresh=0.01):
-            self.handle_result(result)
+        return result.result

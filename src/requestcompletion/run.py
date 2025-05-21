@@ -1,8 +1,11 @@
 import asyncio
+import concurrent.futures
 import logging
 import threading
 import warnings
 from typing import TypeVar, ParamSpec, Callable
+
+import deprecated
 
 from .config import ExecutorConfig
 from .utils.stream import DataStream, Subscriber
@@ -15,7 +18,7 @@ from .info import (
 )
 from .state.state import RCState
 
-from .context import active_runner, streamer, config, parent_id
+from .context import streamer, config, reset_context, set_runner, get_runner
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -65,6 +68,7 @@ class Runner:
             if saved_config is None:
                 executor_config = ExecutorConfig()
             else:
+                print(f"Using saved executor config {saved_config.end_on_error}")
                 executor_config = saved_config
 
         if subscriber is None:
@@ -98,8 +102,7 @@ class Runner:
         #     raise RunnerCreationError(
         #         "A runner already exists, you cannot create nested Runners. Replace this runner with the simpler `rc.call` to call the node."
         #     )
-
-        active_runner.set(self)
+        set_runner(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -108,16 +111,21 @@ class Runner:
     def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
         """Runs the provided node synchronously."""
         # If no loop is running, create one and run the coroutine.
-        result = asyncio.run(self.run(start_node, *args, **kwargs))
-        return result
+        if not self.rc_state.is_empty:
+            raise RuntimeError("The run function can only be used to start not in the middle of a run.")
+
+        f = self.submit(None, start_node, *args, **kwargs)
+
+        f.result()
+
+        return self.rc_state.info
 
     def _close(self):
         threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
         self.rc_state.shutdown()
         detach_logging_handlers()
         # by deleting all of the state variables we are ensuring that the next time we create a runner it is fresh
-        active_runner.set(None)
-        parent_id.set(None)
+        reset_context()
 
     @property
     def info(self) -> ExecutionInfo:
@@ -175,7 +183,16 @@ class Runner:
             parent_node_id: The parent node id of the node you are calling.
             node: The node you would like to calling.
         """
-        return asyncio.wrap_future(self.rc_state.call_nodes(parent_node_id, node, *args, **kwargs))
+        return await asyncio.wrap_future(self.rc_state.call_nodes(parent_node_id, node, *args, **kwargs))
+
+    def submit(
+        self,
+        parent_node_id: str | None,
+        node: Callable[_P, Node[_TOutput]],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ):
+        return self.rc_state.call_nodes(parent_node_id, node, *args, **kwargs)
 
     # TODO add support for any general user defined streaming object
     def stream(self, item: str):
@@ -187,17 +204,6 @@ class Runner:
 
         """
         self._data_streamer.publish(item)
-
-
-def get_runner() -> Runner | None:
-    """
-    Collects the current instance of the runner. If none exists it will return none.
-    """
-
-    curr_runner = active_runner.get()
-    if curr_runner is None:
-        return None
-    return curr_runner
 
 
 def set_config(executor_config: ExecutorConfig):
