@@ -54,7 +54,6 @@ def set_runner(runner: "Runner"):
     """
     Set the active runner for the current thread.
     """
-    print("setting runner to", runner, "on: ", threading.get_ident())
     _local_store.active_runner = runner
 
 
@@ -63,9 +62,6 @@ def get_runner() -> Runner | None:
     Get the active runner for the current thread.
     """
     attr = getattr(_local_store, "active_runner", None)
-    print("Getting runner for thread: ", threading.get_ident(), "->", attr)
-    if attr is None:
-        print("wtf")
     return attr
 
 

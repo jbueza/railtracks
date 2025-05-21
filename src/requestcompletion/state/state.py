@@ -334,18 +334,21 @@ class RCState:
     def handle_result(self, result: Result):
 
         if result.error is not None:
-            failed_request = self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
-            return failed_request.exception
+            output = self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
+            returnable_result = output.exception
+        else:
+            output = result.result
+            request_completion_obj = RequestCompletionAction(
+                child_node_name=result.node.pretty_name(),
+                output=result,
+            )
+
+            self.logger.info(request_completion_obj.to_logging_msg())
+            returnable_result = output
 
         stamp = self._stamper.create_stamp(f"Finished executing {result.node.pretty_name()}")
-        request_completion_obj = RequestCompletionAction(
-            child_node_name=result.node.pretty_name(),
-            output=result,
-        )
 
-        self.logger.info(request_completion_obj.to_logging_msg())
-
-        self._request_heap.update(result.request_id, result.result, stamp)
+        self._request_heap.update(result.request_id, output, stamp)
         self._node_heap.update(result.node, stamp)
 
-        return result.result
+        return returnable_result

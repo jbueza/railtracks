@@ -86,7 +86,6 @@ class RCWorkerManager:
 
     def thread_submit(self, request_id: str, node: Node[_TOutput], handler: Callable[[Result], None]):
         """Submit a function to the thread executor."""
-        print(f"{threading.get_ident()} submitting {node} to thread executor")
         runner_ref = get_runner()
         wrapped = self.wrap_function(runner_ref, request_id, node, handler)
         return self._thread_executor.submit(wrapped)
