@@ -29,7 +29,6 @@ from typing import (
 
 from ..nodes import Node, Tool
 import inspect
-import types
 from pydantic import BaseModel
 
 
@@ -74,9 +73,17 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
 
             try:
                 sig = inspect.signature(func)
+
             except ValueError:
                 raise RuntimeError("Cannot convert kwargs for builtin functions. " \
                 "Please use a custom function.")
+            
+            except TypeError:
+                raise RuntimeError("Argument passed is not a function and cannot be called")
+            
+            except Exception as e:
+                raise RuntimeError(f"caught unexpected exception while getting function signature: {e}")
+            
 
             # Process all parameters from the function signature
             for param_name, param in sig.parameters.items():
