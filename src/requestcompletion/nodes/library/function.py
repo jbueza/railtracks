@@ -29,6 +29,7 @@ from typing import (
 
 from ..nodes import Node, Tool
 import inspect
+import types
 from pydantic import BaseModel
 
 
@@ -36,7 +37,7 @@ _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
+def from_function(func: Callable[_P, Awaitable[_TOutput] | _TOutput]):
     """
     A function to create a node from a function
     """
@@ -70,6 +71,9 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
         def _convert_kwargs_to_appropriate_types(self) -> Dict[str, Any]:
             """Convert kwargs to appropriate types based on function signature."""
             converted_kwargs = {}
+
+            if isinstance(func, types.BuiltinFunctionType):
+                raise RuntimeError("Cannot convert kwargs for builtin functions. Please use a custom function.")
             sig = inspect.signature(func)
 
             # Process all parameters from the function signature
