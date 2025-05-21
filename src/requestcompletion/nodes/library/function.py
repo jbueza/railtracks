@@ -37,7 +37,7 @@ _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-def from_function(func: Callable[_P, Awaitable[_TOutput] | _TOutput]):
+def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
     """
     A function to create a node from a function
     """
@@ -72,9 +72,11 @@ def from_function(func: Callable[_P, Awaitable[_TOutput] | _TOutput]):
             """Convert kwargs to appropriate types based on function signature."""
             converted_kwargs = {}
 
-            if isinstance(func, types.BuiltinFunctionType):
-                raise RuntimeError("Cannot convert kwargs for builtin functions. Please use a custom function.")
-            sig = inspect.signature(func)
+            try:
+                sig = inspect.signature(func)
+            except ValueError:
+                raise RuntimeError("Cannot convert kwargs for builtin functions. " \
+                "Please use a custom function.")
 
             # Process all parameters from the function signature
             for param_name, param in sig.parameters.items():
