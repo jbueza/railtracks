@@ -34,9 +34,18 @@ Home = "https://railtown.ai"
 [tool.flit.module]
 name = "requestcompletion"
 
-[tool.black]
-line-length = 120
-fast = true
+[tool.ruff]
+target-version = "py310"
+[tool.ruff.format]
+indent-style = "tab"
+docstring-code-format = "true"
+
+[tool.ruff.lint]
+select = [
+    "E",
+]
+
+
 
 [project.optional-dependencies]
 test = ["pytest >=7.1.2"]
