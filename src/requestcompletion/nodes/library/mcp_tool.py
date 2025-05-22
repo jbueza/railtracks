@@ -4,32 +4,41 @@ from contextlib import AsyncExitStack
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from typing_extensions import Self
 
 from ..nodes import Node, _TOutput, _P
+from ...llm import Tool
 
 
 class MCPAsyncClient:
-    def __init__(self, server_script_path: str):
-        self.server_script_path = server_script_path
-        self.session: Optional[ClientSession] = None
+    def __init__(self, command: str, args: list, env: Optional[Dict[str, str]] = None, transport_type: str = "stdio", http_url: str = None):
+        self.command = command
+        self.args = args
+        self.env = env  # TODO: Handle environment variables
+        self.transport_type = transport_type
+        self.http_url = http_url
+        self.session = None
         self.exit_stack = AsyncExitStack()
         self._tools_cache = None
 
     async def __aenter__(self):
-        is_python = self.server_script_path.endswith('.py')
-        is_js = self.server_script_path.endswith('.js')
-        if not (is_python or is_js):
-            raise ValueError("Server script must be a .py or .js file")
-        command = "python" if is_python else "node"
-        server_params = StdioServerParameters(
-            command=command,
-            args=[self.server_script_path],
-            env=None
-        )
-        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
-        self.stdio, self.write = stdio_transport
-        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
-        await self.session.initialize()
+        if self.transport_type == "stdio":
+            server_params = StdioServerParameters(
+                command=self.command,
+                args=self.args,
+                env=self.env
+            )
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            self.stdio, self.write = stdio_transport
+            self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
+            await self.session.initialize()
+        elif self.transport_type == "http":
+            # Placeholder: Replace with actual HTTP client session logic as needed
+            import aiohttp
+            self.http_session = await self.exit_stack.enter_async_context(aiohttp.ClientSession())
+            self.session = self  # For compatibility; implement list_tools/call_tool for HTTP below
+        else:
+            raise ValueError(f"Unsupported transport_type: {self.transport_type}")
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -38,63 +47,59 @@ class MCPAsyncClient:
     async def list_tools(self):
         if self._tools_cache is not None:
             return self._tools_cache
-        resp = await self.session.list_tools()
-        self._tools_cache = resp.tools
+        if self.transport_type == "stdio":
+            resp = await self.session.list_tools()
+            self._tools_cache = resp.tools
+        elif self.transport_type == "http":
+            # Placeholder: Replace with actual HTTP API call
+            async with self.http_session.get(f"{self.http_url}/tools") as resp:
+                data = await resp.json()
+                self._tools_cache = data["tools"]
         return self._tools_cache
 
     async def call_tool(self, tool_name: str, tool_args: Dict[str, Any]):
-        return await self.session.call_tool(tool_name, tool_args)
+        if self.transport_type == "stdio":
+            return await self.session.call_tool(tool_name, tool_args)
+        elif self.transport_type == "http":
+            # Placeholder: Replace with actual HTTP API call
+            async with self.http_session.post(f"{self.http_url}/tools/{tool_name}", json=tool_args) as resp:
+                return await resp.json()
+        else:
+            raise ValueError(f"Unsupported transport_type: {self.transport_type}")
 
 
-def from_mcp(
-    tool_name: str,
-    server_script_path: str,
-    pretty_name: Optional[str] = None,
-) -> Type[Node]:
-    """
-    Returns a Node class for a single MCP tool.
-    Usage:
-        MyToolNode = from_mcp("toolname", "path/to/server.py")
-        node = MyToolNode(arg1=..., arg2=...)
-        result = await node.invoke()
-    """
-    class MCPToolNode(Node[_TOutput], Generic[_P, _TOutput]):
-        _tool_name = tool_name
-        _server_script_path = server_script_path
-
+def from_mcp(tool, command: str, args: list, transport_type: str = "stdio", http_url: str = None):
+    class MCPToolNode(Node):
         def __init__(self, **kwargs):
             super().__init__()
             self.kwargs = kwargs
 
         async def invoke(self):
-            async with MCPAsyncClient(self._server_script_path) as client:
-                result = await client.call_tool(self._tool_name, self.kwargs)
-            # Result is typically a ToolResult object with a .content field
+            async with MCPAsyncClient(command, args, transport_type=transport_type, http_url=http_url) as client:
+                result = await client.call_tool(tool.name, self.kwargs)
             if hasattr(result, "content"):
                 return result.content
             return result
 
         @classmethod
         def pretty_name(cls):
-            return pretty_name or f"MCPToolNode({tool_name})"
+            return f"MCPToolNode({tool.name})"
+
+        @classmethod
+        def tool_info(cls) -> Tool:
+            return Tool.from_mcp(tool)
+
+        @classmethod
+        def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
+            return cls(**tool_parameters)
 
     return MCPToolNode
 
 
-async def from_mcp_server(
-    server_script_path: str,
-) -> Dict[str, Type[Node]]:
-    """
-    Returns a dict of {tool_name: Node class} for all tools on the MCP server.
-    Usage:
-        nodes = await from_mcp_server("path/to/server.py")
-        MyToolNode = nodes["toolname"]
-        node = MyToolNode(...)
-        result = await node.invoke()
-    """
-    async with MCPAsyncClient(server_script_path) as client:
+async def from_mcp_server(command: str, args: list, transport_type: str = "stdio", http_url: str = None) -> [Type[Node]]:
+    async with MCPAsyncClient(command, args, transport_type=transport_type, http_url=http_url) as client:
         tools = await client.list_tools()
-        return {
-            tool.name: from_mcp(tool.name, server_script_path, pretty_name=tool.name)
+        return [
+            from_mcp(tool, command, args, transport_type=transport_type, http_url=http_url)
             for tool in tools
-        }
+        ]
