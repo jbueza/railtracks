@@ -1,10 +1,11 @@
 import asyncio
 from typing import Any, Dict, Type, Optional, Generic, ParamSpec
 from contextlib import AsyncExitStack
+import shutil  # <-- add this import
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from typing_extensions import Self
+from typing_extensions import Self, Set
 
 from ..nodes import Node, _TOutput, _P
 from ...llm import Tool
@@ -23,6 +24,12 @@ class MCPAsyncClient:
 
     async def __aenter__(self):
         if self.transport_type == "stdio":
+            # Check if command exists
+            if shutil.which(self.command) is None:
+                raise FileNotFoundError(
+                    f"Command not found: {self.command}. "
+                    "If you are on Windows, try using the full path to npx.cmd or ensure your PATH includes the directory containing npx."
+                )
             server_params = StdioServerParameters(
                 command=self.command,
                 args=self.args,
@@ -68,7 +75,7 @@ class MCPAsyncClient:
             raise ValueError(f"Unsupported transport_type: {self.transport_type}")
 
 
-def from_mcp(tool, command: str, args: list, transport_type: str = "stdio", http_url: str = None):
+def from_mcp_tool(tool, command: str, args: list, transport_type: str = "stdio", http_url: str = None):
     class MCPToolNode(Node):
         def __init__(self, **kwargs):
             super().__init__()
@@ -96,10 +103,10 @@ def from_mcp(tool, command: str, args: list, transport_type: str = "stdio", http
     return MCPToolNode
 
 
-async def from_mcp_server(command: str, args: list, transport_type: str = "stdio", http_url: str = None) -> [Type[Node]]:
+async def from_mcp_server(command: str, args: list, transport_type: str = "stdio", http_url: str = None) -> Set[Node]:
     async with MCPAsyncClient(command, args, transport_type=transport_type, http_url=http_url) as client:
         tools = await client.list_tools()
-        return [
-            from_mcp(tool, command, args, transport_type=transport_type, http_url=http_url)
+        return {
+            from_mcp_tool(tool, command, args, transport_type=transport_type, http_url=http_url)
             for tool in tools
-        ]
+        }
