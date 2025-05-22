@@ -10,7 +10,7 @@ def get_rc_logger(name: str | None):
     The method is essentially a wrapper of the `logging` method to collect the logger, but it will add a reference to
     the RC root logger.
 
-    If the name is not provided it returns the root RC logger
+    If the name is not provided it returns the root RC logger.
     """
     if name is None:
         return logging.getLogger(rc_logger_name)
