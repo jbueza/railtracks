@@ -1,7 +1,6 @@
 .env
 .idea
 .tox
-.venv
 .vscode
 __pycache__
 .prettierrc
@@ -14,3 +13,8 @@ test-results.xml
 # jupyter notebook
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+
+# virtual environments and other
+myenv 
+venv
+.venv

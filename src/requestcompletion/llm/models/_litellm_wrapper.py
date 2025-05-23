@@ -1,0 +1,232 @@
+from abc import abstractmethod
+import os
+import json
+from typing import List, Dict, Type, Optional, Any, Generator, Union, Set
+from pydantic import BaseModel, ValidationError
+import litellm
+from litellm.utils import ModelResponse, CustomStreamWrapper
+
+from ..model import ModelBase
+from ..message import Message
+from ..response import Response
+from ..history import MessageHistory
+from ..message import AssistantMessage, ToolMessage
+from ..content import ToolCall, Content
+from ..tools import Tool, Parameter
+
+
+def _to_litellm_message(msg: Message) -> Dict[str, Any]:
+    """
+    Convert your Message (UserMessage, AssistantMessage, ToolMessage) into
+    the simple dict format that litellm.completion expects.
+    """
+    base = {"role": msg.role, "content": msg.content}
+    return base
+
+def _parameters_to_json_schema(
+    parameters: Union[Type[BaseModel], Set[Parameter], Dict[str, Any]]
+) -> Dict[str, Any]:
+    """
+    Turn one of:
+      - a Pydantic model class (subclass of BaseModel)
+      - a set of Parameter instances
+      - an already‐built dict
+    into a JSON Schema dict.
+    """
+    # 1) Already a dict?
+    if isinstance(parameters, dict):
+        return parameters
+
+    # 2) Pydantic model?
+    if isinstance(parameters, type) and issubclass(parameters, BaseModel):
+        # Pydantic v1: .schema() ; v2+: .model_dump_json_schema() returns str
+        schema = getattr(parameters, "schema", None)
+        if callable(schema):
+            return schema()
+        # Pydantic v2+
+        dump = getattr(parameters, "model_json_schema", None)
+        if callable(dump):
+            return dump()
+        raise RuntimeError(f"Cannot get schema from Pydantic model {parameters!r}")
+
+    # 3) Set of Parameter?
+    if isinstance(parameters, set):
+        props: Dict[str, Any] = {}
+        required: list[str] = []
+        for p in parameters:
+            props[p.name] = {
+                "type": p.param_type,
+                "description": p.description,
+            }
+            # allow extra props inside an "object"
+            if p.param_type == "object":
+                props[p.name]["additionalProperties"] = p.additional_properties
+            if p.required:
+                required.append(p.name)
+
+        schema: Dict[str, Any] = {
+            "type": "object",
+            "properties": props,
+        }
+        if required:
+            schema["required"] = required
+        return schema
+
+    raise TypeError(
+        "Tool.parameters must be either:\n"
+        "  • a dict,\n"
+        "  • a subclass of pydantic.BaseModel, or\n"
+        "  • a set of Parameter instances"
+    )
+
+def _to_litellm_tool(tool: Tool) -> Dict[str, Any]:
+    """
+    Convert your Tool object into the dict format for litellm.completion.
+    """
+    # parameters may be None
+    raw_params = tool.parameters or {}
+    json_schema = _parameters_to_json_schema(raw_params)
+
+    return {
+        "type": "function",
+        "function": {
+            "name": tool.name,
+            "description": tool.detail,
+            "parameters": json_schema,
+        },
+    }
+
+class LiteLLMWrapper(ModelBase):
+    """
+    A large base class that wraps around a litellm model.
+
+    Note that the model object should be interacted with via the methods provided in the wrapper class:
+    - `chat`
+    - `structured`
+    - `stream_chat`
+    - `chat_with_tools`
+
+    Each individual API should implement the required `abstract_methods` in order to allow users to interact with a
+    model of that type.
+    """
+
+    @classmethod
+    @abstractmethod
+    def model_type(cls) -> str:
+        pass
+
+
+    def __init__(self, model_name: str, **kwargs):
+        self._model_name = model_name
+        self._default_kwargs = kwargs
+
+    def _invoke(
+        self,
+        messages: MessageHistory,
+        *,
+        stream: bool = False,
+        response_format: Optional[Any] = None,
+        **call_kwargs: Any,
+    ) -> Union[ModelResponse, CustomStreamWrapper]:
+        """
+        Internal helper that:
+          1. Converts MessageHistory
+          2. Merges default kwargs
+          3. Calls litellm.completion
+        """
+        litellm_messages = [_to_litellm_message(m) for m in messages]
+        merged = {**self._default_kwargs, **call_kwargs}
+        if response_format is not None:
+            merged["response_format"] = response_format
+        return litellm.completion(model=self._model_name, messages=litellm_messages, stream=stream, **merged)
+
+    def chat(self, messages: MessageHistory, **kwargs) -> Response:
+        raw = self._invoke(messages, **kwargs)
+        content = raw["choices"][0]["message"]["content"]
+        return Response(message=AssistantMessage(content=content))
+
+    def structured(self, messages: MessageHistory, schema: Type[BaseModel], **kwargs) -> Response:
+        try:
+            raw = self._invoke(messages, response_format=schema, **kwargs)
+            content_str = raw["choices"][0]["message"]["content"]
+            parsed = schema(**json.loads(content_str))
+            return Response(message=AssistantMessage(content=parsed))
+        except ValidationError as ve:
+            raise ValueError(f"Schema validation failed: {ve}") from ve
+        except Exception as e:
+            raise RuntimeError(f"Structured LLM call failed: {e}") from e
+
+    def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
+        stream_iter = self._invoke(messages, stream=True, **kwargs)
+
+        def streamer() -> Generator[str, None, None]:
+            for part in stream_iter:
+                yield part.choices[0].delta.content or ""
+
+        return Response(message=None, streamer=streamer())
+
+    def chat_with_tools(
+        self,
+        messages: MessageHistory,
+        tools: List[Tool],
+        **kwargs: Any
+    ) -> Response:
+        """
+        Chat with the model using tools.
+
+        Args:
+            messages: The message history to use as context
+            tools: The tools to make available to the model
+            **kwargs: Additional arguments to pass to litellm.completion
+
+        Returns:
+            A Response containing either plain assistant text or ToolCall(s).
+        """
+        # 1) Convert to litellm-style dicts
+        litellm_messages = [_to_litellm_message(m) for m in messages]
+        litellm_tools = [_to_litellm_tool(t) for t in tools]
+
+        # 2) Ensure we explicitly say auto for tool_choice unless overridden
+        litellm_kwargs = {"tool_choice": "auto"}
+        litellm_kwargs.update(kwargs)
+
+        # 3) Call the model
+        resp = litellm.completion(
+            model=self._model_name,
+            messages=litellm_messages,
+            tools=litellm_tools,
+            **litellm_kwargs,
+        )
+
+        # 4) Grab the first choice
+        choice = resp.choices[0].message
+
+        # 5) If no tool calls were emitted, return plain assistant response
+        if not getattr(choice, "tool_calls", None):
+            return Response(
+                message=AssistantMessage(content=choice.content)
+            )
+
+        # 6) Otherwise convert each tool call into your ToolCall type
+        calls: List[ToolCall] = []
+        for tc in choice.tool_calls:
+            # tc.id, tc.function.name, and tc.function.arguments are all strings
+            args = json.loads(tc.function.arguments)
+            calls.append(
+                ToolCall(
+                    identifier=tc.id,
+                    name=tc.function.name,
+                    arguments=args
+                )
+            )
+
+        # 7) Return a “tool call” style assistant message
+        return Response(
+            message=AssistantMessage(content=calls)
+        )
+
+    def __str__(self) -> str:
+        parts = self._model_name.split("/", 1)
+        if len(parts) == 2:
+            return f"LiteLLMWrapper(provider={parts[0]}, name={parts[1]})"
+        return f"LiteLLMWrapper(name={self._model_name})"
