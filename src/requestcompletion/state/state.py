@@ -11,12 +11,16 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, Future
 
 from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING, Any
 
-from Tools.scripts.fixnotice import process
 
 from .execute import RCWorkerManager, Result
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
+from ..execution.coordinator import Coordinator
+from ..execution.task import Task
+from ..utils.stream import Subscriber
+from ..execution.messages import RequestCreation, RequestSuccess
+from ..execution.publisher_base import MessageType
 from ..utils.logging.action import RequestCreationAction, RequestCompletionAction, NodeExceptionAction
 
 if TYPE_CHECKING:
@@ -35,7 +39,7 @@ _P = ParamSpec("_P")
 LOGGER_NAME = "RUNNER"
 
 
-class RCState:
+class RCState(Subscriber[MessageType]):
     """
     RCState is an internal RC object used to manage state of the request completion system. This object has a couple of
     major functions:
@@ -51,9 +55,8 @@ class RCState:
     allow for retrospective analysis of the system.
     """
 
-    # the main role of this object is to augment the executor object with all the things it needs to track state as the
-    #  the graph runs.
-    def __init__(self, execution_info: ExecutionInfo, executor_config: ExecutorConfig):
+    # TODO seperate the logic in the executor config and the state object.
+    def __init__(self, execution_info: ExecutionInfo, executor_config: ExecutorConfig, coordinator: Coordinator):
 
         self._node_heap = execution_info.node_heap
         self._request_heap = execution_info.request_heap
@@ -63,15 +66,32 @@ class RCState:
 
         self.executor_config = executor_config
         # TODO add config connections to the RC work manager
-        self.rc_executor = RCWorkerManager()
+        self.rc_coordinator = coordinator
 
         ## These are the elements which need to be created as new objects every time. They should not serialized.
 
         # each new instance of a state object should have its own logger.
         self.logger = get_rc_logger(LOGGER_NAME)
 
+    def handle(self, item: MessageType) -> None:
+        if isinstance(item, RequestSuccess):
+            self.handle_result(item)
+        if isinstance(item, RequestCreation):
+            # TODO: Add the logic around the mode.
+            self.call_nodes(
+                parent_node_id=item.current_node_id,
+                request_id=item.new_request_id,
+                node=item.new_node_type,
+                *item.args,
+                **item.kwargs,
+            )
+
+    @classmethod
+    def null_concrete_sub(cls):
+        raise NotImplementedError("RCState cannot be used as a null concrete sub")
+
     def shutdown(self):
-        self.rc_executor.shutdown(wait=True)
+        self.rc_coordinator.shutdown()
 
     @property
     def is_empty(self):
@@ -89,22 +109,6 @@ class RCState:
         """
         self._stamper.create_stamp(message)
 
-    async def execute(self, request_id: str):
-        """Executes the graph starting at the provided request id."""
-        # TODO: come up with a better algorithm for finding the start of execution.
-
-        try:
-
-            output = await asyncio.wait_for(self._run_request(request_id), timeout=self.executor_config.timeout)
-            # Note that since this is the insertion requests, its output is our answer.
-
-        except asyncio.TimeoutError:
-            raise ExecutionException(
-                failed_request=self._request_heap["START"],
-                execution_info=self.info,
-                final_exception=GlobalTimeOut(self.executor_config.timeout),
-            )
-
     async def cancel(self, node_id: str):
         if node_id not in self._node_heap.heap():
             assert False
@@ -119,12 +123,13 @@ class RCState:
     ):
         """Runs the provided node and returns the output of the node."""
         # TODO update this logic to allow processes submitting
-        node_future = self.rc_executor.thread_submit(request_id=request_id, node=node, handler=self.handle_result)
-        return node_future
+
+        return self.rc_coordinator.submit(Task(request_id=request_id, node=node))
 
     def _create_node_and_request(
         self,
         parent_node_id: str,
+        request_id: str | None,
         node: Callable[_P, Node],
         *args: _P.args,
         **kwargs: _P.kwargs,
@@ -158,7 +163,9 @@ class RCState:
         self._node_heap.update(node, sc(f"Creating {node.pretty_name()}"))
 
         # 3. Attach the requests that will tied to this node.
-        request_ids = self._create_new_request_set(parent_node_id, [node.uuid], [args], [kwargs], sc)
+        request_ids = self._create_new_request_set(
+            parent_node_id, [node.uuid], [args], [kwargs], sc, request_ids=[request_id]
+        )
 
         parent_node_type = self._node_heap.get_node_type(parent_node_id)
         parent_node_name = parent_node_type.pretty_name() if parent_node_type else "START"
@@ -176,6 +183,7 @@ class RCState:
     def call_nodes(
         self,
         parent_node_id: str | None,
+        request_id: str | None,
         node: Callable[_P, Node[_TOutput]],
         *args: _P.args,
         **kwargs: _P.kwargs,
@@ -196,11 +204,9 @@ class RCState:
         """
         import time
 
-        # print(f"1. [{time.time():.3f}] call_nodes {parent_node_id}, {args} START  on thread {threading.get_ident()}")
-        request_id = self._create_node_and_request(parent_node_id, node, *args, **kwargs)
-        # print(f"2. [{time.time():.3f}] call_nodes {request_id} created  on thread {threading.get_ident()}")
-        outputs: Future[_TOutput] = self._run_request(request_id)
-        # print(f"3. [{time.time():.3f}]")
+        request_id = self._create_node_and_request(parent_node_id, request_id, node, *args, **kwargs)
+        outputs = self._run_request(request_id)
+
         return outputs
 
     # TODO handle the business around parent node with automatic checkpointing.
@@ -211,6 +217,7 @@ class RCState:
         input_args: List[Tuple],
         input_kwargs: List[Dict[str, Tuple]],
         stamp_gen: Callable[[str], Stamp],
+        request_ids: List[str | None] | None = None,
     ) -> List[str]:
         """
         Creates a new set of requests from the provided details. Essentially we will be creating a new request from the
@@ -229,12 +236,20 @@ class RCState:
         assert all(
             [n in self._node_heap for n in children]
         ), "You cannot add a request for a node which has not yet been added"
+
+        if request_ids is None:
+            request_ids = [None] * len(children)
+
+        if parent_node is None and any([x is not None for x in request_ids]):
+            # TODO get rid of this logic. It should be injected instead of hardcoded
+            warnings.warn("This is an insertion request and you provided identifier this will be overwritten")
+
         parent_node_name = self._node_heap.id_type_mapping[parent_node] if parent_node is not None else "START"
         # to simplify we are going to create a new request for each child node with the parent as its source.
         request_ids = list(
             map(
                 self._request_heap.create,
-                [str(uuid.uuid4()) if parent_node else "START" for _ in children],
+                [r_id if parent_node else "START" for r_id in request_ids],
                 [parent_node] * len(children),
                 children,
                 input_args,
@@ -268,7 +283,7 @@ class RCState:
         """
         child_node_id = self._request_heap[request_id].sink_id
         node = self._node_heap[child_node_id].node
-        return self._run_node(request_id=request_id, node=node)
+        return self.rc_coordinator.submit()
 
     def _handle_failed_request(self, failed_node_name: str, request_id: str, exception: Exception):
         """
@@ -331,7 +346,7 @@ class RCState:
             exception_history=list(self.exception_history),
         )
 
-    def handle_result(self, result: Result):
+    def handle_result(self, result: RequestSuccess):
 
         if result.error is not None:
             output = self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)

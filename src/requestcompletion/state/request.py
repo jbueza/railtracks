@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-
+import uuid
 import warnings
 from dataclasses import dataclass
 from functools import reduce
@@ -86,6 +86,10 @@ class RequestTemplate(AbstractLinkedObject):
         total_time = self.stamp.time - self.get_terminal_parent.stamp.time
 
         return total_time
+
+    @classmethod
+    def generate_id(cls):
+        return str(uuid.uuid4())
 
     @classmethod
     def downstream(cls, requests: Iterable[RequestTemplate], source_id: Optional[str]):

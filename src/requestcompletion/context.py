@@ -6,6 +6,8 @@ import threading
 import warnings
 from typing import TYPE_CHECKING, Callable
 
+from .execution.publisher import Publisher
+
 if TYPE_CHECKING:
     from .run import Runner
 
@@ -19,16 +21,13 @@ class ThreadContext:
 
     def __init__(
         self,
+        publisher: Publisher,
+        parent_id: str | None,
     ):
-        self._parent_id = None
-        self._active_runner = None
+        self._parent_id = parent_id
+        self._publisher = publisher
 
-    def __new__(cls, *args, **kwargs):
-        if not hasattr(_local_store, "thread_context"):
-            _local_store.thread_context = super(ThreadContext, cls).__new__(cls)
-
-        return _local_store.thread_context
-
+    # Not super pythonic but it allows us to slap in debug statements on the getters and setters with ease
     @property
     def parent_id(self):
         return self._parent_id
@@ -38,50 +37,29 @@ class ThreadContext:
         self._parent_id = value
 
     @property
-    def active_runner(self):
-        return self._active_runner
+    def publisher(self):
+        return self._publisher
 
-    @active_runner.setter
-    def active_runner(self, value: "Runner"):
-        self._active_runner = value
-
-    def reset(self):
-        self._parent_id = None
-        self._active_runner = None
+    @publisher.setter
+    def publisher(self, value: Publisher):
+        self._publisher = value
 
 
-def set_runner(runner: "Runner"):
+def get_globals() -> ThreadContext:
     """
-    Set the active runner for the current thread.
+    Get the global variables for the current thread.
     """
-    _local_store.active_runner = runner
+    if not hasattr(_local_store, "global_var"):
+        raise KeyError("No global variable set")
+
+    return _local_store.global_var
 
 
-def get_runner() -> Runner | None:
+def register_globals(global_var: ThreadContext):
     """
-    Get the active runner for the current thread.
+    Register the global variables for the current thread.
     """
-    attr = getattr(_local_store, "active_runner", None)
-    return attr
+    if hasattr(_local_store, "global_var"):
+        warnings.warn("Overwriting previous global variable")
 
-
-def set_parent_id(parent_id: str):
-    """
-    Set the parent id for the current thread.
-    """
-    _local_store.parent_id = parent_id
-
-
-def get_parent_id() -> str | None:
-    """
-    Get the parent id for the current thread.
-    """
-    return getattr(_local_store, "parent_id", None)
-
-
-def reset_context():
-    """
-    Reset the context for the current thread.
-    """
-    _local_store.active_runner = None
-    _local_store.parent_id = None
+    _local_store.global_var = global_var

@@ -49,6 +49,23 @@ class EnsureInvokeCoroutineMeta(ABCMeta):
                 setattr(cls, method_name, non_async_wrapper)
 
 
+class NodeState(Generic[_TNode]):
+    """
+    A stripped down representation of a Node which can be passed along the process barrier.
+    """
+
+    # This object should json seriliazable such that it can be passed accross the process barrier
+    # TODO come up with a more intelligent way to recreate the node
+    def __init__(
+        self,
+        node: _TNode,
+    ):
+        self.node = node
+
+    def instantiate(self) -> _TNode:
+        return deepcopy(self.node)
+
+
 # TODO add generic for required context object
 class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
     """An abstract base class which defines some the functionality of a node"""
@@ -68,7 +85,7 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         pass
 
     @abstractmethod
-    def invoke(self) -> _TOutput:
+    async def invoke(self) -> _TOutput:
         """
         The main method that runs when this node is called
         """
