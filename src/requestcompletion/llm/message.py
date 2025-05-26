@@ -115,5 +115,4 @@ class ToolMessage(Message[ToolResponse]):
     """
 
     def __init__(self, content: ToolResponse):
-        super().__init__(content=str(content.result), role="tool")
-        self.identifier = content.identifier
+        super().__init__(content=content , role="tool")

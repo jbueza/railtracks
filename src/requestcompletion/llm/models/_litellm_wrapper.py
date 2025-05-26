@@ -10,22 +10,12 @@ from ..model import ModelBase
 from ..message import Message
 from ..response import Response
 from ..history import MessageHistory
-from ..message import AssistantMessage, ToolMessage
+from ..message import AssistantMessage, ToolMessage, ToolResponse
 from ..content import ToolCall, Content
 from ..tools import Tool, Parameter
 
 
-def _to_litellm_message(msg: Message) -> Dict[str, Any]:
-    """
-    Convert your Message (UserMessage, AssistantMessage, ToolMessage) into
-    the simple dict format that litellm.completion expects.
-    """
-    base = {"role": msg.role, "content": msg.content}
-    return base
-
-def _parameters_to_json_schema(
-    parameters: Union[Type[BaseModel], Set[Parameter], Dict[str, Any]]
-) -> Dict[str, Any]:
+def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter], Dict[str, Any]]) -> Dict[str, Any]:
     """
     Turn one of:
       - a Pydantic model class (subclass of BaseModel)
@@ -79,6 +69,7 @@ def _parameters_to_json_schema(
         "  • a set of Parameter instances"
     )
 
+
 def _to_litellm_tool(tool: Tool) -> Dict[str, Any]:
     """
     Convert your Tool object into the dict format for litellm.completion.
@@ -95,6 +86,38 @@ def _to_litellm_tool(tool: Tool) -> Dict[str, Any]:
             "parameters": json_schema,
         },
     }
+
+
+def _to_litellm_message(msg: Message) -> Dict[str, Any]:
+    """
+    Convert your Message (UserMessage, AssistantMessage, ToolMessage) into
+    the simple dict format that litellm.completion expects.
+    """
+    base = {"role": msg.role}
+    # handle the special case where the message is a tool so we have to link it to the tool id.
+    if isinstance(msg, ToolMessage):
+        base["name"] = msg.content.name
+        base["tool_call_id"] = msg.content.identifier
+        base["content"] = msg.content.result
+    # only time this is true is if tool calls, need to return litellm.utils.Message
+    elif isinstance(msg.content, list):
+        assert all(isinstance(t_c, ToolCall) for t_c in msg.content)
+        return litellm.utils.Message(
+            content="",  # TODO: maybe different for anthropic vs openai
+            role="assistant",
+            tool_calls=[
+                {
+                    "function": {"arguments": tool_call.arguments, "name": tool_call.name},
+                    "id": tool_call.identifier,
+                    "type": "function",
+                }
+                for tool_call in msg.content
+            ],
+        )
+    else:
+        base["content"] = msg.content
+    return base
+
 
 class LiteLLMWrapper(ModelBase):
     """
@@ -114,7 +137,6 @@ class LiteLLMWrapper(ModelBase):
     @abstractmethod
     def model_type(cls) -> str:
         pass
-
 
     def __init__(self, model_name: str, **kwargs):
         self._model_name = model_name
@@ -165,12 +187,7 @@ class LiteLLMWrapper(ModelBase):
 
         return Response(message=None, streamer=streamer())
 
-    def chat_with_tools(
-        self,
-        messages: MessageHistory,
-        tools: List[Tool],
-        **kwargs: Any
-    ) -> Response:
+    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs: Any) -> Response:
         """
         Chat with the model using tools.
 
@@ -199,31 +216,21 @@ class LiteLLMWrapper(ModelBase):
         )
 
         # 4) Grab the first choice
-        choice = resp.choices[0].message
+        choice = resp.choices[0]
 
         # 5) If no tool calls were emitted, return plain assistant response
-        if not getattr(choice, "tool_calls", None):
-            return Response(
-                message=AssistantMessage(content=choice.content)
-            )
+        if choice.finish_reason == "stop":
+            return Response(message=AssistantMessage(content=choice.message.content))
 
         # 6) Otherwise convert each tool call into your ToolCall type
         calls: List[ToolCall] = []
-        for tc in choice.tool_calls:
+        for tc in choice.message.tool_calls:
             # tc.id, tc.function.name, and tc.function.arguments are all strings
             args = json.loads(tc.function.arguments)
-            calls.append(
-                ToolCall(
-                    identifier=tc.id,
-                    name=tc.function.name,
-                    arguments=args
-                )
-            )
+            calls.append(ToolCall(identifier=tc.id, name=tc.function.name, arguments=args))
 
         # 7) Return a “tool call” style assistant message
-        return Response(
-            message=AssistantMessage(content=calls)
-        )
+        return Response(message=AssistantMessage(content=calls))
 
     def __str__(self) -> str:
         parts = self._model_name.split("/", 1)
