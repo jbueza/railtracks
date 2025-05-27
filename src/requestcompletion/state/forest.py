@@ -57,7 +57,7 @@ class Forest(Generic[T]):
 
     The general principle of the object is you can add any subclass of `AbstractLinkedObject` to the heap. The heap will
     track any object with identical identifiers as connected objects. Any object which you add that already exists in
-    the heap (and by that I mean an object with the same identifier) must have a parent in the graph that match that
+    the heap (and by that I mean an object with the same identifier) must have a parent in the graph that matches that
     object. Once you have added that new object it is now the object that you can access from the heap. Conveniently
     because all `T` are immutable, you can pass around the objects without worry of pass by reference bugs.
     """
@@ -79,7 +79,7 @@ class Forest(Generic[T]):
 
     def full_data(self, at_step: int = None):
         """
-        Returns an passed by value list of all the data in the heap.
+        Returns a passed by value list of all the data in the heap.
 
         NOTE: You can do whatever you please with this object, and it will not affect the inner workings of the object.
         """
@@ -135,7 +135,7 @@ class Forest(Generic[T]):
     def time_machine(self, step: int | None, item_list: Optional[List[str]] = None):
         """
         This function mutates the state of self such that all items you have provided are returned to state at the given
-        step. If you have not provided any items it will be assumed that you want the entire heap to returned to the
+        step. If you have not provided any items it will be assumed that you want the entire heap to be returned to the
         given step.
 
         Note that it will include all items with the given step and less (it is inclusive of the step).
