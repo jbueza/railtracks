@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import asyncio
 from abc import ABC
 
 from pydantic import BaseModel
 from typing import Type, ParamSpec, Callable, Literal, TypeVar, TYPE_CHECKING, Generic
 
+from ..nodes.nodes import Node, NodeState
+
+
 # RC specific imports
 if TYPE_CHECKING:
-    from ..nodes.nodes import Node, NodeState
-    from .coordinator import Coordinator
+    from .publisher import ExecutionConfigurations
 
     _P = ParamSpec("_P")
     _TOutput = TypeVar("_TOutput")
@@ -15,11 +19,11 @@ if TYPE_CHECKING:
 
 
 class RequestCompletionMessage(ABC, BaseModel):
-    listener
+    pass
 
 
 # TODO add generic typung for all these types
-class _RequestFinishedBase(ABC, RequestCompletionMessage):
+class RequestFinishedBase(RequestCompletionMessage, ABC):
     request_id: str
     node_state: NodeState[Node[_TOutput]]
 
@@ -28,21 +32,21 @@ class _RequestFinishedBase(ABC, RequestCompletionMessage):
         return self.node_state.instantiate()
 
 
-class RequestSuccess(_RequestFinishedBase):
+class RequestSuccess(RequestFinishedBase):
     result: _TOutput
 
 
 class RequestCreation(RequestCompletionMessage):
-    current_node_id: str
+    current_node_id: str | None
     new_request_id: str
-    running_mode: Coordinator.RunningMode
+    running_mode: "ExecutionConfigurations"
     new_node_type: Callable[_P, _TNode[_TOutput]]
     # TODO: check the typing of this
     args: _P.args
     kwargs: _P.kwargs
 
 
-class RequestFailure(_RequestFinishedBase):
+class RequestFailure(RequestFinishedBase):
     error: Exception
 
 

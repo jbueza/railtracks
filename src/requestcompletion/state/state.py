@@ -16,11 +16,12 @@ from .execute import RCWorkerManager, Result
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
+from ..context import get_globals
 from ..execution.coordinator import Coordinator
 from ..execution.task import Task
 from ..utils.stream import Subscriber
-from ..execution.messages import RequestCreation, RequestSuccess
-from ..execution.publisher_base import MessageType
+from ..execution.messages import RequestCreation, RequestSuccess, RequestFinishedBase, RequestFailure
+
 from ..utils.logging.action import RequestCreationAction, RequestCompletionAction, NodeExceptionAction
 
 if TYPE_CHECKING:
@@ -39,7 +40,7 @@ _P = ParamSpec("_P")
 LOGGER_NAME = "RUNNER"
 
 
-class RCState(Subscriber[MessageType]):
+class RCState:
     """
     RCState is an internal RC object used to manage state of the request completion system. This object has a couple of
     major functions:
@@ -73,8 +74,12 @@ class RCState(Subscriber[MessageType]):
         # each new instance of a state object should have its own logger.
         self.logger = get_rc_logger(LOGGER_NAME)
 
-    def handle(self, item: MessageType) -> None:
-        if isinstance(item, RequestSuccess):
+        publisher = get_globals().publisher
+        publisher.subscribe(self.handle)
+
+    # TODO: fix up these abstractions so it consistent that we are mapping the request type into its proper type.
+    def handle(self, item: RequestCompletionAction) -> None:
+        if isinstance(item, RequestFinishedBase):
             self.handle_result(item)
         if isinstance(item, RequestCreation):
             # TODO: Add the logic around the mode.
@@ -86,12 +91,10 @@ class RCState(Subscriber[MessageType]):
                 **item.kwargs,
             )
 
-    @classmethod
-    def null_concrete_sub(cls):
-        raise NotImplementedError("RCState cannot be used as a null concrete sub")
-
     def shutdown(self):
         self.rc_coordinator.shutdown()
+        publisher = get_globals().publisher
+        publisher.shutdown(True)
 
     @property
     def is_empty(self):
@@ -283,7 +286,10 @@ class RCState(Subscriber[MessageType]):
         """
         child_node_id = self._request_heap[request_id].sink_id
         node = self._node_heap[child_node_id].node
-        return self.rc_coordinator.submit()
+        return self.rc_coordinator.submit(
+            task=Task(request_id=request_id, node=node),
+            mode="thread",
+        )
 
     def _handle_failed_request(self, failed_node_name: str, request_id: str, exception: Exception):
         """
@@ -346,12 +352,11 @@ class RCState(Subscriber[MessageType]):
             exception_history=list(self.exception_history),
         )
 
-    def handle_result(self, result: RequestSuccess):
-
-        if result.error is not None:
+    def handle_result(self, result: RequestFinishedBase):
+        if isinstance(result, RequestFailure):
             output = self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
             returnable_result = output.exception
-        else:
+        elif isinstance(result, RequestSuccess):
             output = result.result
             request_completion_obj = RequestCompletionAction(
                 child_node_name=result.node.pretty_name(),
@@ -360,6 +365,8 @@ class RCState(Subscriber[MessageType]):
 
             self.logger.info(request_completion_obj.to_logging_msg())
             returnable_result = output
+        else:
+            raise TypeError(f"Unknown result type: {type(result)}")
 
         stamp = self._stamper.create_stamp(f"Finished executing {result.node.pretty_name()}")
 

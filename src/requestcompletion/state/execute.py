@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 
 from ..nodes.nodes import Node
 
-from ..context import set_parent_id, set_runner, get_runner, get_parent_id
-
 _P = ParamSpec("_P")
 _TOutput = TypeVar("_TOutput")
 

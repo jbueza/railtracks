@@ -4,9 +4,9 @@ import contextvars
 import queue
 import threading
 import warnings
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Literal
 
-from .execution.publisher import Publisher
+from .execution.publisher import RCPublisher, ExecutionConfigurations
 
 if TYPE_CHECKING:
     from .run import Runner
@@ -21,7 +21,7 @@ class ThreadContext:
 
     def __init__(
         self,
-        publisher: Publisher,
+        publisher: RCPublisher,
         parent_id: str | None,
     ):
         self._parent_id = parent_id
@@ -41,8 +41,14 @@ class ThreadContext:
         return self._publisher
 
     @publisher.setter
-    def publisher(self, value: Publisher):
+    def publisher(self, value: RCPublisher):
         self._publisher = value
+
+    def prepare_new(self, new_parent_id: str) -> ThreadContext:
+        return ThreadContext(
+            publisher=self._publisher,
+            parent_id=new_parent_id,
+        )
 
 
 def get_globals() -> ThreadContext:
