@@ -8,6 +8,7 @@ TIME_MCP_ARGS = ["-m", "mcp_server_time", "--local-timezone=America/Vancouver"]
 
 AIRBNB_MCP_COMMAND = r"npx"
 AIRBNB_MCP_ARGS = ["-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"]
+# Airbnb MCP server requires Node.js and the `npx` command to run.
 
 
 # Discover all tools
