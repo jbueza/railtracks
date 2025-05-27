@@ -1,8 +1,9 @@
 import asyncio
+import logging
 import threading
 import time
 from contextlib import AsyncExitStack
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Literal
 
 import httpx
 from mcp import ClientSession, StdioServerParameters
@@ -10,7 +11,7 @@ from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import create_mcp_http_client
 from requestcompletion.llm import Tool
 from requestcompletion.nodes.nodes import Node
-from typing_extensions import Self
+from typing_extensions import Self, Type
 
 try:
     from sseclient import SSEClient
@@ -27,7 +28,7 @@ class MCPAsyncClient:
         command: str,
         args: list,
         env: Optional[Dict[str, str]] = None,
-        transport_type: str = "stdio",
+        transport_type: Literal["stdio", "http-stream"] = "stdio",
         transport_options: Optional[dict] = None,
     ):
         self.command = command
@@ -43,8 +44,10 @@ class MCPAsyncClient:
         self.sse_thread = None
         self.sse_stop_event = threading.Event()
         self.sse_messages = asyncio.Queue()
+        self._main_loop = None
 
     async def __aenter__(self):
+        self._main_loop = asyncio.get_running_loop()
         if self.transport_type == "stdio":
             server_params = StdioServerParameters(
                 command=self.command,
@@ -82,6 +85,7 @@ class MCPAsyncClient:
             )
             self.session_id = resp.headers.get("Mcp-Session-Id")
             await resp.aread()
+            await resp.aclose()
             # Start SSE stream for server-to-client messages
             await self._start_sse_stream()
         else:
@@ -112,16 +116,40 @@ class MCPAsyncClient:
                             try:
                                 data = event.data
                                 asyncio.run_coroutine_threadsafe(
-                                    self.sse_messages.put(data), asyncio.get_event_loop()
+                                    self.sse_messages.put(data), self._main_loop
                                 )
-                            except Exception:
-                                pass
-            except Exception:
-                pass
+                            except Exception as e:
+                                logging.exception("Error putting SSE message: %s", e)
+            except Exception as e:
+                logging.exception("SSE worker error: %s", e)
 
         self.sse_stop_event.clear()
         self.sse_thread = threading.Thread(target=sse_worker, daemon=True)
         self.sse_thread.start()
+
+    async def terminate(self):
+        # Stop SSE thread
+        if self.sse_thread and self.sse_thread.is_alive():
+            self.sse_stop_event.set()
+            self.sse_thread.join(timeout=2)
+            self.sse_thread = None
+        # Terminate session if HTTP
+        if self.transport_type == "http-stream" and self.session_id:
+            try:
+                await self.http_session.request(
+                    "DELETE",
+                    self.base_url,
+                    headers={"Mcp-Session-Id": self.session_id, **self.http_headers}
+                )
+            except Exception as e:
+                logging.exception("Error terminating HTTP session: %s", e)
+            self.session_id = None
+        if self.transport_type == "stdio" and self.session is not None:
+            try:
+                await self.session.aclose()
+            except Exception as e:
+                logging.exception("Error closing stdio session: %s", e)
+            self.session = None
 
     async def get_sse_message(self, timeout: float = 0.1):
         try:
@@ -159,6 +187,7 @@ class MCPAsyncClient:
                 data = await data
             self._tools_cache = data.get("result", {}).get("tools", [])
             await resp.aread()
+            await resp.aclose()
         return self._tools_cache
 
     async def call_tool(self, tool_name: str, tool_args: dict):
@@ -189,12 +218,15 @@ class MCPAsyncClient:
                 if asyncio.iscoroutine(data):
                     data = await data
                 await resp.aread()
+                await resp.aclose()
                 return data.get("result")
             elif "text/event-stream" in content_type:
                 await resp.aread()
+                await resp.aclose()
                 raise NotImplementedError("Use stream_tool_call for streaming responses.")
             else:
                 await resp.aread()
+                await resp.aclose()
                 raise NotImplementedError("Unknown response type.")
         else:
             raise ValueError(f"Unsupported transport_type: {self.transport_type}")
@@ -224,34 +256,18 @@ class MCPAsyncClient:
         if "text/event-stream" in content_type:
             async for chunk in resp.aiter_text():
                 yield chunk
+            await resp.aclose()
         else:
             await resp.aread()
+            await resp.aclose()
             raise NotImplementedError("Non-streaming response received in stream_tool_call.")
-
-    async def terminate(self):
-        # Stop SSE thread
-        if self.sse_thread and self.sse_thread.is_alive():
-            self.sse_stop_event.set()
-            self.sse_thread.join(timeout=2)
-            self.sse_thread = None
-        # Terminate session if HTTP
-        if self.transport_type == "http-stream" and self.session_id:
-            try:
-                await self.http_session.request(
-                    "DELETE",
-                    self.base_url,
-                    headers={"Mcp-Session-Id": self.session_id, **self.http_headers}
-                )
-            except Exception:
-                pass
-            self.session_id = None
 
 
 def from_mcp(
     tool,
     command: str,
     args: list,
-    transport_type: str = "stdio",
+    transport_type: Literal["stdio", "http-stream"] = "stdio",
     transport_options: Optional[dict] = None
 ):
     """
@@ -307,3 +323,40 @@ def from_mcp(
             return cls(**tool_parameters)
 
     return MCPToolNode
+
+
+async def from_mcp_server_async(
+    command: str,
+    args: list,
+    transport_type: Literal["stdio", "http-stream"] = "stdio",
+    transport_options: Optional[dict] = None
+) -> [Type[Node]]:
+    """
+    Discover all tools from an MCP server and wrap them as Node classes.
+
+    Args:
+        command: Command to launch the MCP server.
+        args: Arguments for the command.
+        transport_type: 'stdio' or 'http-stream'.
+        transport_options: Optional dict for HTTP Stream configuration.
+
+    Returns:
+        List of Nodes, one for each discovered tool.
+    """
+    async with MCPAsyncClient(
+        command,
+        args,
+        transport_type=transport_type,
+        transport_options=transport_options
+    ) as client:
+        tools = await client.list_tools()
+        return [
+            from_mcp(
+                tool,
+                command,
+                args,
+                transport_type=transport_type,
+                transport_options=transport_options
+            )
+            for tool in tools
+        ]

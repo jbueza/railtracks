@@ -1,12 +1,14 @@
-from typing import Type, Optional
-from requestcompletion.utils.mcp_utils import MCPAsyncClient, from_mcp
+from typing import Type, Optional, Literal
 from requestcompletion.nodes.nodes import Node
+import asyncio
+
+from requestcompletion.utils.mcp_utils import from_mcp_server_async
 
 
-async def from_mcp_server(
+def from_mcp_server(
     command: str,
     args: list,
-    transport_type: str = "stdio",
+    transport_type: Literal["stdio", "http-stream"] = "stdio",
     transport_options: Optional[dict] = None
 ) -> [Type[Node]]:
     """
@@ -21,20 +23,11 @@ async def from_mcp_server(
     Returns:
         List of Nodes, one for each discovered tool.
     """
-    async with MCPAsyncClient(
-        command,
-        args,
-        transport_type=transport_type,
-        transport_options=transport_options
-    ) as client:
-        tools = await client.list_tools()
-        return [
-            from_mcp(
-                tool,
-                command,
-                args,
-                transport_type=transport_type,
-                transport_options=transport_options
-            )
-            for tool in tools
-        ]
+    return asyncio.run(
+        from_mcp_server_async(
+            command,
+            args,
+            transport_type=transport_type,
+            transport_options=transport_options
+        )
+    )
