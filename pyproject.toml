@@ -16,16 +16,17 @@ classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 dependencies = [
     "colorama >= 0.4.6",
-    "requests >=2.31,<3",
+    "llama-index >= 0.12.0",
+    "llama-index-llms-anthropic >= 0.6.0",
+    "llama-index-llms-openai >= 0.3.0,<=0.3.38",
+    "mcp >= 1.9.0",
+    "nltk >= 3.9.1",
+    "openai <= 1.81.0",
     "pydantic >= 2.5.3,<3",
-    "requests-mock >= 1.12.1",
     "python-dotenv >= 1.0.0",
     "pyvis >= 0.3.1",
-    "llama-index >= 0.12.0",
-    "llama-index-llms-openai >= 0.3.0,<=0.3.38",
-    "llama-index-llms-anthropic >= 0.6.0",
-    "openai <= 1.81.0",
-    "nltk >= 3.9.1"
+    "requests >=2.31,<3",
+    "requests-mock >= 1.12.1",
 ]
 
 [project.urls]
