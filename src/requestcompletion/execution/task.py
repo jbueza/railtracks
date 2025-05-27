@@ -1,11 +1,9 @@
-from abc import abstractmethod, ABC
-from typing import Generic, TypeVar, Literal, Dict
-
-from .execution_strategy import ThreadedExecutionStrategy, ProcessExecutionStrategy, TaskExecutionStrategy
 from ..nodes.nodes import Node
 
 
-class Task(ABC):
+class Task:
+    """A simple class used to represent a task to be completed by the executor of choice."""
+
     def __init__(
         self,
         request_id: str,
@@ -16,4 +14,5 @@ class Task(ABC):
 
     @property
     def invoke(self):
+        """The callable that this task is representing."""
         return self.node.invoke

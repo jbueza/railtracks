@@ -4,9 +4,11 @@ import contextvars
 import queue
 import threading
 import warnings
+from functools import wraps
 from typing import TYPE_CHECKING, Callable, Literal
 
-from .execution.publisher import RCPublisher, ExecutionConfigurations
+from .execution.publisher import RCPublisher
+
 
 if TYPE_CHECKING:
     from .run import Runner
@@ -49,6 +51,22 @@ class ThreadContext:
             publisher=self._publisher,
             parent_id=new_parent_id,
         )
+
+
+def register_global_wrapper(parent_id: str | None = None):
+    parent_global_variables = get_globals()
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Register the global variables before executing the function
+            register_globals(parent_global_variables.prepare_new(new_parent_id=parent_id))
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def get_globals() -> ThreadContext:

@@ -12,6 +12,7 @@ from .execution.coordinator import Coordinator
 from .execution.execution_strategy import ThreadedExecutionStrategy
 from .execution.messages import RequestCompletionMessage, RequestCreation
 from .execution.publisher import RCPublisher
+from .utils.misc import output_mapping
 from .utils.stream import DataStream, Subscriber
 from .nodes.nodes import Node
 from .utils.logging.config import prepare_logger, detach_logging_handlers
@@ -122,7 +123,7 @@ class Runner:
             raise RuntimeError("The run function can only be used to start not in the middle of a run.")
 
         start_request_id = "START"
-        fut = self.publisher.listener(lambda item: item.request_id == start_request_id)
+        fut = self.publisher.listener(lambda item: item.request_id == start_request_id, output_mapping)
 
         self.publisher.publish(
             RequestCreation(
@@ -136,6 +137,7 @@ class Runner:
         )
 
         fut.result()
+
         return self.rc_state.info
 
     def _close(self):

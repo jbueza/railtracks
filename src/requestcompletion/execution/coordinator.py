@@ -9,9 +9,14 @@ import time
 from typing import Literal, TypeVar, Generic, Coroutine, Dict, get_args, Callable, List
 
 from .execution_strategy import TaskExecutionStrategy
-from .messages import RequestCompletionMessage, RequestFinishedBase, RequestSuccess, RequestCreation
+from .messages import (
+    RequestCompletionMessage,
+    RequestFinishedBase,
+    RequestSuccess,
+    RequestCreation,
+    ExecutionConfigurations,
+)
 from .task import Task
-from .publisher import ExecutionConfigurations
 from ..context import get_globals
 
 
@@ -114,7 +119,7 @@ class Coordinator:
             ], "RequestCreation message must match an existing job."
 
     # TODO write up required params here
-    async def submit(
+    def submit(
         self,
         task: Task,
         mode: ExecutionConfigurations,

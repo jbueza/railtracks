@@ -12,7 +12,9 @@ from ..execution.messages import (
     RequestSuccess,
     RequestFailure,
 )
-from ..run import Runner, RunnerNotFoundError
+
+from ..utils.misc import output_mapping
+
 
 from ..nodes.nodes import Node
 from ..state.request import RequestTemplate
@@ -46,18 +48,8 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
             return message.request_id == request_id
         return False
 
-    def output_mapping(result: RequestCompletionMessage) -> RequestFinishedBase:
-        assert isinstance(result, RequestFinishedBase), "Expected a RequestFinishedBase message type"
-        result: RequestFinishedBase
-        if isinstance(result, RequestSuccess):
-            result: RequestSuccess
-            return result.result
-        elif isinstance(result, RequestFailure):
-            result: RequestFailure
-            raise result.error
-
     # TODO ensure we don't miss any messages here (e.g. what if the request returns really fast)
-    f = publisher.listener(message_filter)
+    f = publisher.listener(message_filter, output_mapping)
 
     publisher.publish(
         RequestCreation(

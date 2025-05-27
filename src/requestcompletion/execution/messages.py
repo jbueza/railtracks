@@ -10,22 +10,29 @@ from ..nodes.nodes import Node, NodeState
 
 
 # RC specific imports
-if TYPE_CHECKING:
-    from .publisher import ExecutionConfigurations
 
-    _P = ParamSpec("_P")
-    _TOutput = TypeVar("_TOutput")
-    _TNode = TypeVar("_TNode", bound=Node)
+ExecutionConfigurations = Literal["thread"]
+
+_P = ParamSpec("_P")
+_TOutput = TypeVar("_TOutput")
+_TNode = TypeVar("_TNode", bound=Node)
 
 
-class RequestCompletionMessage(ABC, BaseModel):
+class RequestCompletionMessage(ABC):
     pass
 
 
-# TODO add generic typung for all these types
+# TODO add generic typing for all these types
 class RequestFinishedBase(RequestCompletionMessage, ABC):
-    request_id: str
-    node_state: NodeState[Node[_TOutput]]
+    def __init__(
+        self,
+        *,
+        request_id: str,
+        node_state: NodeState[Node[_TOutput]],
+    ):
+
+        self.request_id = request_id
+        self.node_state = node_state
 
     @property
     def node(self) -> Node[_TOutput]:
@@ -33,21 +40,40 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
 
 
 class RequestSuccess(RequestFinishedBase):
-    result: _TOutput
+    def __init__(self, *, request_id: str, node_state: NodeState[_TNode[_TOutput]], result: _TOutput):
+        super().__init__(request_id=request_id, node_state=node_state)
+        self.result = result
 
 
 class RequestCreation(RequestCompletionMessage):
-    current_node_id: str | None
-    new_request_id: str
-    running_mode: "ExecutionConfigurations"
-    new_node_type: Callable[_P, _TNode[_TOutput]]
-    # TODO: check the typing of this
-    args: _P.args
-    kwargs: _P.kwargs
+    def __init__(
+        self,
+        *,
+        current_node_id: str | None,
+        new_request_id: str,
+        running_mode: ExecutionConfigurations,
+        new_node_type: Type[_TNode[_TOutput]],
+        args,
+        kwargs,
+    ):
+        self.current_node_id = current_node_id
+        self.new_request_id = new_request_id
+        self.running_mode = running_mode
+        self.new_node_type = new_node_type
+        self.args = args
+        self.kwargs = kwargs
 
 
 class RequestFailure(RequestFinishedBase):
-    error: Exception
+    def __init__(
+        self,
+        *,
+        request_id: str,
+        node_state: NodeState[_TNode[_TOutput]],
+        error: Exception,
+    ):
+        super().__init__(request_id=request_id, node_state=node_state)
+        self.error = error
 
 
 # TODO implement other message types

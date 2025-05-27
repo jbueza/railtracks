@@ -16,7 +16,7 @@ from .execute import RCWorkerManager, Result
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
-from ..context import get_globals
+from ..context import get_globals, register_globals, ThreadContext
 from ..execution.coordinator import Coordinator
 from ..execution.task import Task
 from ..utils.stream import Subscriber
@@ -76,13 +76,21 @@ class RCState:
 
         publisher = get_globals().publisher
         publisher.subscribe(self.handle)
+        self.publisher = publisher
 
     # TODO: fix up these abstractions so it consistent that we are mapping the request type into its proper type.
     def handle(self, item: RequestCompletionAction) -> None:
+
         if isinstance(item, RequestFinishedBase):
             self.handle_result(item)
         if isinstance(item, RequestCreation):
-            # TODO: Add the logic around the mode.
+            register_globals(
+                ThreadContext(
+                    parent_id=item.current_node_id,
+                    publisher=self.publisher,
+                )
+            )
+
             self.call_nodes(
                 parent_node_id=item.current_node_id,
                 request_id=item.new_request_id,
@@ -94,7 +102,7 @@ class RCState:
     def shutdown(self):
         self.rc_coordinator.shutdown()
         publisher = get_globals().publisher
-        publisher.shutdown(True)
+        publisher.shutdown(False)
 
     @property
     def is_empty(self):
@@ -205,7 +213,6 @@ class RCState:
             The output of the node that was run. It will match the output type of the child node that was run.
 
         """
-        import time
 
         request_id = self._create_node_and_request(parent_node_id, request_id, node, *args, **kwargs)
         outputs = self._run_request(request_id)

@@ -52,8 +52,14 @@ TopLevel = rc.library.from_function(top_level)
 
 
 # by leveraging timeout we can ensure that the test is properly using parallelization
-@pytest.mark.timeout(4)
-def test_regular_style_parallel():
+
+
+def main():
     with rc.Runner() as run:
         result = run.run_sync(TopLevel)
         assert result.answer == [1, 2, 3, 2, 1]
+
+
+if __name__ == "__main__":
+    main()
+    print("Test executed successfully.")

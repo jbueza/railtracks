@@ -47,6 +47,7 @@ class ConcurrentFuturesExecutor(TaskExecutionStrategy):
             invoke_func = task.invoke
 
         parent_global_variables = get_globals()
+
         publisher = parent_global_variables.publisher
 
         def wrapped_invoke(global_vars: ThreadContext):
@@ -55,18 +56,17 @@ class ConcurrentFuturesExecutor(TaskExecutionStrategy):
                     new_parent_id=task.node.uuid,
                 )
             )
-            return invoke_func()
+            try:
+                result = invoke_func()
+                response = RequestSuccess(request_id=task.request_id, node_state=NodeState(task.node), result=result)
+            except Exception as e:
+                response = RequestFailure(request_id=task.request_id, node_state=NodeState(task.node), error=e)
+            finally:
+                publisher.publish(response)
 
-        try:
-            f = self.executor.submit(wrapped_invoke, parent_global_variables)
-            result = f.result()
-            response = RequestSuccess(request_id=task.request_id, node_state=NodeState(task.node), result=result)
-        except Exception as e:
-            response = RequestFailure(request_id=task.request_id, node_state=NodeState(task.node), error=e)
-        finally:
-            publisher.publish(response)
+        f = self.executor.submit(wrapped_invoke, parent_global_variables)
 
-        return response
+        return f
 
 
 class ThreadedExecutionStrategy(ConcurrentFuturesExecutor):

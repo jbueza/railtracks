@@ -30,15 +30,12 @@ async def error_thrower():
 
 ErrorThrower = rc.library.from_function(error_thrower)
 
-import json
-
 
 def test_error():
     with rc.Runner() as run:
         with pytest.raises(TestError):
             run.run_sync(ErrorThrower)
 
-            print(run.info.node_heap.heap())
 
 
 async def error_handler():

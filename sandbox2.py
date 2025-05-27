@@ -5,7 +5,7 @@ import asyncio
 from src.requestcompletion.execution.publisher import RCPublisher
 
 
-async def main():
+def main():
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             pub = RCPublisher()
@@ -23,4 +23,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
