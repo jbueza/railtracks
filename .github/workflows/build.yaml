@@ -27,6 +27,12 @@ jobs:
           pip install flit
           flit install --deps production --extras "test"
 
+      - name: Check pyproject.toml dependency order
+        run: |
+          python -m pip install --upgrade pip
+          pip install tomlkit==0.11.8
+          python scripts/check_dependencies_sorted.py
+
       - name: Run tests
         run: |
           export OPENAI_API_KEY=${{ secrets.INTEGRATION_TESTS_OPENAI_API_KEY }}
