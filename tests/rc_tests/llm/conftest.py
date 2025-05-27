@@ -1,11 +1,12 @@
 from typing import List, Callable
-
+import pytest
 import requestcompletion.llm as llm
 from pydantic import BaseModel
 from requestcompletion.llm import MessageHistory, Tool
 from requestcompletion.llm.response import Response
 
 
+# ====================================== MockLLM ======================================
 class MockLLM(llm.ModelBase):
     def __init__(
         self,
@@ -36,3 +37,9 @@ class MockLLM(llm.ModelBase):
         self, messages: MessageHistory, tools: List[Tool], **kwargs
     ) -> Response:
         return self._chat_with_tools(messages, tools)
+    
+
+@pytest.fixture
+def mock_llm() -> MockLLM:
+    return MockLLM
+#======================================================================================
