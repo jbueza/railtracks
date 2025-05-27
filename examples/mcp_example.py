@@ -1,9 +1,12 @@
 import asyncio
+import os
+
 import requestcompletion as rc
 from requestcompletion.nodes.library.mcp_tool import from_mcp_server
 
 #%%
-TIME_MCP_COMMAND = r"C://Users//Levi//anaconda3//python.exe"
+# Install mcp_server_time for time tools:
+TIME_MCP_COMMAND = os.environ.get("TIME_MCP_COMMAND", "python.exe")
 TIME_MCP_ARGS = ["-m", "mcp_server_time", "--local-timezone=America/Vancouver"]
 
 AIRBNB_MCP_COMMAND = r"npx"
@@ -12,8 +15,8 @@ AIRBNB_MCP_ARGS = ["-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"]
 
 
 # Discover all tools
-time_tools = asyncio.run(from_mcp_server(TIME_MCP_COMMAND, TIME_MCP_ARGS))
-airbnb_tools = asyncio.run(from_mcp_server(AIRBNB_MCP_COMMAND, AIRBNB_MCP_ARGS))
+time_tools = from_mcp_server(TIME_MCP_COMMAND, TIME_MCP_ARGS)
+airbnb_tools = from_mcp_server(AIRBNB_MCP_COMMAND, AIRBNB_MCP_ARGS)
 
 parent_tool = rc.library.tool_call_llm(
     connected_nodes={*time_tools, *airbnb_tools},
