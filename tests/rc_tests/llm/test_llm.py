@@ -94,6 +94,7 @@ def test_tool_call():
         [Tool(tool_name, tool_description, [])],
     )
 
+    assert str(Tool(tool_name, tool_description, [])) == 'Tool(name=tool1, detail=Call this tool sometime, parameters=None)'
     assert response.message.content[0].identifier == identifier
     assert response.message.content[0].name == tool_name
     assert response.message.content[0].arguments == {}

@@ -7,8 +7,8 @@ from ...interaction.call import call
 from abc import ABC, abstractmethod
 from ...exceptions import FatalError
 
-
 _T = TypeVar("_T")
+
 
 class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     """A base class that is a node which contains
@@ -23,7 +23,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         super().__init__()
         self.model = model
         self.message_hist = deepcopy(message_history)
-        self.structured_resp_node = None    # The structured LLM node
+        self.structured_resp_node = None  # The structured LLM node
 
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
@@ -85,17 +85,14 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
             else:
                 # the message is malformed from the model
                 raise RuntimeError("ModelLLM returned an unexpected message type.",
-                )
-        
+                                   )
+
         if self.structured_resp_node:
             try:
-                self.structured_output =  await call(
-                    self.structured_resp_node, 
-                    message_history=MessageHistory([UserMessage(str(self.message_hist))])
-                )
+                self.structured_output = await call(
+                    self.structured_resp_node,
+                    message_history=MessageHistory([UserMessage(str(self.message_hist))]))
             except Exception as e:
                 self.structured_output = ValueError(f"Failed to parse assistant response into structured output: {e}")
-        
+
         return self.return_output()
-
-

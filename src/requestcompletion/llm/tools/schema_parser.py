@@ -7,7 +7,7 @@ and converting Parameter objects into Pydantic models.
 
 from typing import Dict, Set, Type, List, Any
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, create_model, ConfigDict
 
 from .parameter import Parameter, PydanticParameter
 
@@ -251,8 +251,7 @@ def convert_params_to_model_recursive(model_name: str, parameters: Set[Parameter
 
     # Create a model with model_config that sets extra="forbid" to ensure additionalProperties=False in the schema
     # TODO: This is a requirement by OpenAI's API, need to keep an eye out for other LLMs that may not have this requirement
-    class Config:
-        extra = "forbid"
+    config = ConfigDict(extra="forbid")
 
-    model = create_model(model_name, __config__=Config, **field_definitions)
+    model = create_model(model_name, __config__=config, **field_definitions)
     return model 

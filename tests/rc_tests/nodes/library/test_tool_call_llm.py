@@ -1,12 +1,22 @@
+from copy import deepcopy
+from typing import Dict, Any
+
 import pytest
 import requestcompletion as rc
 from itertools import product
 
+from pydantic import BaseModel
+
+from requestcompletion.llm import MessageHistory, UserMessage
+
+from src.requestcompletion.nodes.library import from_function
+
 # ============ TEST CASES ===========
 NODE_INIT_METHODS = ["easy_wrapper", "class_based"]
 
-
 simple_model_test_cases = list(product(NODE_INIT_METHODS, ["simple_model"]))
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("simple_node", simple_model_test_cases, indirect=True, ids=lambda x: f"{x[0]}_with_{x[1]}")
 async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
@@ -20,6 +30,8 @@ async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
 
 
 empty_model_test_cases = list(product(NODE_INIT_METHODS, ["empty_model"]))
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("simple_node", empty_model_test_cases, indirect=True, ids=lambda x: f"{x[0]}_with_{x[1]}")
 async def test_empty_output_model(simple_node, empty_output_model):
@@ -98,8 +110,8 @@ async def test_structured_tool_call_with_output_model_and_output_type(model, mat
     )
 
     with pytest.raises(
-                NotImplementedError, match="MessageHistory output type is not supported with output_model at the moment."
-            ):
+            NotImplementedError, match="MessageHistory output type is not supported with output_model at the moment."
+    ):
         _ = rc.library.tool_call_llm(
             connected_nodes={rng_node},
             pretty_name="Math Node",
@@ -110,3 +122,354 @@ async def test_structured_tool_call_with_output_model_and_output_type(model, mat
             output_type="MessageHistory",
             output_model=math_output_model,
         )
+
+
+@pytest.mark.asyncio
+async def test_tool_with_llm_tool_as_input_easy_tools():
+    """Test a tool that uses another LLM tool as input."""
+    def print_hello(true_to_call: bool = True):
+        return "Hello!"
+
+    # Define the child tool
+    child_tool = rc.library.tool_call_llm(
+        connected_nodes={from_function(print_hello)},
+        pretty_name="Child Tool",
+        system_message=rc.llm.SystemMessage("When asked for a response, provide the output of the tool."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        tool_details="A tool that generates a simple response.",
+        tool_params={rc.llm.Parameter(name="response_request", param_type="string",
+                                      description="A sentence that requests a response.")},
+    )
+
+    # Define the parent tool that uses the child tool
+    parent_tool = rc.library.tool_call_llm(
+        connected_nodes={child_tool},
+        pretty_name="Parent Tool",
+        system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+    )
+
+    # Run the parent tool
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Give me a response."
+                )
+            ]
+        )
+        response = await runner.run(parent_tool, message_history=message_history)
+
+    assert response.answer is not None
+    assert response.answer.content == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_tool_with_llm_tool_as_input_class_easy():
+    """Test a tool that uses another LLM tool as input."""
+
+    def print_hello(true_to_call: bool = True):
+        return "Hello!"
+
+    # Define the child tool
+    class ChildTool(rc.library.ToolCallLLM):
+        def __init__(
+            self,
+            message_history: rc.llm.MessageHistory,
+        ):
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(
+                0,
+                rc.llm.SystemMessage("When asked for a response, provide the output of the tool.")
+            )
+
+            super().__init__(message_history=message_history_copy,
+                             model=rc.llm.OpenAILLM("gpt-4o"))
+
+        @classmethod
+        def connected_nodes(cls):
+            return {rc.library.from_function(print_hello)}
+
+        @classmethod
+        def tool_info(cls) -> rc.llm.Tool:
+            return rc.llm.Tool(
+                name="Child_Tool",
+                detail="A tool that generates a simple response.",
+                parameters={rc.llm.Parameter(name="response_request", param_type="string",
+                                             description="A sentence that requests a response.")},
+            )
+
+        @classmethod
+        def prepare_tool(cls, tool_parameters: Dict[str, Any]):
+            message_hist = MessageHistory(
+                [UserMessage(f"response_request: '{tool_parameters['response_request']}'")]
+            )
+            return cls(message_hist)
+
+        @classmethod
+        def pretty_name(cls) -> str:
+            return "Child Tool"
+
+    # Define the parent tool that uses the child tool
+    parent_tool = rc.library.tool_call_llm(
+        connected_nodes={ChildTool},
+        pretty_name="Parent_Tool",
+        system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+    )
+
+    # Run the parent tool
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Give me a response."
+                )
+            ]
+        )
+        response = await runner.run(parent_tool, message_history=message_history)
+
+    assert response.answer is not None
+    assert response.answer.content == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_tool_with_llm_tool_as_input_easy_class():
+    """Test a tool that uses another LLM tool as input."""
+    def print_hello(true_to_call: bool = True):
+        return "Hello!"
+
+    # Define the child tool
+    child_tool = rc.library.tool_call_llm(
+        connected_nodes={from_function(print_hello)},
+        pretty_name="Child_Tool",
+        system_message=rc.llm.SystemMessage("When asked for a response, provide the output of the tool."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        tool_details="A tool that generates a simple response.",
+        tool_params={rc.llm.Parameter(name="response_request", param_type="string",
+                                      description="A sentence that requests a response.")},
+    )
+
+    # Define the parent tool that uses the child tool
+    class ParentTool(rc.library.ToolCallLLM):
+        def return_output(self):
+            return self.message_hist[-1]
+
+        def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+        ):
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+
+            super().__init__(message_history=message_history_copy,
+                             model=rc.llm.OpenAILLM("gpt-4o"))
+
+        @classmethod
+        def connected_nodes(cls):
+            return {child_tool}
+
+        @classmethod
+        def pretty_name(cls) -> str:
+            return "Parent Tool"
+
+    # Run the parent tool
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Give me a response."
+                )
+            ]
+        )
+        response = await runner.run(ParentTool, message_history=message_history)
+
+    assert response.answer is not None
+    assert response.answer.content == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_tool_with_llm_tool_as_input_class_tools():
+    """Test a tool that uses another LLM tool as input."""
+    def print_hello(true_to_call: bool = True):
+        return "Hello!"
+
+    # Define the child tool
+    class ChildTool(rc.library.ToolCallLLM):
+        def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+        ):
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(0, rc.llm.SystemMessage("When asked for a response, provide the output of the tool."))
+
+            super().__init__(message_history=message_history_copy,
+                             model=rc.llm.OpenAILLM("gpt-4o"))
+
+        @classmethod
+        def connected_nodes(cls):
+            return {rc.library.from_function(print_hello)}
+
+        @classmethod
+        def tool_info(cls) -> rc.llm.Tool:
+            return rc.llm.Tool(
+                name="Child_Tool",
+                detail="A tool that generates a simple response.",
+                parameters={rc.llm.Parameter(name="response_request", param_type="string",
+                                             description="A sentence that requests a response.")},
+            )
+
+        @classmethod
+        def prepare_tool(cls, tool_parameters: Dict[str, Any]):
+            message_hist = MessageHistory(
+                [UserMessage(f"response_request: '{tool_parameters['response_request']}'")]
+            )
+            return cls(message_hist)
+
+        @classmethod
+        def pretty_name(cls) -> str:
+            return "Child Tool"
+
+    # Define the parent tool that uses the child tool
+    class ParentTool(rc.library.ToolCallLLM):
+        def return_output(self):
+            return self.message_hist[-1]
+
+        def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+        ):
+            message_history_copy = deepcopy(message_history)
+            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool when asked."))
+
+            super().__init__(message_history=message_history_copy,
+                             model=rc.llm.OpenAILLM("gpt-4o"))
+
+        @classmethod
+        def connected_nodes(cls):
+            return {ChildTool}
+
+        @classmethod
+        def pretty_name(cls) -> str:
+            return "Parent Tool"
+
+    # Run the parent tool
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Give me a response."
+                )
+            ]
+        )
+        response = await runner.run(ParentTool, message_history=message_history)
+
+    assert response.answer is not None
+    assert response.answer.content == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_tool_with_structured_output_child_tool():
+    """Test a tool that uses another LLM tool with structured output as input."""
+
+    # Define a structured output model
+    class ChildResponse(BaseModel):
+        message: str
+        word_count: int
+
+    class ParentResponse(BaseModel):
+        message: str
+        word_count: int
+        success: bool
+
+    # Define the child tool with structured output
+    child_tool = rc.library.structured_llm(
+        output_model=ChildResponse,
+        system_message=rc.llm.SystemMessage("Generate a structured response."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        pretty_name="Structured Child Tool",
+        tool_details="A tool that generates a structured response that includes word count.",
+        tool_params={rc.llm.Parameter(name="request", param_type="string",
+                                      description="A sentence to generate a response for.")},
+    )
+
+    # Define the parent tool that uses the child tool
+    parent_tool = rc.library.tool_call_llm(
+        output_model=ParentResponse,
+        connected_nodes={child_tool},
+        pretty_name="Parent Tool",
+        system_message=rc.llm.SystemMessage("Use the child tool to generate a structured response."),
+        model=rc.llm.OpenAILLM("gpt-4o"),
+    )
+
+    # Run the parent tool
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "Generate a structured response for 'Hello World'."
+                )
+            ]
+        )
+        response = await runner.run(parent_tool, message_history=message_history)
+
+    # Assertions
+    assert response.answer is not None
+    assert isinstance(response.answer, ParentResponse)
+    assert response.answer.message == "Hello World"
+    assert response.answer.word_count == 2
+    assert response.answer.success is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "llm_function, connected_nodes",
+    [
+        (rc.library.tool_call_llm, {rc.library.from_function(lambda: "test")}),
+        (rc.library.structured_llm, None),
+    ],
+    ids=["tool_call_llm", "structured_llm"]
+)
+@pytest.mark.parametrize(
+    "output_model, tool_details, tool_params, expected_exception, match",
+    [
+        # Test: tool_params provided but tool_details is missing
+        (
+            BaseModel,
+            None,
+            [rc.llm.Parameter(name="param1", param_type="string", description="A test parameter.")],
+            RuntimeError,
+            "Tool parameters are provided, but tool details are missing.",
+        ),
+        # Test: tool_details provided but tool_params is empty
+        (
+            BaseModel,
+            "A test tool",
+            [],
+            RuntimeError,
+            "If no parameters are required for the tool, `tool_params` must be set to None.",
+        ),
+        # Test: Duplicate parameter names in tool_params
+        (
+            BaseModel,
+            "A test tool",
+            [
+                rc.llm.Parameter(name="param1", param_type="string", description="A test parameter."),
+                rc.llm.Parameter(name="param1", param_type="string", description="A duplicate parameter."),
+            ],
+            ValueError,
+            "Duplicate parameter names are not allowed.",
+        ),
+    ],
+)
+def test_structured_llm_tool_errors(output_model, tool_details, tool_params, llm_function, connected_nodes, expected_exception, match):
+        kwargs = {
+            "output_model": output_model,
+            "tool_details": tool_details,
+            "tool_params": tool_params,
+        }
+        if connected_nodes is not None:
+            kwargs["connected_nodes"] = connected_nodes
+
+        with pytest.raises(expected_exception, match=match):
+            llm_function(**kwargs)
