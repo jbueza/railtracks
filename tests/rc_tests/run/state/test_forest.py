@@ -11,6 +11,7 @@ from requestcompletion.state.forest import Forest, AbstractLinkedObject
 class MockLinkedObject(AbstractLinkedObject):
     message: str
 
+
 @pytest.fixture
 def example_structure():
     identifier_1 = str(uuid.uuid4())
@@ -81,6 +82,7 @@ def test_simple_operations():
     assert heap[message_object.identifier].stamp == message_object.stamp
     assert heap[message_object.identifier].parent is None
 
+
 def test_heap(example_structure):
     forest, data = example_structure
 
@@ -94,6 +96,7 @@ def test_heap(example_structure):
 
     i_3 = data["3"][-1].identifier
     assert heap[i_3] == data["3"][-1]
+
 
 def test_full_data_no_step(example_structure):
     forest, data = example_structure
@@ -113,6 +116,7 @@ def test_full_data_no_step(example_structure):
     assert data["3"][2] in full_data
     assert data["3"][3] in full_data
     assert data["3"][4] in full_data
+
 
 def test_full_data_at_step(example_structure):
     forest, data = example_structure
@@ -187,6 +191,7 @@ def test_start_of_time(example_structure):
     assert forest[i_2] == data["2"][0]
 
     assert i_3 not in forest
+
 
 def test_state_saving_operation():
     heap = Forest[MockLinkedObject]()
