@@ -1,6 +1,5 @@
 from src.requestcompletion.llm.response import Response
 from src.requestcompletion.llm import AssistantMessage, UserMessage
-from src.requestcompletion.llm.message import ToolMessage
 import pytest
 
 
@@ -51,6 +50,3 @@ def test_message_str_and_repr():
 def test_response_invalid_message_types():
     with pytest.raises(TypeError):
         Response(123)
-
-
-# ========================= Make sure these tests are correct =========================
