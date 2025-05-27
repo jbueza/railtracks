@@ -85,7 +85,6 @@ class MCPAsyncClient:
             )
             self.session_id = resp.headers.get("Mcp-Session-Id")
             await resp.aread()
-            await resp.aclose()
             # Start SSE stream for server-to-client messages
             await self._start_sse_stream()
         else:
@@ -144,12 +143,6 @@ class MCPAsyncClient:
             except Exception as e:
                 logging.exception("Error terminating HTTP session: %s", e)
             self.session_id = None
-        if self.transport_type == "stdio" and self.session is not None:
-            try:
-                await self.session.aclose()
-            except Exception as e:
-                logging.exception("Error closing stdio session: %s", e)
-            self.session = None
 
     async def get_sse_message(self, timeout: float = 0.1):
         try:
@@ -187,7 +180,6 @@ class MCPAsyncClient:
                 data = await data
             self._tools_cache = data.get("result", {}).get("tools", [])
             await resp.aread()
-            await resp.aclose()
         return self._tools_cache
 
     async def call_tool(self, tool_name: str, tool_args: dict):
@@ -218,15 +210,12 @@ class MCPAsyncClient:
                 if asyncio.iscoroutine(data):
                     data = await data
                 await resp.aread()
-                await resp.aclose()
                 return data.get("result")
             elif "text/event-stream" in content_type:
                 await resp.aread()
-                await resp.aclose()
                 raise NotImplementedError("Use stream_tool_call for streaming responses.")
             else:
                 await resp.aread()
-                await resp.aclose()
                 raise NotImplementedError("Unknown response type.")
         else:
             raise ValueError(f"Unsupported transport_type: {self.transport_type}")
@@ -256,10 +245,8 @@ class MCPAsyncClient:
         if "text/event-stream" in content_type:
             async for chunk in resp.aiter_text():
                 yield chunk
-            await resp.aclose()
         else:
             await resp.aread()
-            await resp.aclose()
             raise NotImplementedError("Non-streaming response received in stream_tool_call.")
 
 

@@ -18,8 +18,6 @@ AIRBNB_MCP_ARGS = ["-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"]
 time_tools = from_mcp_server(TIME_MCP_COMMAND, TIME_MCP_ARGS)
 airbnb_tools = from_mcp_server(AIRBNB_MCP_COMMAND, AIRBNB_MCP_ARGS)
 
-print(time_tools)
-
 parent_tool = rc.library.tool_call_llm(
     connected_nodes={*time_tools, *airbnb_tools},
     pretty_name="Parent Tool",
