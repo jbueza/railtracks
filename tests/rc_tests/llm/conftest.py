@@ -2,9 +2,18 @@ from typing import List, Callable
 import pytest
 import requestcompletion.llm as llm
 from pydantic import BaseModel
-from requestcompletion.llm import MessageHistory, Tool
+from requestcompletion.llm import MessageHistory, Tool, AssistantMessage, UserMessage
 from requestcompletion.llm.response import Response
+from requestcompletion.llm.history import MessageHistory
 
+# ====================================== Message History ======================================
+@pytest.fixture
+def message_history() -> MessageHistory:
+    """
+    Fixture to provide a MessageHistory instance for testing.
+    """
+    return MessageHistory()
+# ====================================== End Message History ==================================
 
 # ====================================== MockLLM ======================================
 class MockLLM(llm.ModelBase):
@@ -42,4 +51,25 @@ class MockLLM(llm.ModelBase):
 @pytest.fixture
 def mock_llm() -> MockLLM:
     return MockLLM
-#======================================================================================
+#===================================== END MockLLM ======================================
+
+
+# ====================================== START Responses ======================================
+@pytest.fixture
+def assistant_response():
+    """
+    Fixture to provide a Response object with an AssistantMessage.
+    """
+    message = AssistantMessage("Hello, I am an assistant.")
+    return Response(message)
+
+
+@pytest.fixture
+def user_response():
+    """
+    Fixture to provide a Response object with a UserMessage.
+    """
+    message = UserMessage("This is a user message.")
+    return Response(message)
+
+# ====================================== END Responses ======================================
