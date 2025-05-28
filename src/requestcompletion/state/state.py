@@ -79,7 +79,8 @@ class RCState:
         self.publisher = publisher
 
     # TODO: fix up these abstractions so it consistent that we are mapping the request type into its proper type.
-    def handle(self, item: RequestCompletionAction) -> None:
+    async def handle(self, item: RequestCompletionAction) -> None:
+        print(f"Handling item: {item}")
 
         if isinstance(item, RequestFinishedBase):
             self.handle_result(item)
@@ -91,7 +92,9 @@ class RCState:
                 )
             )
 
-            self.call_nodes(
+            assert item.new_request_id not in self._request_heap.heap().keys()
+
+            await self.call_nodes(
                 parent_node_id=item.current_node_id,
                 request_id=item.new_request_id,
                 node=item.new_node_type,
@@ -102,7 +105,7 @@ class RCState:
     def shutdown(self):
         self.rc_coordinator.shutdown()
         publisher = get_globals().publisher
-        publisher.shutdown(False)
+        publisher.shutdown()
 
     @property
     def is_empty(self):
@@ -182,7 +185,7 @@ class RCState:
         # 4. Return the request id of the node that was created.
         return request_ids[0]
 
-    def call_nodes(
+    async def call_nodes(
         self,
         *,
         parent_node_id: str | None,
@@ -209,7 +212,8 @@ class RCState:
         request_id = self._create_node_and_request(
             parent_node_id=parent_node_id, request_id=request_id, node=node, args=args, kwargs=kwargs
         )
-        outputs = self._run_request(request_id)
+        # you have to run this in a task so it isn't blocking other completions
+        outputs = asyncio.create_task(self._run_request(request_id))
 
         return outputs
 
@@ -267,7 +271,7 @@ class RCState:
 
         return request_ids
 
-    def _run_request(self, request_id: str):
+    async def _run_request(self, request_id: str):
         """
         Runs the request for the given request id.
 
@@ -287,9 +291,9 @@ class RCState:
         """
         child_node_id = self._request_heap[request_id].sink_id
         node = self._node_heap[child_node_id].node
-        return self.rc_coordinator.submit(
+        return await self.rc_coordinator.submit(
             task=Task(request_id=request_id, node=node),
-            mode="thread",
+            mode="async",
         )
 
     def _handle_failed_request(self, failed_node_name: str, request_id: str, exception: Exception):

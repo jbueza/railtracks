@@ -37,6 +37,7 @@ def many_calls_tester(num_calls: int, parallel_calls: int):
     assert all([0 < x < 1 for x in ans])
 
 
+@pytest.mark.timeout(5)
 def test_no_deadlock():
     num_calls = 4
     parallel_calls = 55
@@ -119,6 +120,7 @@ def nested_many_calls_tester(num_calls: int, parallel_calls: int, depth: int):
         assert 0 < r.input[0][2] < depth
 
 
+@pytest.mark.timeout(4)
 def test_nested_no_deadlock():
     num_calls = 2
     parallel_calls = 2

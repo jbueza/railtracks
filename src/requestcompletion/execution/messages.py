@@ -11,7 +11,7 @@ from ..nodes.nodes import Node, NodeState
 
 # RC specific imports
 
-ExecutionConfigurations = Literal["thread"]
+ExecutionConfigurations = Literal["async"]
 
 _P = ParamSpec("_P")
 _TOutput = TypeVar("_TOutput")
@@ -38,11 +38,17 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
     def node(self) -> Node[_TOutput]:
         return self.node_state.instantiate()
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(request_id={self.request_id}, node_state={self.node_state})"
+
 
 class RequestSuccess(RequestFinishedBase):
     def __init__(self, *, request_id: str, node_state: NodeState[_TNode[_TOutput]], result: _TOutput):
         super().__init__(request_id=request_id, node_state=node_state)
         self.result = result
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(request_id={self.request_id}, node_state={self.node_state}, result={self.result})"
 
 
 class RequestCreation(RequestCompletionMessage):
@@ -63,6 +69,13 @@ class RequestCreation(RequestCompletionMessage):
         self.args = args
         self.kwargs = kwargs
 
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(current_node_id={self.current_node_id}, "
+            f"new_request_id={self.new_request_id}, running_mode={self.running_mode}, "
+            f"new_node_type={self.new_node_type.__name__}, args={self.args}, kwargs={self.kwargs})"
+        )
+
 
 class RequestFailure(RequestFinishedBase):
     def __init__(
@@ -75,10 +88,19 @@ class RequestFailure(RequestFinishedBase):
         super().__init__(request_id=request_id, node_state=node_state)
         self.error = error
 
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(request_id={self.request_id}, "
+            f"node_state={self.node_state}, error={self.error})"
+        )
+
 
 class FatalFailure(RequestCompletionMessage):
     def __init__(self, *, error: Exception):
         self.error = error
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(error={self.error})"
 
 
 # TODO implement other message types

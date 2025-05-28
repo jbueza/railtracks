@@ -12,6 +12,7 @@ from requestcompletion.state.request import Failure
 RNGNode = rc.library.from_function(random.random)
 
 
+@pytest.mark.timeout(1)
 def test_simple_request():
     with rc.Runner() as run:
         result = run.run_sync(RNGNode)
@@ -47,6 +48,7 @@ async def error_handler():
 ErrorHandler = rc.library.from_function(error_handler)
 
 
+@pytest.mark.timeout(1)
 def test_error_handler():
     with rc.Runner() as run:
         result = run.run_sync(ErrorHandler)

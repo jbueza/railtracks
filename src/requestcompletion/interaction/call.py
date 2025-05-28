@@ -51,18 +51,18 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
     # TODO ensure we don't miss any messages here (e.g. what if the request returns really fast)
     f = publisher.listener(message_filter, output_mapping)
 
-    publisher.publish(
+    await publisher.publish(
         RequestCreation(
             current_node_id=context.parent_id,
             new_request_id=request_id,
-            running_mode="thread",
+            running_mode="async",
             new_node_type=node,
             args=args,
             kwargs=kwargs,
         )
     )
 
-    return await asyncio.wrap_future(f)
+    return await f
 
 
 def stream(item: str):

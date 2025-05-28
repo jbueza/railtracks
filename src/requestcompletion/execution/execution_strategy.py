@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from .messages import RequestSuccess, RequestFailure
 
-from ..context import get_globals, register_globals, ThreadContext
+from ..context import get_globals, register_globals, ThreadContext, update_parent_id
 from ..nodes.nodes import NodeState
 
 if TYPE_CHECKING:
@@ -22,8 +22,29 @@ class TaskExecutionStrategy(ABC):
         pass
 
     @abstractmethod
-    def execute(self, task: Task):
+    async def execute(self, task: Task):
         pass
+
+
+class AsyncioExecutionStrategy(TaskExecutionStrategy):
+
+    def shutdown(self):
+        pass
+
+    async def execute(self, task: Task):
+        invoke_func = task.invoke
+
+        publisher = get_globals().publisher
+
+        try:
+            result = await invoke_func()
+            response = RequestSuccess(request_id=task.request_id, node_state=NodeState(task.node), result=result)
+        except Exception as e:
+            response = RequestFailure(request_id=task.request_id, node_state=NodeState(task.node), error=e)
+        finally:
+            await publisher.publish(response)
+
+        return response
 
 
 class ConcurrentFuturesExecutor(TaskExecutionStrategy):

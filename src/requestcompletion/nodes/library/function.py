@@ -36,7 +36,7 @@ _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
+def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput]):
     """
     A function to create a node from a function
     """
@@ -48,17 +48,17 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
             self.args = args
             self.kwargs = kwargs
 
-        def invoke(self) -> _TOutput:
+        async def invoke(self) -> _TOutput:
             """Invoke the function with converted arguments."""
             try:
                 # Convert kwargs to appropriate types based on function signature
                 converted_kwargs = self._convert_kwargs_to_appropriate_types()
 
                 # we want to have different behavior if the function is a coroutine or not
-                if inspect.iscoroutinefunction(func):
-                    result = asyncio.run(func(*self.args, **converted_kwargs))
-                else:
-                    result = func(*self.args, **converted_kwargs)
+                result = func(*self.args, **converted_kwargs)
+                if inspect.iscoroutine(result):
+                    result = await result
+
                 return result
 
             except Exception as e:
@@ -206,18 +206,18 @@ class FunctionNode(Node[_TOutput]):
     A class for ease of creating a function node for the user
     """
 
-    def __init__(self, func: Callable[[_P], Awaitable[_TOutput] | _TOutput], *args: _P.args, **kwargs: _P.kwargs):
+    def __init__(
+        self, func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput], *args: _P.args, **kwargs: _P.kwargs
+    ):
         super().__init__()
         self.func = func
         self.args = args
         self.kwargs = kwargs
 
     async def invoke(self) -> _TOutput:
-
-        if asyncio.iscoroutinefunction(self.func):
-            result = await self.func(*self.args, **self.kwargs)
-        else:
-            result = asyncio.to_thread(self.func(*self.args, **self.kwargs))
+        result = self.func(*self.args, **self.kwargs)
+        if asyncio.iscoroutine(self.func):
+            await result
 
         return result
 

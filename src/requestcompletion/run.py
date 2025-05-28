@@ -9,7 +9,7 @@ import deprecated
 
 from .config import ExecutorConfig
 from .execution.coordinator import Coordinator
-from .execution.execution_strategy import ThreadedExecutionStrategy
+from .execution.execution_strategy import ThreadedExecutionStrategy, AsyncioExecutionStrategy
 from .execution.messages import RequestCompletionMessage, RequestCreation, RequestFinishedBase, FatalFailure
 from .execution.publisher import RCPublisher
 from .utils.misc import output_mapping
@@ -94,10 +94,11 @@ class Runner:
             setting=executor_config.logging_setting,
         )
         self.publisher: RCPublisher[RequestCompletionMessage] = RCPublisher()
+
         register_globals(ThreadContext(publisher=self.publisher, parent_id=None))
 
         executor_info = ExecutionInfo.create_new()
-        self.coordinator = Coordinator(execution_modes={"thread": ThreadedExecutionStrategy()})
+        self.coordinator = Coordinator(execution_modes={"async": AsyncioExecutionStrategy()})
         self.rc_state = RCState(executor_info, executor_config, self.coordinator)
 
         if subscriber is None:
@@ -111,18 +112,20 @@ class Runner:
             self._data_streamer = DataStream(subscribers=[DynamicSubscriber()])
 
     def __enter__(self):
-
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._close()
 
-    def _run_base(
+    async def _run_base(
         self,
         start_node: Callable[_P, Node] | None = None,
         *args: _P.args,
         **kwargs: _P.kwargs,
     ):
+        await self.publisher.start()
+        self.coordinator.start(self.publisher)
+
         if not self.rc_state.is_empty:
             raise RuntimeError("The run function can only be used to start not in the middle of a run.")
 
@@ -138,24 +141,23 @@ class Runner:
 
         fut = self.publisher.listener(message_filter, output_mapping)
 
-        self.publisher.publish(
+        await self.publisher.publish(
             RequestCreation(
                 current_node_id=None,
                 new_request_id=start_request_id,
-                running_mode="thread",
+                running_mode="async",
                 new_node_type=start_node,
                 args=args,
                 kwargs=kwargs,
             )
         )
 
-        return fut
+        return await fut
 
     def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
         """Runs the provided node synchronously."""
-        fut = self._run_base(start_node, *args, **kwargs)
+        asyncio.run(self._run_base(start_node, *args, **kwargs))
 
-        fut.result()
         return self.rc_state.info
 
     def _close(self):
@@ -184,7 +186,7 @@ class Runner:
         # relevant if we ever want to have future support for optional start nodes
         fut = self._run_base(start_node, *args, **kwargs)
 
-        await asyncio.wait_for(asyncio.wrap_future(fut), timeout=None)
+        await fut
         return self.rc_state.info
 
     async def cancel(self, node_id: str):

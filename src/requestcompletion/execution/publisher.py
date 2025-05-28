@@ -7,6 +7,7 @@ import threading
 import queue
 import uuid
 import warnings
+from logging.config import listen
 
 from .messages import RequestCompletionMessage
 from abc import ABC, abstractmethod
@@ -21,17 +22,16 @@ class Subscriber(Generic[_T]):
     """A simple wrapper class of a callback function."""
 
     # this could be done without a class, but I want to keep as extendable as possible.
-    def __init__(self, callback: Callable[[_T], None]):
+    def __init__(self, callback: Callable[[_T], None] | Callable[[_T], Coroutine[None, None, None]]):
         self.callback = callback
         self.id = str(uuid.uuid4())
 
-    def trigger(self, message: _T):
+    async def trigger(self, message: _T):
         """Trigger this subscriber with the given message."""
-        try:
-            self.callback(message)
-        except Exception as e:
-            print(f"Error in subscriber callback: {e}")
-            raise e
+
+        result = self.callback(message)
+        if asyncio.iscoroutine(result):
+            await result
 
 
 class RCPublisher(Generic[_T]):
@@ -51,35 +51,40 @@ class RCPublisher(Generic[_T]):
     def __init__(
         self,
     ):
-        self._queue: queue.Queue[_T] = queue.Queue()
+        self._queue: asyncio.Queue[_T] = asyncio.Queue()
         self._subscribers: List[Subscriber[_T]] = []
 
-        self._listener_futures: List[concurrent.futures.Future] = []
+        self._killed = True
 
-        self._killed = False
-        self._executor = concurrent.futures.ThreadPoolExecutor()
+        self.pub_loop = None
 
-        self.pub_loop = self._executor.submit(self._published_data_loop)
-
-    def __enter__(self):
+    async def __aenter__(self):
         """Enable the use of the publisher in a context manager."""
+        await self.start()
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Shutdown the publisher when exiting the context manager."""
-        self.shutdown(force=True)
+    async def start(self):
+        self.pub_loop = asyncio.create_task(self._published_data_loop())
+        self._killed = False
 
-    def publish(self, message: _T):
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        """Shutdown the publisher when exiting the context manager."""
+        await self.shutdown()
+
+    async def publish(self, message: _T):
         """Publish a message the publisher. This will trigger all subscribers to receive the message.
 
         Args:
             message: The message you would like to publish.
 
         """
-        print("Publishing message:", message)
-        self._queue.put(message)
+        print("Published: ", message)
+        if self._killed:
+            raise RuntimeError("Publisher is not currently running.")
 
-    def _published_data_loop(self):
+        await self._queue.put(message)
+
+    async def _published_data_loop(self):
         """
         A loop designed to be run in a thread that will continuously check for new messages in the queue and trigger
         subscribers as they are received
@@ -87,21 +92,23 @@ class RCPublisher(Generic[_T]):
 
         while not self._killed:
             try:
-                message = self._queue.get(timeout=self.timeout)
 
-                fs = [self._executor.submit(lambda sub: sub.trigger(message), s) for s in self._subscribers]
-                # TODO: there has got to be a better fix here.
-                for f in concurrent.futures.as_completed(fs):
-                    try:
-                        _ = f.result()  # trigger the error if present
-                    except Exception as e:
-                        # do nothing if an exception has occured.
-                        pass
+                message = await asyncio.wait_for(self._queue.get(), timeout=self.timeout)
 
-            except queue.Empty:
+                try:
+                    contracts = [sub.trigger(message) for sub in self._subscribers]
+
+                    await asyncio.gather(*contracts)
+
+                except Exception as e:
+                    print(f"something went terribly wrong: {e}")
+
+                # will only reach this section after all the messages have been handled
+
+            except asyncio.TimeoutError:
                 continue
 
-    def subscribe(self, callback: Callable[[_T], None]):
+    def subscribe(self, callback: Callable[[_T], None] | Callable[[_T], Coroutine[None, None, None]]) -> str:
         """
         Subscribe the publisher so whenever we receive a message the callback will be triggered.
 
@@ -132,17 +139,17 @@ class RCPublisher(Generic[_T]):
         index_to_remove = index_to_remove[0]
         self._subscribers.pop(index_to_remove)
 
-    def listener(
+    async def listener(
         self,
         message_filter: Callable[[_T], bool],
         result_mapping: Callable[[_T], _TOutput] = lambda x: x,
     ):
-        def single_listener():
+        async def single_listener():
             returnable_result: RequestCompletionMessage | None = None
             # we are gonna use the asyncio.event system instead of threading
-            listener_event = threading.Event()
+            listener_event = asyncio.Event()
 
-            def special_subscriber(message: _T):
+            async def special_subscriber(message: _T):
                 nonlocal returnable_result
                 if message_filter(message):
                     # this will trigger the end of the listener loop
@@ -151,9 +158,14 @@ class RCPublisher(Generic[_T]):
                     return
 
             sub_id = self.subscribe(special_subscriber)
+
             while True:
-                if listener_event.wait(timeout=self.timeout):
+                try:
+                    await asyncio.wait_for(listener_event.wait(), timeout=self.timeout)
                     break
+                except asyncio.TimeoutError:
+                    pass
+
                 if self._killed:
                     raise ValueError("Listener has been killed before receiving the correct message.")
 
@@ -161,15 +173,11 @@ class RCPublisher(Generic[_T]):
             self.unsubscribe(sub_id)
             return result_mapping(returnable_result)
 
-        future = self._executor.submit(single_listener)
+        return await single_listener()
 
-        return future
-
-    def shutdown(self, force: bool):
+    async def shutdown(self):
         self._killed = True
-
-        self.pub_loop.result()
-        self._executor.shutdown(wait=False, cancel_futures=force)
+        await self.pub_loop.result()
 
         return
 

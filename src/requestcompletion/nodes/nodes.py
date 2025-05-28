@@ -40,13 +40,15 @@ class EnsureInvokeCoroutineMeta(ABCMeta):
         method_name = "invoke"
         if method_name in dct and callable(dct[method_name]):
             method = dct[method_name]
-            if inspect.iscoroutinefunction(method):
 
-                # a simple wrapper to convert any async function to a non async one.
-                def non_async_wrapper(self, *args, **kwargs):
-                    return asyncio.run(method(self, *args, **kwargs))
+            # a simple wrapper to convert any async function to a non async one.
+            async def async_wrapper(self, *args, **kwargs):
+                result = method(self, *args, **kwargs)
+                if inspect.iscoroutine(result):
+                    return await result
+                return result
 
-                setattr(cls, method_name, non_async_wrapper)
+            setattr(cls, method_name, async_wrapper)
 
 
 class NodeState(Generic[_TNode]):

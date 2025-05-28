@@ -15,8 +15,7 @@ if TYPE_CHECKING:
 
 config = contextvars.ContextVar("executor_config", default=None)
 streamer = contextvars.ContextVar("data_streamer", default=None)
-
-_local_store = threading.local()
+thread_context: contextvars.ContextVar[ThreadContext | None] = contextvars.ContextVar("thread_context", default=None)
 
 
 class ThreadContext:
@@ -73,17 +72,29 @@ def get_globals() -> ThreadContext:
     """
     Get the global variables for the current thread.
     """
-    if not hasattr(_local_store, "global_var"):
+    if thread_context.get() is None:
         raise KeyError("No global variable set")
 
-    return _local_store.global_var
+    return thread_context.get()
 
 
 def register_globals(global_var: ThreadContext):
     """
     Register the global variables for the current thread.
     """
-    if hasattr(_local_store, "global_var"):
+    if thread_context.get():
         warnings.warn("Overwriting previous global variable")
 
-    _local_store.global_var = global_var
+    thread_context.set(global_var)
+
+
+def update_parent_id(new_parent_id: str):
+    """
+    Update the parent ID of the current thread's global variables.
+    """
+    current_context = thread_context.get()
+    if current_context is None:
+        raise KeyError("No global variable set")
+
+    current_context.parent_id = new_parent_id
+    thread_context.set(current_context)

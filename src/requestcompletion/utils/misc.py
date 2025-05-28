@@ -5,7 +5,7 @@ from ..execution.messages import (
     RequestFailure, FatalFailure,
 )
 
-def output_mapping(result: RequestCompletionMessage) -> RequestFinishedBase:
+def output_mapping(result: RequestCompletionMessage):
     assert isinstance(result, (RequestFinishedBase, FatalFailure)), "Expected a RequestFinishedBase message type"
     result: RequestFinishedBase
     if isinstance(result, RequestSuccess):

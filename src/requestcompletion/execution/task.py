@@ -1,18 +1,23 @@
+from typing import Coroutine, TypeVar, Generic
+
+from ..context import update_parent_id, get_globals
 from ..nodes.nodes import Node
 
+_TOutput = TypeVar("_TOutput")
 
-class Task:
+
+class Task(Generic[_TOutput]):
     """A simple class used to represent a task to be completed by the executor of choice."""
 
     def __init__(
         self,
         request_id: str,
-        node: Node,
+        node: Node[_TOutput],
     ):
         self.request_id = request_id
         self.node = node
 
-    @property
-    def invoke(self):
+    async def invoke(self):
         """The callable that this task is representing."""
-        return self.node.invoke
+        update_parent_id(self.node.uuid)
+        return await self.node.invoke()

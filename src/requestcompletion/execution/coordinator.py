@@ -60,6 +60,9 @@ class Job:
     def __str__(self):
         return f"Job(request_id={self.request_id}, status={self.status}, result={self.result}, start_time={self.start_time}, end_time={self.end_time})"
 
+    def __repr__(self):
+        return self.__str__()
+
 
 class CoordinatorState:
     # simple objects that stores the history of the coordinator
@@ -103,29 +106,23 @@ class Coordinator:
             get_args(ExecutionConfigurations)
         ), "You must provide all execution modes."
         self.execution_strategy = execution_modes
-        self._start()
 
-    def _start(self):
-        context = get_globals()
-        context.publisher.subscribe(self.handle_item)
+    def start(self, publisher):
+        publisher.subscribe(self.handle_item)
 
     def handle_item(self, item: RequestCompletionMessage):
         if isinstance(item, RequestFinishedBase):
             self.state.end_job(item.request_id, "success" if isinstance(item, RequestSuccess) else "failure")
-        elif isinstance(item, RequestCreation):
-            # TODO delete this check
-            assert item.new_request_id not in [
-                x.request_id for x in self.state.job_list
-            ], "RequestCreation message must not match an existing job."
 
     # TODO write up required params here
-    def submit(
+    async def submit(
         self,
         task: Task,
         mode: ExecutionConfigurations,
     ):
         self.state.add_job(task)
-        return self.execution_strategy[mode].execute(task)
+
+        return await self.execution_strategy[mode].execute(task)
 
     # TODO come up with logic here
     def system_detail(self) -> CoordinatorState:
