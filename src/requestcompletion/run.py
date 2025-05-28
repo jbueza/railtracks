@@ -155,7 +155,7 @@ class Runner:
         """Runs the provided node synchronously."""
         fut = self._run_base(start_node, *args, **kwargs)
 
-        fut.result(timeout=2)
+        fut.result()
         return self.rc_state.info
 
     def _close(self):

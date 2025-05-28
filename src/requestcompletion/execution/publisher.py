@@ -27,7 +27,11 @@ class Subscriber(Generic[_T]):
 
     def trigger(self, message: _T):
         """Trigger this subscriber with the given message."""
-        self.callback(message)
+        try:
+            self.callback(message)
+        except Exception as e:
+            print(f"Error in subscriber callback: {e}")
+            raise e
 
 
 class RCPublisher(Generic[_T]):
@@ -91,7 +95,8 @@ class RCPublisher(Generic[_T]):
                     try:
                         _ = f.result()  # trigger the error if present
                     except Exception as e:
-                        warnings.warn("Error in subscriber callback: " + str(e), RuntimeWarning)
+                        # do nothing if an exception has occured.
+                        pass
 
             except queue.Empty:
                 continue

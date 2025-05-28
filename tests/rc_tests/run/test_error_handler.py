@@ -72,6 +72,7 @@ async def error_handler_with_retry(retries: int):
 ErrorHandlerWithRetry = rc.library.from_function(error_handler_with_retry)
 
 
+@pytest.mark.timeout(5)
 def test_error_handler_with_retry():
     for num_retries in range(5, 15):
         with rc.Runner() as run:
@@ -79,9 +80,6 @@ def test_error_handler_with_retry():
 
         assert result.answer == "Caught the error"
         i_r = result.request_heap.insertion_request
-
-        print(result.request_heap.heap())
-        print(result.node_heap.heap())
 
         children = result.request_heap.children(i_r.sink_id)
         assert len(children) == num_retries

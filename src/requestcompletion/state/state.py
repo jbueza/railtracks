@@ -95,8 +95,8 @@ class RCState:
                 parent_node_id=item.current_node_id,
                 request_id=item.new_request_id,
                 node=item.new_node_type,
-                *item.args,
-                **item.kwargs,
+                args=item.args,
+                kwargs=item.kwargs,
             )
 
     def shutdown(self):
@@ -129,11 +129,12 @@ class RCState:
 
     def _create_node_and_request(
         self,
+        *,
         parent_node_id: str,
         request_id: str | None,
         node: Callable[_P, Node],
-        *args: _P.args,
-        **kwargs: _P.kwargs,
+        args: _P.args,
+        kwargs: _P.kwargs,
     ) -> str:
         """
         Creates a node using the creator and then registers it with the registry. This will allow the register method to
@@ -183,11 +184,12 @@ class RCState:
 
     def call_nodes(
         self,
+        *,
         parent_node_id: str | None,
         request_id: str | None,
         node: Callable[_P, Node[_TOutput]],
-        *args: _P.args,
-        **kwargs: _P.kwargs,
+        args: _P.args,
+        kwargs: _P.kwargs,
     ):
         """
         This function will handle the creation of the node and the subsequent running of the node returning the result.
@@ -204,7 +206,9 @@ class RCState:
 
         """
 
-        request_id = self._create_node_and_request(parent_node_id, request_id, node, *args, **kwargs)
+        request_id = self._create_node_and_request(
+            parent_node_id=parent_node_id, request_id=request_id, node=node, args=args, kwargs=kwargs
+        )
         outputs = self._run_request(request_id)
 
         return outputs

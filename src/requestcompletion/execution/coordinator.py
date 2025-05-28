@@ -114,9 +114,9 @@ class Coordinator:
             self.state.end_job(item.request_id, "success" if isinstance(item, RequestSuccess) else "failure")
         elif isinstance(item, RequestCreation):
             # TODO delete this check
-            assert item.new_request_id in [
+            assert item.new_request_id not in [
                 x.request_id for x in self.state.job_list
-            ], "RequestCreation message must match an existing job."
+            ], "RequestCreation message must not match an existing job."
 
     # TODO write up required params here
     def submit(
