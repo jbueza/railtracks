@@ -98,3 +98,7 @@ def update_parent_id(new_parent_id: str):
 
     current_context.parent_id = new_parent_id
     thread_context.set(current_context)
+
+
+def delete_globals():
+    thread_context.set(None)

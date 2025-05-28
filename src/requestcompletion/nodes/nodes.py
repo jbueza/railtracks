@@ -43,10 +43,8 @@ class EnsureInvokeCoroutineMeta(ABCMeta):
 
             # a simple wrapper to convert any async function to a non async one.
             async def async_wrapper(self, *args, **kwargs):
-                result = method(self, *args, **kwargs)
-                if inspect.iscoroutine(result):
-                    return await result
-                return result
+                if asyncio.iscoroutinefunction(method):
+                    return await method(self, *args, **kwargs)
 
             setattr(cls, method_name, async_wrapper)
 

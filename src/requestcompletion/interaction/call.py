@@ -4,6 +4,7 @@ import time
 
 from typing import ParamSpec, Callable, TypeVar
 
+from ..run import Runner
 from ..context import get_globals
 from ..execution.messages import (
     RequestCreation,
@@ -33,7 +34,18 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
         *args: The arguments to pass to the node
         **kwargs: The keyword arguments to pass to the node
     """
-    context = get_globals()
+    try:
+        context = get_globals()
+    except KeyError:
+        with Runner() as runner:
+            await runner.run(node, *args, **kwargs)
+            return runner.info.answer
+
+    if context.publisher._killed:
+        raise NotImplementedError(
+            "We do not support running rc.call after the runner has been created. Use `Runner.run` instead."
+        )
+
     publisher = context.publisher
 
     # TODO will need to create a reference here to await for that to finish

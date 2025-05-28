@@ -83,7 +83,7 @@ class RCState:
         print(f"Handling item: {item}")
 
         if isinstance(item, RequestFinishedBase):
-            self.handle_result(item)
+            await self.handle_result(item)
         if isinstance(item, RequestCreation):
             register_globals(
                 ThreadContext(
@@ -296,7 +296,7 @@ class RCState:
             mode="async",
         )
 
-    def _handle_failed_request(self, failed_node_name: str, request_id: str, exception: Exception):
+    async def _handle_failed_request(self, failed_node_name: str, request_id: str, exception: Exception):
         """
         Handles the provided exception for the given request identifier.
 
@@ -318,6 +318,7 @@ class RCState:
 
         """
         # before doing any handling we must make sure our exception history object is up to date.
+
         self.exception_history.append(exception)
         node_exception_action = NodeExceptionAction(
             node_name=failed_node_name,
@@ -331,7 +332,7 @@ class RCState:
                 execution_info=self.info,
                 final_exception=exception,
             )
-            self.publisher.publish(FatalFailure(error=ee))
+            await self.publisher.publish(FatalFailure(error=ee))
             return Failure(exception)
 
         # fatal exceptions should only be thrown if there is something seriously wrong.
@@ -342,7 +343,7 @@ class RCState:
                 execution_info=self.info,
                 final_exception=exception,
             )
-            self.publisher.publish(FatalFailure(error=ee))
+            await self.publisher.publish(FatalFailure(error=ee))
             return Failure(exception)
 
         # for any other error we want it to bubble up so the user can handle.
@@ -359,9 +360,9 @@ class RCState:
             exception_history=list(self.exception_history),
         )
 
-    def handle_result(self, result: RequestFinishedBase):
+    async def handle_result(self, result: RequestFinishedBase):
         if isinstance(result, RequestFailure):
-            output = self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
+            output = await self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
             returnable_result = output.exception
         elif isinstance(result, RequestSuccess):
             output = result.result

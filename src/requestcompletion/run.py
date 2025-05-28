@@ -29,6 +29,7 @@ from .context import (
     register_globals,
     ThreadContext,
     get_globals,
+    delete_globals,
 )
 
 _TOutput = TypeVar("_TOutput")
@@ -117,14 +118,17 @@ class Runner:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._close()
 
+    async def prepare(self):
+        await self.publisher.start()
+        self.coordinator.start(self.publisher)
+
     async def _run_base(
         self,
         start_node: Callable[_P, Node] | None = None,
         *args: _P.args,
         **kwargs: _P.kwargs,
     ):
-        await self.publisher.start()
-        self.coordinator.start(self.publisher)
+        await self.prepare()
 
         if not self.rc_state.is_empty:
             raise RuntimeError("The run function can only be used to start not in the middle of a run.")
@@ -164,6 +168,7 @@ class Runner:
         threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
         self.rc_state.shutdown()
         detach_logging_handlers()
+        delete_globals()
         # by deleting all of the state variables we are ensuring that the next time we create a runner it is fresh
 
     @property
