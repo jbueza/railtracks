@@ -10,7 +10,7 @@ import deprecated
 from .config import ExecutorConfig
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import ThreadedExecutionStrategy
-from .execution.messages import RequestCompletionMessage, RequestCreation
+from .execution.messages import RequestCompletionMessage, RequestCreation, RequestFinishedBase, FatalFailure
 from .execution.publisher import RCPublisher
 from .utils.misc import output_mapping
 from .utils.stream import DataStream, Subscriber
@@ -117,13 +117,26 @@ class Runner:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._close()
 
-    def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
-        """Runs the provided node synchronously."""
+    def _run_base(
+        self,
+        start_node: Callable[_P, Node] | None = None,
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ):
         if not self.rc_state.is_empty:
             raise RuntimeError("The run function can only be used to start not in the middle of a run.")
 
         start_request_id = "START"
-        fut = self.publisher.listener(lambda item: item.request_id == start_request_id, output_mapping)
+
+        def message_filter(item: RequestCompletionMessage) -> bool:
+
+            # we want to filter and collect the message that matches this request_id
+            matches_request_id = isinstance(item, RequestFinishedBase) and item.request_id == start_request_id
+            fatal_failure = isinstance(item, FatalFailure)
+
+            return matches_request_id or fatal_failure
+
+        fut = self.publisher.listener(message_filter, output_mapping)
 
         self.publisher.publish(
             RequestCreation(
@@ -136,8 +149,13 @@ class Runner:
             )
         )
 
-        fut.result()
+        return fut
 
+    def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
+        """Runs the provided node synchronously."""
+        fut = self._run_base(start_node, *args, **kwargs)
+
+        fut.result(timeout=2)
         return self.rc_state.info
 
     def _close(self):
@@ -164,24 +182,9 @@ class Runner:
         """Runs the rc framework with the given start node and provided arguments."""
 
         # relevant if we ever want to have future support for optional start nodes
-        if not self.rc_state.is_empty:
-            raise RuntimeError("The run function can only be used to start not in the middle of a run.")
+        fut = self._run_base(start_node, *args, **kwargs)
 
-        start_request_id = "START"
-        fut = self.publisher.listener(lambda item: item.request_id == start_request_id)
-
-        self.publisher.publish(
-            RequestCreation(
-                current_node_id=None,
-                new_request_id=start_request_id,
-                running_mode="thread",
-                new_node_type=start_node,
-                args=args,
-                kwargs=kwargs,
-            )
-        )
-
-        await asyncio.wait_for(asyncio.wrap_future(fut), timeout=2)
+        await asyncio.wait_for(asyncio.wrap_future(fut), timeout=None)
         return self.rc_state.info
 
     async def cancel(self, node_id: str):

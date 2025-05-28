@@ -76,4 +76,9 @@ class RequestFailure(RequestFinishedBase):
         self.error = error
 
 
+class FatalFailure(RequestCompletionMessage):
+    def __init__(self, *, error: Exception):
+        self.error = error
+
+
 # TODO implement other message types

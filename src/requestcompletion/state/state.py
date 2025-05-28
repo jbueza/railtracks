@@ -20,7 +20,7 @@ from ..context import get_globals, register_globals, ThreadContext
 from ..execution.coordinator import Coordinator
 from ..execution.task import Task
 from ..utils.stream import Subscriber
-from ..execution.messages import RequestCreation, RequestSuccess, RequestFinishedBase, RequestFailure
+from ..execution.messages import RequestCreation, RequestSuccess, RequestFinishedBase, RequestFailure, FatalFailure
 
 from ..utils.logging.action import RequestCreationAction, RequestCompletionAction, NodeExceptionAction
 
@@ -126,16 +126,6 @@ class RCState:
 
         r_id = self._request_heap.get_request_from_child_id(node_id)
         self._request_heap.update(r_id, Cancelled, self._stamper.create_stamp(f"Cancelled request {r_id}"))
-
-    def _run_node(
-        self,
-        request_id: str,
-        node: Node,
-    ):
-        """Runs the provided node and returns the output of the node."""
-        # TODO update this logic to allow processes submitting
-
-        return self.rc_coordinator.submit(Task(request_id=request_id, node=node))
 
     def _create_node_and_request(
         self,
@@ -333,7 +323,8 @@ class RCState:
                 execution_info=self.info,
                 final_exception=exception,
             )
-            return Failure(ee)
+            self.publisher.publish(FatalFailure(error=ee))
+            return Failure(exception)
 
         # fatal exceptions should only be thrown if there is something seriously wrong.
         if isinstance(exception, FatalError):
@@ -343,7 +334,8 @@ class RCState:
                 execution_info=self.info,
                 final_exception=exception,
             )
-            return Failure(ee)
+            self.publisher.publish(FatalFailure(error=ee))
+            return Failure(exception)
 
         # for any other error we want it to bubble up so the user can handle.
         self.logger.exception(node_exception_action.to_logging_msg())

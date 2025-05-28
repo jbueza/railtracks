@@ -72,6 +72,7 @@ class RCPublisher(Generic[_T]):
             message: The message you would like to publish.
 
         """
+        print("Publishing message:", message)
         self._queue.put(message)
 
     def _published_data_loop(self):

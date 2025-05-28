@@ -37,12 +37,10 @@ def test_error():
             run.run_sync(ErrorThrower)
 
 
-
 async def error_handler():
     try:
         answer = await rc.call(ErrorThrower)
     except TestError as e:
-        print("catching error and returning")
         return "Caught the error"
 
 
