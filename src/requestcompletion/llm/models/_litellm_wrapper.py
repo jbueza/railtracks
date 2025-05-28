@@ -29,11 +29,6 @@ def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter]
 
     # 2) Pydantic model?
     if isinstance(parameters, type) and issubclass(parameters, BaseModel):
-        # Pydantic v1: .schema() ; v2+: .model_dump_json_schema() returns str
-        schema = getattr(parameters, "schema", None)
-        if callable(schema):
-            return schema()
-        # Pydantic v2+
         dump = getattr(parameters, "model_json_schema", None)
         if callable(dump):
             return dump()
@@ -54,13 +49,13 @@ def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter]
             if p.required:
                 required.append(p.name)
 
-        schema: Dict[str, Any] = {
+        model_schema: Dict[str, Any] = {
             "type": "object",
             "properties": props,
         }
         if required:
-            schema["required"] = required
-        return schema
+            model_schema["required"] = required
+        return model_schema
 
     raise TypeError(
         "Tool.parameters must be either:\n"
@@ -106,11 +101,11 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
             content="",  # TODO: maybe different for anthropic vs openai
             role="assistant",
             tool_calls=[
-                {
-                    "function": {"arguments": tool_call.arguments, "name": tool_call.name},
-                    "id": tool_call.identifier,
-                    "type": "function",
-                }
+                litellm.utils.ChatCompletionMessageToolCall(
+                    function= litellm.utils.Function(arguments=tool_call.arguments, name= tool_call.name),
+                    id=tool_call.identifier,
+                    type="function",
+                )
                 for tool_call in msg.content
             ],
         )
