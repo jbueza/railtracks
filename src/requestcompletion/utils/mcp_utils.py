@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, Literal
 import httpx
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from mcp.client.streamable_http import create_mcp_http_client
+from mcp.client.streamable_http import streamablehttp_client
 from requestcompletion.llm import Tool
 from requestcompletion.nodes.nodes import Node
 from typing_extensions import Self, Type
@@ -64,29 +64,37 @@ class MCPAsyncClient:
             self.response_mode = self.transport_options.get("responseMode", "batch")
             self.session_id = None
 
-            self.http_session = await self.exit_stack.enter_async_context(
-                create_mcp_http_client(headers=self.http_headers, timeout=self.transport_options.get("batchTimeout"))
+            (read_stream, write_stream, _,) = await self.exit_stack.enter_async_context(
+                streamablehttp_client(
+                    url=self.transport_options["url"],
+                    # headers=self.http_headers,
+                    # timeout=self.transport_options.get("batchTimeout"),
+                    terminate_on_close=True,
+                )
             )
+            self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+            await self.session.initialize()
+            print(await self.session.list_tools())
             # Initialize session
-            init_req = {
-                "jsonrpc": "2.0",
-                "id": "init-" + str(int(time.time() * 1000)),
-                "method": "initialize",
-                "params": {}
-            }
-            resp = await self.http_session.post(
-                self.base_url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json, text/event-stream",
-                    **self.http_headers,
-                },
-                json=init_req
-            )
-            self.session_id = resp.headers.get("Mcp-Session-Id")
-            await resp.aread()
-            # Start SSE stream for server-to-client messages
-            await self._start_sse_stream()
+            # init_req = {
+            #     "jsonrpc": "2.0",
+            #     "id": "init-" + str(int(time.time() * 1000)),
+            #     "method": "initialize",
+            #     "params": {}
+            # }
+            # resp = await self.http_session.post(
+            #     self.base_url,
+            #     headers={
+            #         "Content-Type": "application/json",
+            #         "Accept": "application/json, text/event-stream",
+            #         **self.http_headers,
+            #     },
+            #     json=init_req
+            # )
+            # self.session_id = resp.headers.get("Mcp-Session-Id")
+            # await resp.aread()
+            # # Start SSE stream for server-to-client messages
+            # await self._start_sse_stream()
         else:
             raise ValueError(f"Unsupported transport_type: {self.transport_type}")
         return self
@@ -157,68 +165,12 @@ class MCPAsyncClient:
             resp = await self.session.list_tools()
             self._tools_cache = resp.tools
         elif self.transport_type == "http-stream":
-            req = {
-                "jsonrpc": "2.0",
-                "id": "list_tools-" + str(int(time.time() * 1000)),
-                "method": "list_tools",
-                "params": {}
-            }
-            headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                **self.http_headers,
-            }
-            if self.session_id:
-                headers["Mcp-Session-Id"] = self.session_id
-            resp = await self.http_session.post(
-                self.base_url,
-                headers=headers,
-                json=req
-            )
-            data = resp.json()
-            if asyncio.iscoroutine(data):
-                data = await data
-            self._tools_cache = data.get("result", {}).get("tools", [])
-            await resp.aread()
+            resp = await self.session.list_tools()
+            self._tools_cache = resp.tools
         return self._tools_cache
 
     async def call_tool(self, tool_name: str, tool_args: dict):
-        if self.transport_type == "stdio":
-            return await self.session.call_tool(tool_name, tool_args)
-        elif self.transport_type == "http-stream":
-            req = {
-                "jsonrpc": "2.0",
-                "id": tool_name + "-" + str(int(time.time() * 1000)),
-                "method": tool_name,
-                "params": tool_args
-            }
-            headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json, text/event-stream",
-                **self.http_headers,
-            }
-            if self.session_id:
-                headers["Mcp-Session-Id"] = self.session_id
-            resp = await self.http_session.post(
-                self.base_url,
-                headers=headers,
-                json=req
-            )
-            content_type = resp.headers.get("Content-Type", "")
-            if content_type.startswith("application/json"):
-                data = resp.json()
-                if asyncio.iscoroutine(data):
-                    data = await data
-                await resp.aread()
-                return data.get("result")
-            elif "text/event-stream" in content_type:
-                await resp.aread()
-                raise NotImplementedError("Use stream_tool_call for streaming responses.")
-            else:
-                await resp.aread()
-                raise NotImplementedError("Unknown response type.")
-        else:
-            raise ValueError(f"Unsupported transport_type: {self.transport_type}")
+        return await self.session.call_tool(tool_name, tool_args)
 
     async def stream_tool_call(self, tool_name: str, tool_args: dict):
         if self.transport_type != "http-stream":

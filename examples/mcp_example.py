@@ -14,20 +14,23 @@ AIRBNB_MCP_ARGS = ["-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"]
 # Airbnb MCP server requires Node.js and the `npx` command to run.
 
 
+url = "https://gitmcp.io/langchain-ai/langgraph"
+http_tools = from_mcp_server("", [], transport_type="http-stream", transport_options={"url": url})
+print(http_tools)
+#%%
 # Discover all tools
-time_tools = from_mcp_server(TIME_MCP_COMMAND, TIME_MCP_ARGS)
-airbnb_tools = from_mcp_server(AIRBNB_MCP_COMMAND, AIRBNB_MCP_ARGS)
+# time_tools = from_mcp_server(TIME_MCP_COMMAND, TIME_MCP_ARGS)
+# airbnb_tools = from_mcp_server(AIRBNB_MCP_COMMAND, AIRBNB_MCP_ARGS)
 
 parent_tool = rc.library.tool_call_llm(
-    connected_nodes={*time_tools, *airbnb_tools},
+    connected_nodes={*http_tools},  # *time_tools, *airbnb_tools},
     pretty_name="Parent Tool",
     system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
     model=rc.llm.OpenAILLM("gpt-4o"),
 )
 
 #%%
-user_message = ("What is the current time in Vancouver, BC, Canada? "
-                "Also, show me a listing for an Airbnb in Vancouver, BC, Canada.")
+user_message = ("What is langgraph?")
 
 #%%
 with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
