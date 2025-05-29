@@ -116,7 +116,8 @@ class Runner:
         self.setup_subscriber()
 
     def setup_subscriber(self):
-        self.publisher.subscribe(stream_subscriber(self.subscriber))
+        if self.subscriber is not None:
+            self.publisher.subscribe(stream_subscriber(self.subscriber))
 
     async def _run_base(
         self,
