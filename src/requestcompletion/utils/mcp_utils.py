@@ -40,12 +40,18 @@ class MCPAsyncClient:
         self._tools_cache = None
         self.sse_client = False
 
+        # If config is HTTP and url ends with /sse, set sse_client flag to True
+        if isinstance(self.config, MCPHttpParams):
+            if self.config.url.rstrip("/").endswith("/sse"):
+                self.sse_client = True
+
     async def __aenter__(self):
         if isinstance(self.config, StdioServerParameters):
             stdio_transport = await self.exit_stack.enter_async_context(stdio_client(self.config))
             self.session = await self.exit_stack.enter_async_context(ClientSession(*stdio_transport))
             await self.session.initialize()
         elif isinstance(self.config, MCPHttpParams):
+
             if not self.sse_client:
                 try:
                     await self._init_session(streamablehttp_client)

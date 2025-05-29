@@ -6,10 +6,10 @@ from requestcompletion.utils.mcp_utils import MCPHttpParams
 
 # MCP server URL
 urls = [
-    # "https://mcpmcp.io/mcp",
-    "https://mcp.deepwiki.com/sse",
-    "https://remote.mcpservers.org/fetch/mcp",
-    "https://remote.mcpservers.org/sequentialthinking/mcp"
+    "http://localhost:8080/sse",
+    # "https://mcp.deepwiki.com/sse",
+    # "https://remote.mcpservers.org/fetch/mcp",
+    # "https://remote.mcpservers.org/sequentialthinking/mcp"
 ]
 
 if "node" not in st.session_state:
