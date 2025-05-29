@@ -68,7 +68,11 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
                     tool_responses = await asyncio.gather(*contracts, return_exceptions=True)
                     tool_responses = [
-                        x if not isinstance(x, Exception) else f"There was an error running the tool: \n Exception message: {x} "
+                        (
+                            x
+                            if not isinstance(x, Exception)
+                            else f"There was an error running the tool: \n Exception message: {x} "
+                        )
                         for x in tool_responses
                     ]
 
@@ -83,14 +87,15 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     break
             else:
                 # the message is malformed from the model
-                raise RuntimeError("ModelLLM returned an unexpected message type.",
-                                   )
+                raise RuntimeError(
+                    "ModelLLM returned an unexpected message type.",
+                )
 
         if self.structured_resp_node:
             try:
                 self.structured_output = await call(
-                    self.structured_resp_node,
-                    message_history=MessageHistory([UserMessage(str(self.message_hist))]))
+                    self.structured_resp_node, message_history=MessageHistory([UserMessage(str(self.message_hist))])
+                )
             except Exception as e:
                 self.structured_output = ValueError(f"Failed to parse assistant response into structured output: {e}")
 

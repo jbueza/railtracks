@@ -99,7 +99,6 @@ class RCPublisher(Generic[_T]):
                     await asyncio.gather(*contracts)
 
                 except Exception as e:
-                    # Left in for potential debugging purposes
                     pass
 
                 # will only reach this section after all the messages have been handled

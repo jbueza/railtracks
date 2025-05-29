@@ -226,8 +226,9 @@ class FunctionNode(Node[_TOutput]):
 
         return result
 
-    def pretty_name(self) -> str:
-        return f"Function Node - {self.__class__.__name__}({self.func.__name__})"
+    @classmethod
+    def pretty_name(cls) -> str:
+        return f"Function Node - {cls.__class__.__name__}"
 
     def tool_info(self) -> Tool:
         return Tool.from_function(self.func)
