@@ -14,9 +14,8 @@ AIRBNB_MCP_ARGS = ["-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"]
 # Airbnb MCP server requires Node.js and the `npx` command to run.
 
 
-url = "https://gitmcp.io/langchain-ai/langgraph"
+url = "https://mcp.deepwiki.com/sse"
 http_tools = from_mcp_server("", [], transport_type="http-stream", transport_options={"url": url})
-print(http_tools)
 #%%
 # Discover all tools
 # time_tools = from_mcp_server(TIME_MCP_COMMAND, TIME_MCP_ARGS)
@@ -30,7 +29,7 @@ parent_tool = rc.library.tool_call_llm(
 )
 
 #%%
-user_message = ("What is langgraph?")
+user_message = ("What tools can you use?")
 
 #%%
 with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:

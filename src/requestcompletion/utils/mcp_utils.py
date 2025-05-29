@@ -9,14 +9,30 @@ import httpx
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.sse import sse_client
 from requestcompletion.llm import Tool
 from requestcompletion.nodes.nodes import Node
-from typing_extensions import Self, Type
+from typing_extensions import Self, Type, List
 
 try:
     from sseclient import SSEClient
 except ImportError:
     SSEClient = None
+
+
+class MCPStdioParams:
+    command: str
+    args: List[str]
+    env: Optional[Dict[str, str]] = None
+
+
+class MCPHttpParams:
+    url: str
+    headers: Optional[Dict[str, str]] = None
+    endpoint: str = "/mcp"
+    response_mode: str = "batch"
+    base_url: Optional[str] = None
+    transport_options: Optional[Dict] = None
 
 
 class MCPAsyncClient:
@@ -64,142 +80,47 @@ class MCPAsyncClient:
             self.response_mode = self.transport_options.get("responseMode", "batch")
             self.session_id = None
 
-            (read_stream, write_stream, _,) = await self.exit_stack.enter_async_context(
-                streamablehttp_client(
-                    url=self.transport_options["url"],
-                    # headers=self.http_headers,
-                    # timeout=self.transport_options.get("batchTimeout"),
-                    terminate_on_close=True,
+            try:
+                (read_stream, write_stream, _) = await self.exit_stack.enter_async_context(
+                    streamablehttp_client(
+                        url=self.transport_options["url"],
+                        # headers=self.http_headers,
+                        # timeout=self.transport_options.get("batchTimeout"),
+                        # terminate_on_close=True,
+                    )
                 )
-            )
-            self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
-            await self.session.initialize()
-            print(await self.session.list_tools())
-            # Initialize session
-            # init_req = {
-            #     "jsonrpc": "2.0",
-            #     "id": "init-" + str(int(time.time() * 1000)),
-            #     "method": "initialize",
-            #     "params": {}
-            # }
-            # resp = await self.http_session.post(
-            #     self.base_url,
-            #     headers={
-            #         "Content-Type": "application/json",
-            #         "Accept": "application/json, text/event-stream",
-            #         **self.http_headers,
-            #     },
-            #     json=init_req
-            # )
-            # self.session_id = resp.headers.get("Mcp-Session-Id")
-            # await resp.aread()
-            # # Start SSE stream for server-to-client messages
-            # await self._start_sse_stream()
+                self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+                await self.session.initialize()
+            except Exception as e:
+                print("Mayday Mayday", e)
+                (read_stream, write_stream) = await self.exit_stack.enter_async_context(
+                    sse_client(
+                        url=self.transport_options["url"],
+                        # headers=self.http_headers,
+                        # timeout=self.transport_options.get("batchTimeout"),
+                        # terminate_on_close=True,
+                    )
+                )
+                self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+                await self.session.initialize()
+
         else:
             raise ValueError(f"Unsupported transport_type: {self.transport_type}")
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
-        await self.terminate()
         await self.exit_stack.aclose()
-
-    async def _start_sse_stream(self):
-        if not SSEClient or not self.session_id:
-            return
-        url = self.base_url
-        if "?" in url:
-            url += f"&session={self.session_id}"
-        else:
-            url += f"?session={self.session_id}"
-
-        def sse_worker():
-            try:
-                with httpx.Client() as client:
-                    with client.stream("GET", url, headers=self.http_headers) as response:
-                        sse = SSEClient(response)
-                        for event in sse:
-                            if self.sse_stop_event.is_set():
-                                break
-                            try:
-                                data = event.data
-                                asyncio.run_coroutine_threadsafe(
-                                    self.sse_messages.put(data), self._main_loop
-                                )
-                            except Exception as e:
-                                logging.exception("Error putting SSE message: %s", e)
-            except Exception as e:
-                logging.exception("SSE worker error: %s", e)
-
-        self.sse_stop_event.clear()
-        self.sse_thread = threading.Thread(target=sse_worker, daemon=True)
-        self.sse_thread.start()
-
-    async def terminate(self):
-        # Stop SSE thread
-        if self.sse_thread and self.sse_thread.is_alive():
-            self.sse_stop_event.set()
-            self.sse_thread.join(timeout=2)
-            self.sse_thread = None
-        # Terminate session if HTTP
-        if self.transport_type == "http-stream" and self.session_id:
-            try:
-                await self.http_session.request(
-                    "DELETE",
-                    self.base_url,
-                    headers={"Mcp-Session-Id": self.session_id, **self.http_headers}
-                )
-            except Exception as e:
-                logging.exception("Error terminating HTTP session: %s", e)
-            self.session_id = None
-
-    async def get_sse_message(self, timeout: float = 0.1):
-        try:
-            return await asyncio.wait_for(self.sse_messages.get(), timeout)
-        except asyncio.TimeoutError:
-            return None
 
     async def list_tools(self):
         if self._tools_cache is not None:
             return self._tools_cache
-        if self.transport_type == "stdio":
-            resp = await self.session.list_tools()
-            self._tools_cache = resp.tools
-        elif self.transport_type == "http-stream":
+        else:
             resp = await self.session.list_tools()
             self._tools_cache = resp.tools
         return self._tools_cache
 
     async def call_tool(self, tool_name: str, tool_args: dict):
         return await self.session.call_tool(tool_name, tool_args)
-
-    async def stream_tool_call(self, tool_name: str, tool_args: dict):
-        if self.transport_type != "http-stream":
-            raise NotImplementedError("Streaming only supported for http-stream transport.")
-        req = {
-            "jsonrpc": "2.0",
-            "id": tool_name + "-" + str(int(time.time() * 1000)),
-            "method": tool_name,
-            "params": tool_args
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json, text/event-stream",
-            **self.http_headers,
-        }
-        if self.session_id:
-            headers["Mcp-Session-Id"] = self.session_id
-        resp = await self.http_session.post(
-            self.base_url,
-            headers=headers,
-            json=req
-        )
-        content_type = resp.headers.get("Content-Type", "")
-        if "text/event-stream" in content_type:
-            async for chunk in resp.aiter_text():
-                yield chunk
-        else:
-            await resp.aread()
-            raise NotImplementedError("Non-streaming response received in stream_tool_call.")
 
 
 def from_mcp(
@@ -226,8 +147,8 @@ def from_mcp(
         def __init__(self, **kwargs):
             super().__init__()
             self.kwargs = kwargs
-            if transport_type not in ["stdio"]:
-                raise NotImplementedError("Only 'stdio' transport type is currently supported for MCP tools, contact Levi.")
+            if transport_type not in ["stdio", "http-stream"]:
+                raise NotImplementedError("Transport type is not supported for MCP tools, contact Levi.")
             if self.kwargs.get("stream"):
                 raise NotImplementedError("Streaming is not supported yet, contact Levi.")
 
@@ -262,40 +183,3 @@ def from_mcp(
             return cls(**tool_parameters)
 
     return MCPToolNode
-
-
-async def from_mcp_server_async(
-    command: str,
-    args: list,
-    transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None
-) -> [Type[Node]]:
-    """
-    Discover all tools from an MCP server and wrap them as Node classes.
-
-    Args:
-        command: Command to launch the MCP server.
-        args: Arguments for the command.
-        transport_type: 'stdio' or 'http-stream'.
-        transport_options: Optional dict for HTTP Stream configuration.
-
-    Returns:
-        List of Nodes, one for each discovered tool.
-    """
-    async with MCPAsyncClient(
-        command,
-        args,
-        transport_type=transport_type,
-        transport_options=transport_options
-    ) as client:
-        tools = await client.list_tools()
-        return [
-            from_mcp(
-                tool,
-                command,
-                args,
-                transport_type=transport_type,
-                transport_options=transport_options
-            )
-            for tool in tools
-        ]
