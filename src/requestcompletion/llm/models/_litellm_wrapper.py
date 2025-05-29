@@ -13,7 +13,7 @@ from ..history import MessageHistory
 from ..message import AssistantMessage, ToolMessage, ToolResponse
 from ..content import ToolCall, Content
 from ..tools import Tool, Parameter
-
+import warnings
 
 def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter], Dict[str, Any]]) -> Dict[str, Any]:
     """
@@ -25,6 +25,13 @@ def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter]
     """
     # 1) Already a dict?
     if isinstance(parameters, dict):
+        if "required" not in parameters:
+            warnings.warn("The 'required' key is not present in the parameters dictionary. Parsing Properties parameters to check for required fields.")
+            required: list[str] = []
+            for key, value in parameters["properties"].items():
+                if value.get("required", True):
+                    required.append(key)
+            parameters["required"] = required
         return parameters
 
     # 2) Pydantic model?
@@ -94,7 +101,7 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
         base["name"] = msg.content.name
         base["tool_call_id"] = msg.content.identifier
         base["content"] = msg.content.result
-    # only time this is true is if tool calls, need to return litellm.utils.Message
+    # only time this is true is tool calls, need to return litellm.utils.Message
     elif isinstance(msg.content, list):
         assert all(isinstance(t_c, ToolCall) for t_c in msg.content)
         return litellm.utils.Message(
@@ -194,37 +201,25 @@ class LiteLLMWrapper(ModelBase):
         Returns:
             A Response containing either plain assistant text or ToolCall(s).
         """
-        # 1) Convert to litellm-style dicts
-        litellm_messages = [_to_litellm_message(m) for m in messages]
+
         litellm_tools = [_to_litellm_tool(t) for t in tools]
 
-        # 2) Ensure we explicitly say auto for tool_choice unless overridden
-        litellm_kwargs = {"tool_choice": "auto"}
-        litellm_kwargs.update(kwargs)
+        kwargs.setdefault("tool_choice", "auto")
+        kwargs["tools"] = litellm_tools
 
-        # 3) Call the model
-        resp = litellm.completion(
-            model=self._model_name,
-            messages=litellm_messages,
-            tools=litellm_tools,
-            **litellm_kwargs,
-        )
+        resp = self._invoke(messages, **kwargs)
 
-        # 4) Grab the first choice
         choice = resp.choices[0]
 
-        # 5) If no tool calls were emitted, return plain assistant response
+        # If no tool calls were emitted, return plain assistant response: NOT IDEAL
         if choice.finish_reason == "stop":
             return Response(message=AssistantMessage(content=choice.message.content))
 
-        # 6) Otherwise convert each tool call into your ToolCall type
         calls: List[ToolCall] = []
         for tc in choice.message.tool_calls:
-            # tc.id, tc.function.name, and tc.function.arguments are all strings
             args = json.loads(tc.function.arguments)
             calls.append(ToolCall(identifier=tc.id, name=tc.function.name, arguments=args))
 
-        # 7) Return a “tool call” style assistant message
         return Response(message=AssistantMessage(content=calls))
 
     def __str__(self) -> str:

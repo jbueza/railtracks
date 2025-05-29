@@ -16,8 +16,10 @@ def test_parameters_to_json_schema_with_dict():
     Test _parameters_to_json_schema with a dictionary input.
     """
     parameters = {
-        "param1": {"type": "string", "description": "A string parameter."},
-        "param2": {"type": "integer", "description": "An integer parameter."},
+        "properties": {
+            "param1": {"type": "string", "description": "A string parameter."},
+            "param2": {"type": "integer", "description": "An integer parameter."},
+        },
     }
     schema = _parameters_to_json_schema(parameters)
     assert schema == parameters
@@ -75,6 +77,8 @@ def test_parameters_to_json_schema_with_parameters_dictionary(tool_with_paramete
     assert schema["properties"]["param1"]["description"] == "A string parameter."
     assert "required" in schema
     assert "param1" in schema["required"]
+    assert "additionalProperties" in schema
+    assert schema["additionalProperties"] is False
 
 def test_parameters_to_json_schema_invalid_input():
     """

@@ -59,8 +59,11 @@ def tool_with_parameters_dictionary():
         name="example_tool",
         detail="This is an example tool with parameters.",
         parameters={
-            "param1": {"type": "string", "description": "A string parameter."},
-            "param2": {"type": "integer", "description": "An integer parameter.", "required": False},
+            "properties": {
+                "param1": {"type": "string", "description": "A string parameter."},
+                "param2": {"type": "integer", "description": "An integer parameter.", "required": False},
+            },
+            "additionalProperties": False,
         },
     )
 
