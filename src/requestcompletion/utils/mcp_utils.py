@@ -1,18 +1,16 @@
-import asyncio
-import logging
-import threading
-import time
+import inspect
 from contextlib import AsyncExitStack
-from typing import Any, Dict, Optional, Literal
-
-import httpx
+from datetime import timedelta
+from typing import Any, Dict
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.client.sse import sse_client
+from mcp.shared.exceptions import McpError
+from pydantic import BaseModel
 from requestcompletion.llm import Tool
 from requestcompletion.nodes.nodes import Node
-from typing_extensions import Self, Type, List
+from typing_extensions import Self, Union
 
 try:
     from sseclient import SSEClient
@@ -20,19 +18,12 @@ except ImportError:
     SSEClient = None
 
 
-class MCPStdioParams:
-    command: str
-    args: List[str]
-    env: Optional[Dict[str, str]] = None
-
-
-class MCPHttpParams:
+class MCPHttpParams(BaseModel):
     url: str
-    headers: Optional[Dict[str, str]] = None
-    endpoint: str = "/mcp"
-    response_mode: str = "batch"
-    base_url: Optional[str] = None
-    transport_options: Optional[Dict] = None
+    headers: dict[str, Any] | None = None
+    timeout: timedelta = timedelta(seconds=30)
+    sse_read_timeout: timedelta = timedelta(seconds=60 * 5)
+    terminate_on_close: bool = True
 
 
 class MCPAsyncClient:
@@ -41,75 +32,61 @@ class MCPAsyncClient:
     """
     def __init__(
         self,
-        command: str,
-        args: list,
-        env: Optional[Dict[str, str]] = None,
-        transport_type: Literal["stdio", "http-stream"] = "stdio",
-        transport_options: Optional[dict] = None,
+        config: Union[StdioServerParameters, MCPHttpParams],
     ):
-        self.command = command
-        self.args = args
-        self.env = env
-        self.transport_type = transport_type
-        self.transport_options = transport_options or {}
+        self.config = config
         self.session = None
         self.exit_stack = AsyncExitStack()
         self._tools_cache = None
-        self.session_id = None
-        self.http_session = None
-        self.sse_thread = None
-        self.sse_stop_event = threading.Event()
-        self.sse_messages = asyncio.Queue()
-        self._main_loop = None
+        self.sse_client = False
 
     async def __aenter__(self):
-        self._main_loop = asyncio.get_running_loop()
-        if self.transport_type == "stdio":
-            server_params = StdioServerParameters(
-                command=self.command,
-                args=self.args,
-                env=self.env
-            )
-            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+        if isinstance(self.config, StdioServerParameters):
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(self.config))
             self.session = await self.exit_stack.enter_async_context(ClientSession(*stdio_transport))
             await self.session.initialize()
-        elif self.transport_type == "http-stream":
-            self.http_headers = self.transport_options.get("headers", {})
-            self.endpoint = self.transport_options.get("endpoint", "/mcp")
-            self.base_url = self.transport_options.get("base_url", "http://localhost:8080") + self.endpoint
-            self.response_mode = self.transport_options.get("responseMode", "batch")
-            self.session_id = None
+        elif isinstance(self.config, MCPHttpParams):
+            if not self.sse_client:
+                try:
+                    await self._init_session(streamablehttp_client)
+                except Exception:  # McpError
+                    await self._init_session(sse_client)
+                    self.sse_client = True
+            else:
+                await self._init_session(sse_client)
 
-            try:
-                (read_stream, write_stream, _) = await self.exit_stack.enter_async_context(
-                    streamablehttp_client(
-                        url=self.transport_options["url"],
-                        # headers=self.http_headers,
-                        # timeout=self.transport_options.get("batchTimeout"),
-                        # terminate_on_close=True,
-                    )
-                )
-                self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
-                await self.session.initialize()
-            except Exception as e:
-                print("Mayday Mayday", e)
-                (read_stream, write_stream) = await self.exit_stack.enter_async_context(
-                    sse_client(
-                        url=self.transport_options["url"],
-                        # headers=self.http_headers,
-                        # timeout=self.transport_options.get("batchTimeout"),
-                        # terminate_on_close=True,
-                    )
-                )
-                self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
-                await self.session.initialize()
-
-        else:
-            raise ValueError(f"Unsupported transport_type: {self.transport_type}")
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.exit_stack.aclose()
+
+    async def _init_session(self, client_factory):
+        sig = inspect.signature(client_factory)
+        accepted_params = set(sig.parameters.keys())
+
+        # Prepare kwargs from self.config
+        config_dict = self.config.__dict__
+        filtered_kwargs = {}
+
+        for k, v in config_dict.items():
+            if k in sig.parameters:
+                param = sig.parameters[k]
+                expected_type = param.annotation
+                # Convert timedelta to float if needed
+                if expected_type is float and isinstance(v, timedelta):
+                    filtered_kwargs[k] = v.total_seconds()
+                # Convert float to timedelta if needed
+                elif expected_type is timedelta and isinstance(v, (int, float)):
+                    filtered_kwargs[k] = timedelta(seconds=v)
+                else:
+                    filtered_kwargs[k] = v
+
+        # Call client_factory with only accepted kwargs
+        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(
+            client_factory(**filtered_kwargs)
+        )
+        self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+        await self.session.initialize()
 
     async def list_tools(self):
         if self._tools_cache is not None:
@@ -125,20 +102,14 @@ class MCPAsyncClient:
 
 def from_mcp(
     tool,
-    command: str,
-    args: list,
-    transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None
+    config: Union[StdioServerParameters, MCPHttpParams],
 ):
     """
     Wrap an MCP tool as a Node class for use in the requestcompletion framework.
 
     Args:
         tool: The MCP tool object.
-        command: Command to launch the MCP server.
-        args: Arguments for the command.
-        transport_type: 'stdio' or 'http-stream'.
-        transport_options: Optional dict for HTTP Stream configuration.
+        config: Configuration parameters for the MCP client, either Stdio or HTTP.
 
     Returns:
         A Node subclass that invokes the MCP tool.
@@ -147,25 +118,11 @@ def from_mcp(
         def __init__(self, **kwargs):
             super().__init__()
             self.kwargs = kwargs
-            if transport_type not in ["stdio", "http-stream"]:
-                raise NotImplementedError("Transport type is not supported for MCP tools, contact Levi.")
-            if self.kwargs.get("stream"):
-                raise NotImplementedError("Streaming is not supported yet, contact Levi.")
+            self.client = MCPAsyncClient(config)
 
         async def invoke(self):
-            async with MCPAsyncClient(
-                command,
-                args,
-                transport_type=transport_type,
-                transport_options=transport_options
-            ) as client:
-                if self.kwargs.get("stream", False):
-                    result = []
-                    async for chunk in client.stream_tool_call(tool.name, self.kwargs):
-                        result.append(chunk)
-                    return result
-                else:
-                    result = await client.call_tool(tool.name, self.kwargs)
+            async with self.client:
+                result = await self.client.call_tool(tool.name, self.kwargs)
             if hasattr(result, "content"):
                 return result.content
             return result
