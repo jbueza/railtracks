@@ -70,7 +70,12 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
         def _convert_kwargs_to_appropriate_types(self) -> Dict[str, Any]:
             """Convert kwargs to appropriate types based on function signature."""
             converted_kwargs = {}
-            sig = inspect.signature(func)
+
+            try:
+                sig = inspect.signature(func)
+
+            except ValueError:
+                raise RuntimeError("Cannot convert kwargs for builtin functions. " "Please use a custom function.")
 
             # Process all parameters from the function signature
             for param_name, param in sig.parameters.items():

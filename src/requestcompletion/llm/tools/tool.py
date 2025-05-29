@@ -150,4 +150,42 @@ class Tool:
             detail=main_description,
             parameters=parameters,
         )
-        return tool_info 
+        return tool_info
+
+    @classmethod
+    def from_mcp(cls, tool) -> Self:
+        """
+        Creates a Tool from an MCP tool object.
+
+        Args:
+            tool: The MCP tool to create a Tool from.
+
+        Returns:
+            A Tool instance representing the MCP tool.
+        """
+        input_schema = getattr(tool, "inputSchema", None)
+        if not input_schema or input_schema["type"] != "object":
+            raise ValueError("The inputSchema for an MCP Tool must be 'object'. "
+                             "If an MCP tool has a different schema, create a GitHub issue and support will be added.")
+
+        properties = input_schema.get("properties", {})
+        required_fields = set(input_schema.get("required", []))
+        param_objs = set()
+        for name, prop in properties.items():
+            param_type = prop.get("type", "string")
+            description = prop.get("description", "")
+            required = name in required_fields
+            param_objs.add(
+                Parameter(
+                    name=name,
+                    param_type=param_type,
+                    description=description,
+                    required=required
+                )
+            )
+
+        return cls(
+            name=tool.name,
+            detail=tool.description,
+            parameters=param_objs
+        )
