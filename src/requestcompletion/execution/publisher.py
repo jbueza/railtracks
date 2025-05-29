@@ -64,8 +64,9 @@ class RCPublisher(Generic[_T]):
         return self
 
     async def start(self):
-        self.pub_loop = asyncio.create_task(self._published_data_loop())
+        # you must set the kill variables first or the publisher loop will early exit.
         self._killed = False
+        self.pub_loop = asyncio.create_task(self._published_data_loop(), name="Publisher Loop")
 
     async def __aexit__(self, exc_type, exc_value, traceback):
         """Shutdown the publisher when exiting the context manager."""
@@ -78,7 +79,6 @@ class RCPublisher(Generic[_T]):
             message: The message you would like to publish.
 
         """
-        print("Published: ", message)
         if self._killed:
             raise RuntimeError("Publisher is not currently running.")
 
@@ -89,10 +89,8 @@ class RCPublisher(Generic[_T]):
         A loop designed to be run in a thread that will continuously check for new messages in the queue and trigger
         subscribers as they are received
         """
-
         while not self._killed:
             try:
-
                 message = await asyncio.wait_for(self._queue.get(), timeout=self.timeout)
 
                 try:
@@ -101,7 +99,8 @@ class RCPublisher(Generic[_T]):
                     await asyncio.gather(*contracts)
 
                 except Exception as e:
-                    print(f"something went terribly wrong: {e}")
+                    # Left in for potential debugging purposes
+                    pass
 
                 # will only reach this section after all the messages have been handled
 
@@ -177,7 +176,7 @@ class RCPublisher(Generic[_T]):
 
     async def shutdown(self):
         self._killed = True
-        await self.pub_loop.result()
+        await self.pub_loop
 
         return
 
