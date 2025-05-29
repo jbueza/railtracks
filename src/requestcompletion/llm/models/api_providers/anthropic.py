@@ -12,6 +12,8 @@ class AnthropicLLM(LiteLLMWrapper):
         if provider_info[1] != provider_name:
             raise ValueError(f"Invalid model name: {model_name}. Model name must be a part of {self.__class__.model_type()}'s model list.")
         
+        super().__init__(model_name=model_name, **kwargs)
+        
     @classmethod
     def model_type(cls) -> str:
         return "Anthropic"

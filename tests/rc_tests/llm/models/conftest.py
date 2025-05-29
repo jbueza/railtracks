@@ -127,6 +127,16 @@ class MockLiteLLMWrapper(LiteLLMWrapper):
     @classmethod
     def model_type(cls) -> str:
         return "mock"
+    
+    def _invoke(self, messages, *args, **kwargs):
+        return {
+            "choices": [
+                {
+                    "message": {"content": "Mocked response"},
+                    "finish_reason": "stop",
+                }
+            ]
+        }
 
 
 @pytest.fixture
