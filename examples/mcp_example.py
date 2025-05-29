@@ -5,6 +5,9 @@ import requestcompletion as rc
 from mcp import StdioServerParameters
 from requestcompletion.nodes.library.mcp_tool import from_mcp_server
 
+from requestcompletion.nodes.library.mcp_tool import async_from_server_auth
+from requestcompletion.utils.mcp_utils import MCPHttpParams
+
 #%%
 # Install mcp_server_time for time tools:
 MCP_COMMAND = "npx"
@@ -14,8 +17,9 @@ MCP_ARGS = ["mcp-remote", "https://mcp.paypal.com/sse"]
 
 #%%
 # Discover all tools
-tools = from_mcp_server(StdioServerParameters(command=MCP_COMMAND, args=MCP_ARGS))
+tools = asyncio.run(async_from_server_auth(MCPHttpParams(url="https://mcp.paypal.com/sse")))
 
+#%%
 parent_tool = rc.library.tool_call_llm(
     connected_nodes={*tools},
     pretty_name="Parent Tool",

@@ -4,10 +4,8 @@ from mcp import StdioServerParameters
 from requestcompletion.nodes.nodes import Node
 import asyncio
 
-from requestcompletion.utils.mcp_utils import MCPAsyncClient, from_mcp
+from requestcompletion.utils.mcp_utils import MCPAsyncClient, MCPHttpParams, from_mcp, SimpleAuthClient
 from typing_extensions import Union
-
-from requestcompletion.utils.mcp_utils import MCPHttpParams
 
 
 def from_mcp_server(
@@ -48,3 +46,20 @@ async def async_from_mcp_server(
             )
             for tool in tools
         ]
+
+
+async def async_from_server_auth(
+    config: Union[StdioServerParameters, MCPHttpParams],
+) -> Literal[True]:
+    """
+    Authenticate with the MCP server.
+
+    Args:
+        config: Configuration for the MCP server, either as StdioServerParameters or MCPHttpParams.
+
+    Returns:
+        True if authentication is successful.
+    """
+    client = SimpleAuthClient(config.url, "sse")
+    await client.connect()
+    return True
