@@ -12,6 +12,7 @@ from ..execution.messages import (
     RequestFinishedBase,
     RequestSuccess,
     RequestFailure,
+    Streaming,
 )
 
 from ..utils.misc import output_mapping
@@ -77,7 +78,8 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
     return await f
 
 
-def stream(item: str):
-    # TODO implement streaming functionality
+async def stream(item: str):
+
     publisher = get_globals().publisher
-    publisher.publish("hello world")
+
+    await publisher.publish(Streaming(node_id=get_globals().parent_id, streamed_object=item))

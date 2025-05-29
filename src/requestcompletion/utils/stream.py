@@ -12,6 +12,7 @@ from typing import TypeVar, Generic, List, Optional, Dict, Callable
 T = TypeVar("T")
 
 
+
 class Subscriber(ABC, Generic[T]):
     """A simple interface that defines the requirements for a subscriber to a data stream."""
 

@@ -4,7 +4,7 @@ import asyncio
 from abc import ABC
 
 from pydantic import BaseModel
-from typing import Type, ParamSpec, Callable, Literal, TypeVar, TYPE_CHECKING, Generic
+from typing import Type, ParamSpec, Callable, Literal, TypeVar, TYPE_CHECKING, Generic, Any
 
 from ..nodes.nodes import Node, NodeState
 
@@ -103,4 +103,10 @@ class FatalFailure(RequestCompletionMessage):
         return f"{self.__class__.__name__}(error={self.error})"
 
 
-# TODO implement other message types
+class Streaming(RequestCompletionMessage):
+    def __init__(self, *, streamed_object: Any, node_id: str):
+        self.streamed_object = streamed_object
+        self.node_id = node_id
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(streamed_object={self.streamed_object}, node_id={self.node_id})"
