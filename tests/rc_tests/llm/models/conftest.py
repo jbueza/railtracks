@@ -1,0 +1,105 @@
+import pytest
+from pydantic import BaseModel, Field
+from src.requestcompletion.llm.message import UserMessage, AssistantMessage, ToolMessage
+from src.requestcompletion.llm.content import ToolCall, ToolResponse
+from src.requestcompletion.llm.tools import Tool, Parameter
+
+
+# ====================================== START Tool Fixtures ======================================
+@pytest.fixture
+def tool():
+    """
+    Fixture to provide a valid Tool instance.
+    """
+    return Tool(
+        name="example_tool",
+        detail="This is an example tool.",
+        parameters={
+            "param1": {"type": "string", "description": "A string parameter."},
+            "param2": {"type": "integer", "description": "An integer parameter."},
+        },
+    )
+
+
+@pytest.fixture
+def tool_with_parameters_set():
+    """
+    Fixture to provide a Tool instance with Parameter objects.
+    """
+    return Tool(
+        name="example_tool",
+        detail="This is an example tool with parameters.",
+        parameters={
+            Parameter(name="param1", param_type="string", description="A string parameter.", required=True),
+            Parameter(name="param2", param_type="integer", description="An integer parameter.", required=False),
+        },
+    )
+
+@pytest.fixture
+def tool_with_parameters_basemodel():
+    """
+    Fixture to provide a Tool instance with Parameter objects.
+    """
+    class ExampleModel(BaseModel):
+        param1: str = Field(description="A string parameter.")
+        param2: int
+
+    return Tool(
+        name="example_tool",
+        detail="This is an example tool with parameters.",
+        parameters=ExampleModel,
+    )
+
+@pytest.fixture()
+def tool_with_parameters_dictionary():
+    """
+    Fixture to provide a Tool instance with Parameter objects.
+    """
+    return Tool(
+        name="example_tool",
+        detail="This is an example tool with parameters.",
+        parameters={
+            "param1": {"type": "string", "description": "A string parameter."},
+            "param2": {"type": "integer", "description": "An integer parameter.", "required": False},
+        },
+    )
+
+@pytest.fixture
+def user_message():
+    """
+    Fixture to provide a UserMessage instance.
+    """
+    return UserMessage(content="This is a user message.")
+
+
+@pytest.fixture
+def assistant_message():
+    """
+    Fixture to provide an AssistantMessage instance.
+    """
+    return AssistantMessage(content="This is an assistant message.")
+
+
+@pytest.fixture
+def tool_message(tool_response):
+    """
+    Fixture to provide a ToolMessage instance.
+    """
+    return ToolMessage(content=tool_response)
+
+
+@pytest.fixture
+def tool_response():
+    """
+    Fixture to provide a ToolResponse instance.
+    """
+    return ToolResponse(identifier="123", name="example_tool", result="success")
+
+
+@pytest.fixture
+def tool_call():
+    """
+    Fixture to provide a ToolCall instance.
+    """
+    return ToolCall(identifier="123", name="example_tool", arguments={"arg1": "value1"})
+# ====================================== END Tool Fixtures ======================================

@@ -385,7 +385,7 @@ async def test_tool_with_structured_output_child_tool():
     # Define the child tool with structured output
     child_tool = rc.library.structured_llm(
         output_model=ChildResponse,
-        system_message=rc.llm.SystemMessage("Generate a structured response from the request in the user message.."),
+        system_message=rc.llm.SystemMessage("Generate a structured response. The message request will be provided by the user."),
         model=rc.llm.OpenAILLM("gpt-4o"),
         pretty_name="Structured Child Tool",
         tool_details="A tool that generates a structured response that includes word count.",
