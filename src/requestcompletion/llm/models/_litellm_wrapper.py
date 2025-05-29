@@ -20,12 +20,12 @@ def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter]
     Turn one of:
       - a Pydantic model class (subclass of BaseModel)
       - a set of Parameter instances
-      - an already‐built dict
+      - an already-built dict
     into a JSON Schema dict.
     """
     # 1) Already a dict?
     if isinstance(parameters, dict):
-        if "required" not in parameters:
+        if "required" not in parameters and "properties" in parameters:
             warnings.warn("The 'required' key is not present in the parameters dictionary. Parsing Properties parameters to check for required fields.")
             required: list[str] = []
             for key, value in parameters["properties"].items():
@@ -105,7 +105,7 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
     elif isinstance(msg.content, list):
         assert all(isinstance(t_c, ToolCall) for t_c in msg.content)
         return litellm.utils.Message(
-            content="",  # TODO: maybe different for anthropic vs openai
+            content="", 
             role="assistant",
             tool_calls=[
                 litellm.utils.ChatCompletionMessageToolCall(

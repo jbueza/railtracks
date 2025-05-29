@@ -1,8 +1,10 @@
 import pytest
 from pydantic import BaseModel, Field
 from src.requestcompletion.llm.message import UserMessage, AssistantMessage, ToolMessage
+from src.requestcompletion.llm.history import MessageHistory
 from src.requestcompletion.llm.content import ToolCall, ToolResponse
 from src.requestcompletion.llm.tools import Tool, Parameter
+from src.requestcompletion.llm.models._litellm_wrapper import LiteLLMWrapper
 
 
 # ====================================== START Tool Fixtures ======================================
@@ -67,6 +69,9 @@ def tool_with_parameters_dictionary():
         },
     )
 
+# ====================================== END Tool Fixtures ======================================
+
+# ====================================== START Message Fixtures ======================================
 @pytest.fixture
 def user_message():
     """
@@ -105,4 +110,29 @@ def tool_call():
     Fixture to provide a ToolCall instance.
     """
     return ToolCall(identifier="123", name="example_tool", arguments={"arg1": "value1"})
-# ====================================== END Tool Fixtures ======================================
+
+@pytest.fixture
+def message_history(user_message, assistant_message):
+    """
+    Fixture to provide a MessageHistory instance.
+    """
+    return MessageHistory(messages=[user_message, assistant_message])
+# ====================================== END Message Fixtures ======================================
+
+# ======================================= START Mock LiteLLMWrapper ======================================
+class MockLiteLLMWrapper(LiteLLMWrapper):
+    """
+    Mock implementation of LiteLLMWrapper for testing purposes.
+    """
+    @classmethod
+    def model_type(cls) -> str:
+        return "mock"
+
+
+@pytest.fixture
+def mock_litellm_wrapper():
+    """
+    Fixture to provide a mock LiteLLMWrapper instance.
+    """
+    return MockLiteLLMWrapper
+# ======================================= END Mock LiteLLMWrapper ======================================
