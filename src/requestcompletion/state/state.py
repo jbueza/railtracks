@@ -386,7 +386,7 @@ class RCState:
             output = result.result
             request_completion_obj = RequestCompletionAction(
                 child_node_name=result.node.pretty_name(),
-                output=result,
+                output=result.result,
             )
 
             self.logger.info(request_completion_obj.to_logging_msg())
