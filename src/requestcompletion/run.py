@@ -3,7 +3,7 @@ import concurrent.futures
 import logging
 import threading
 import warnings
-from typing import TypeVar, ParamSpec, Callable
+from typing import TypeVar, ParamSpec, Callable, Coroutine, Any
 
 import deprecated
 
@@ -12,6 +12,7 @@ from .execution.coordinator import Coordinator
 from .execution.execution_strategy import ThreadedExecutionStrategy, AsyncioExecutionStrategy
 from .execution.messages import RequestCompletionMessage, RequestCreation, RequestFinishedBase, FatalFailure
 from .execution.publisher import RCPublisher
+from .execution.subscriber import stream_subscriber
 from .utils.misc import output_mapping
 from .utils.stream import DataStream, Subscriber
 from .nodes.nodes import Node
@@ -101,16 +102,7 @@ class Runner:
         executor_info = ExecutionInfo.create_new()
         self.coordinator = Coordinator(execution_modes={"async": AsyncioExecutionStrategy()})
         self.rc_state = RCState(executor_info, executor_config, self.coordinator)
-
-        if subscriber is None:
-            self._data_streamer = DataStream()
-        else:
-
-            class DynamicSubscriber(Subscriber[str]):
-                def handle(self, item: str) -> None:
-                    subscriber(item)
-
-            self._data_streamer = DataStream(subscribers=[DynamicSubscriber()])
+        self.subscriber = subscriber
 
     def __enter__(self):
         return self
@@ -119,8 +111,21 @@ class Runner:
         self._close()
 
     async def prepare(self):
+        """
+        Prepares the publisher and attaches
+        """
+
         await self.publisher.start()
         self.coordinator.start(self.publisher)
+        self.setup_subscriber()
+
+    def setup_subscriber(self):
+        """
+        Prepares and attaches the saved subscriber to the publisher attached to this runner.
+        """
+
+        if self.subscriber is not None:
+            self.publisher.subscribe(stream_subscriber(self.subscriber))
 
     async def _run_base(
         self,
@@ -165,7 +170,6 @@ class Runner:
         return self.rc_state.info
 
     def _close(self):
-        threading.Thread(self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)).start()
         self.rc_state.shutdown()
         detach_logging_handlers()
         delete_globals()
@@ -207,17 +211,6 @@ class Runner:
             "Currently we do not support running from a state object. Please contact Logan to add this feature."
         )
         # self.rc_state = RCState(executor_info)
-
-    # TODO add support for any general user defined streaming object
-    def stream(self, item: str):
-        """
-        Streams the provided message using the data streamer tied to this runner.
-
-        Args:
-            item: The message you would like to stream.
-
-        """
-        self._data_streamer.publish(item)
 
 
 def set_config(executor_config: ExecutorConfig):

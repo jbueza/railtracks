@@ -79,6 +79,7 @@ class RCPublisher(Generic[_T]):
             message: The message you would like to publish.
 
         """
+        print("Publishing message:", message)
         if self._killed:
             raise RuntimeError("Publisher is not currently running.")
 

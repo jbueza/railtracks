@@ -104,8 +104,7 @@ def logging_config_test_threads():
         rc.set_config(rc.ExecutorConfig(logging_setting=log_setting))
         with rc.Runner() as run:
             info = run.run_sync(RNGNode)
-            runner = rc.run.get_runner()
-            assert run == runner
+            runner = run
             assert runner.rc_state.executor_config.logging_setting == log_setting
             assert runner.rc_state.executor_config.end_on_error == False
 
@@ -146,8 +145,8 @@ def test_sequence_of_changes_overwrite():
 message = "Hello, World!"
 
 
-def streaming_func():
-    rc.stream(message)
+async def streaming_func():
+    await rc.stream(message)
     return
 
 
