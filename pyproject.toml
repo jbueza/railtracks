@@ -39,7 +39,7 @@ name = "requestcompletion"
 [tool.ruff]
 target-version = "py310"
 [tool.ruff.format]
-indent-style = "tab"
+indent-style = "space"
 docstring-code-format = true
 
 [tool.ruff.lint]

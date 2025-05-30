@@ -21,258 +21,258 @@ from pydantic import BaseModel, ValidationError
 
 
 class ToolMetadata:
-	"""Internal class to match LlamaIndex's ToolMetadata structure"""
+    """Internal class to match LlamaIndex's ToolMetadata structure"""
 
-	def __init__(self, name: str, description: str, schema: Dict):
-		self.name = name
-		self.description = description
-		self.schema = schema
+    def __init__(self, name: str, description: str, schema: Dict):
+        self.name = name
+        self.description = description
+        self.schema = schema
 
-	def to_openai_tool(self):
-		"""Convert to OpenAI tool format"""
-		return {
-			"type": "function",
-			"function": {
-				"name": self.name,
-				"description": self.description,
-				"parameters": self.schema,
-			},
-		}
+    def to_openai_tool(self):
+        """Convert to OpenAI tool format"""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.schema,
+            },
+        }
 
 
 # Custom tool class that works with our implementation
 class CustomTool:
-	"""A simple tool class that can be used with LlamaIndex"""
+    """A simple tool class that can be used with LlamaIndex"""
 
-	def __init__(self, name: str, description: str, schema: Dict):
-		self.name = name
-		self.description = description
-		self.schema = schema
-		# Create a metadata object that matches LlamaIndex's expectations
-		self.metadata = ToolMetadata(name, description, schema)
+    def __init__(self, name: str, description: str, schema: Dict):
+        self.name = name
+        self.description = description
+        self.schema = schema
+        # Create a metadata object that matches LlamaIndex's expectations
+        self.metadata = ToolMetadata(name, description, schema)
 
-	def to_openai_tool(self):
-		"""Convert to OpenAI tool format"""
-		return {
-			"type": "function",
-			"function": {
-				"name": self.name,
-				"description": self.description,
-				"parameters": self.schema,
-			},
-		}
+    def to_openai_tool(self):
+        """Convert to OpenAI tool format"""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.schema,
+            },
+        }
 
 
 def _to_llama_chat(
-	message: Message, tool_call_fn: Callable[[ToolCall], Dict]
+    message: Message, tool_call_fn: Callable[[ToolCall], Dict]
 ) -> ChatMessage:
-	"""
-	Converts the given `message` to a llama chat message.
+    """
+    Converts the given `message` to a llama chat message.
 
-	It will handle any possible content type and map it to the proper llama content type.
-	"""
-	# handle the special case where the message is a tool so we have to link it to the tool id.
-	if isinstance(message, ToolMessage):
-		# TODO: update this logic to be dependency injected
-		return ChatMessage(
-			content=message.content,
-			role=message.role,
-			additional_kwargs={"tool_call_id": message.identifier},
-		)
-	# only time this is true is if tool calls
-	if isinstance(message.content, list):
-		assert all(isinstance(t_c, ToolCall) for t_c in message.content)
-		return ChatMessage(
-			additional_kwargs={
-				"tool_calls": [tool_call_fn(t_c) for t_c in message.content]
-			},
-			role=message.role,
-		)
+    It will handle any possible content type and map it to the proper llama content type.
+    """
+    # handle the special case where the message is a tool so we have to link it to the tool id.
+    if isinstance(message, ToolMessage):
+        # TODO: update this logic to be dependency injected
+        return ChatMessage(
+            content=message.content,
+            role=message.role,
+            additional_kwargs={"tool_call_id": message.identifier},
+        )
+    # only time this is true is if tool calls
+    if isinstance(message.content, list):
+        assert all(isinstance(t_c, ToolCall) for t_c in message.content)
+        return ChatMessage(
+            additional_kwargs={
+                "tool_calls": [tool_call_fn(t_c) for t_c in message.content]
+            },
+            role=message.role,
+        )
 
-	# TODO: complete this for the openai case then move one to next step.
-	if isinstance(message.content, BaseModel):
-		return ChatMessage(content=message.content.model_dump(), role=message.role)
+    # TODO: complete this for the openai case then move one to next step.
+    if isinstance(message.content, BaseModel):
+        return ChatMessage(content=message.content.model_dump(), role=message.role)
 
-	return ChatMessage(content=message.content, role=message.role)
+    return ChatMessage(content=message.content, role=message.role)
 
 
 def _to_llama_tool(tool: Tool) -> CustomTool:
-	"""
-	Converts the given `tool` to a custom tool.
+    """
+    Converts the given `tool` to a custom tool.
 
-	Args:
-	    tool: The tool you would like to convert.
+    Args:
+        tool: The tool you would like to convert.
 
-	Returns:
-	    A `CustomTool` object that represents the given tool.
-	"""
-	# Get the schema from the tool's parameters
-	schema = None
-	if tool.parameters:
-		if hasattr(tool.parameters, "model_json_schema"):
-			# If it's a Pydantic model, get the schema
-			schema = tool.parameters.model_json_schema()
+    Returns:
+        A `CustomTool` object that represents the given tool.
+    """
+    # Get the schema from the tool's parameters
+    schema = None
+    if tool.parameters:
+        if hasattr(tool.parameters, "model_json_schema"):
+            # If it's a Pydantic model, get the schema
+            schema = tool.parameters.model_json_schema()
 
-			# Ensure additionalProperties is set to false for OpenAI compatibility
-			if "additionalProperties" not in schema:
-				schema["additionalProperties"] = False
-		elif isinstance(tool.parameters, dict):
-			# If it's already a dict, use it directly
-			schema = tool.parameters
-			if "additionalProperties" not in schema:
-				schema["additionalProperties"] = False
-			if "type" not in schema:
-				schema["type"] = "object"
+            # Ensure additionalProperties is set to false for OpenAI compatibility
+            if "additionalProperties" not in schema:
+                schema["additionalProperties"] = False
+        elif isinstance(tool.parameters, dict):
+            # If it's already a dict, use it directly
+            schema = tool.parameters
+            if "additionalProperties" not in schema:
+                schema["additionalProperties"] = False
+            if "type" not in schema:
+                schema["type"] = "object"
 
-	# If we couldn't get a schema, create a minimal valid one
-	if not schema:
-		warnings.warn(
-			f"Failed to get schema for tool '{tool.name}'. Using minimal valid schema with no parameters."
-		)
-		schema = {
-			"type": "object",
-			"properties": {},
-			"required": [],
-			"additionalProperties": False,
-		}
+    # If we couldn't get a schema, create a minimal valid one
+    if not schema:
+        warnings.warn(
+            f"Failed to get schema for tool '{tool.name}'. Using minimal valid schema with no parameters."
+        )
+        schema = {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False,
+        }
 
-	# Use our custom tool class
-	return CustomTool(name=tool.name, description=tool.detail, schema=schema)
+    # Use our custom tool class
+    return CustomTool(name=tool.name, description=tool.detail, schema=schema)
 
 
 class LlamaWrapper(ModelBase):
-	"""
-	A large base class that wraps around a llama index model.
+    """
+    A large base class that wraps around a llama index model.
 
-	Note that the model object should be interacted with via the methods provided in the wrapper class:
-	- `chat`
-	- `structured`
-	- `stream_chat`
-	- `chat_with_tools`
+    Note that the model object should be interacted with via the methods provided in the wrapper class:
+    - `chat`
+    - `structured`
+    - `stream_chat`
+    - `chat_with_tools`
 
-	Each individual API should implement the required `abstract_methods` in order to allow users to interact with a
-	 model of that type.
-	"""
+    Each individual API should implement the required `abstract_methods` in order to allow users to interact with a
+     model of that type.
+    """
 
-	def __init__(self, model_name: str, **kwargs):
-		"""
-		Creates a new instance of the model with the provided model_name and any additional kwargs. The kwargs will be
-		 passed in when you call this model but will be overwritten by any kwargs you provide when you call the model.
+    def __init__(self, model_name: str, **kwargs):
+        """
+        Creates a new instance of the model with the provided model_name and any additional kwargs. The kwargs will be
+         passed in when you call this model but will be overwritten by any kwargs you provide when you call the model.
 
-		Args:
-		    model_name: The name of the model you would like to use.
-		    **kwargs: Any additional arguments you would like to pass to the model when calling it. (These should match
-		        the arguments that the given API request you have implemented it for.)
-		"""
-		self._model_type = self.model_type()
-		self._model_name = model_name
-		self.model = self.setup_model_object(model_name, **kwargs)
+        Args:
+            model_name: The name of the model you would like to use.
+            **kwargs: Any additional arguments you would like to pass to the model when calling it. (These should match
+                the arguments that the given API request you have implemented it for.)
+        """
+        self._model_type = self.model_type()
+        self._model_name = model_name
+        self.model = self.setup_model_object(model_name, **kwargs)
 
-	@classmethod
-	@abstractmethod
-	def setup_model_object(cls, model_name: str, **kwargs):
-		pass
+    @classmethod
+    @abstractmethod
+    def setup_model_object(cls, model_name: str, **kwargs):
+        pass
 
-	@classmethod
-	@abstractmethod
-	def model_type(cls) -> str:
-		pass
+    @classmethod
+    @abstractmethod
+    def model_type(cls) -> str:
+        pass
 
-	@classmethod
-	@abstractmethod
-	def prepare_tool_calls(cls, tool: ToolCall):
-		pass
+    @classmethod
+    @abstractmethod
+    def prepare_tool_calls(cls, tool: ToolCall):
+        pass
 
-	def chat(self, messages: MessageHistory, **kwargs):
-		"""
-		Chats with a llama model using the given set of message history.
+    def chat(self, messages: MessageHistory, **kwargs):
+        """
+        Chats with a llama model using the given set of message history.
 
-		Args:
-		    messages: A complete message history including system messages, that the llm should use as context to
-		        generate a response.
-		    **kwargs: Any additional arguments you would like to pass to the model when calling it. These will overwrite
-		        the arguments passed in at the time of model creation.
+        Args:
+            messages: A complete message history including system messages, that the llm should use as context to
+                generate a response.
+            **kwargs: Any additional arguments you would like to pass to the model when calling it. These will overwrite
+                the arguments passed in at the time of model creation.
 
-		Returns:
-		    A response object that contains the response from the model. Note the `message` field will be filled and
-		        the `streamer` field will be empty.
-		"""
-		response = self.model.chat(
-			[_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs
-		)
-		return Response(message=AssistantMessage(response.message.content))
+        Returns:
+            A response object that contains the response from the model. Note the `message` field will be filled and
+                the `streamer` field will be empty.
+        """
+        response = self.model.chat(
+            [_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs
+        )
+        return Response(message=AssistantMessage(response.message.content))
 
-	def structured(self, messages: MessageHistory, schema: Type[BaseModel], **kwargs):
-		# TODO add a descriptive error for failed structured prediction
-		sllm = self.model.as_structured_llm(schema)
-		response = sllm.chat(
-			[_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs
-		)
+    def structured(self, messages: MessageHistory, schema: Type[BaseModel], **kwargs):
+        # TODO add a descriptive error for failed structured prediction
+        sllm = self.model.as_structured_llm(schema)
+        response = sllm.chat(
+            [_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs
+        )
 
-		try:
-			return Response(
-				message=AssistantMessage(schema(**json.loads(response.message.content)))
-			)
-		except ValidationError as e:
-			# TODO come up with a better exception message here.
-			return Exception()
+        try:
+            return Response(
+                message=AssistantMessage(schema(**json.loads(response.message.content)))
+            )
+        except ValidationError as e:
+            # TODO come up with a better exception message here.
+            return Exception()
 
-	def stream_chat(self, messages: MessageHistory, **kwargs):
-		message = self.model.stream_chat(
-			[_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs
-		)
+    def stream_chat(self, messages: MessageHistory, **kwargs):
+        message = self.model.stream_chat(
+            [_to_llama_chat(m, self.prepare_tool_calls) for m in messages], **kwargs
+        )
 
-		# we need to get creative to map the provided streamer
-		def map_to_string():
-			for m in message:
-				yield m.delta
-			return
+        # we need to get creative to map the provided streamer
+        def map_to_string():
+            for m in message:
+                yield m.delta
+            return
 
-		return Response(message=None, streamer=map_to_string())
+        return Response(message=None, streamer=map_to_string())
 
-	def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
-		"""
-		Chat with the model using tools.
+    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
+        """
+        Chat with the model using tools.
 
-		Args:
-		    messages: The message history to use as context
-		    tools: The tools to make available to the model
-		    **kwargs: Additional arguments to pass to the model
+        Args:
+            messages: The message history to use as context
+            tools: The tools to make available to the model
+            **kwargs: Additional arguments to pass to the model
 
-		Returns:
-		    A Response object containing the model's response
-		"""
-		# Convert our tools and messages to the format expected by the underlying implementation
-		llama_tools = [_to_llama_tool(t) for t in tools]
-		llama_chat = [_to_llama_chat(m, self.prepare_tool_calls) for m in messages]
+        Returns:
+            A Response object containing the model's response
+        """
+        # Convert our tools and messages to the format expected by the underlying implementation
+        llama_tools = [_to_llama_tool(t) for t in tools]
+        llama_chat = [_to_llama_chat(m, self.prepare_tool_calls) for m in messages]
 
-		# Use the default implementation for all models
-		response = self.model.chat_with_tools(
-			llama_tools,
-			chat_history=llama_chat,
-			**kwargs,
-		)
+        # Use the default implementation for all models
+        response = self.model.chat_with_tools(
+            llama_tools,
+            chat_history=llama_chat,
+            **kwargs,
+        )
 
-		tool_calls = self.model.get_tool_calls_from_response(
-			response, error_on_no_tool_call=False
-		)
-		if len(tool_calls) == 0:
-			message = AssistantMessage(content=response.message.content)
-			return Response(
-				message=message,
-			)
+        tool_calls = self.model.get_tool_calls_from_response(
+            response, error_on_no_tool_call=False
+        )
+        if len(tool_calls) == 0:
+            message = AssistantMessage(content=response.message.content)
+            return Response(
+                message=message,
+            )
 
-		message = AssistantMessage(
-			content=[
-				ToolCall(
-					identifier=t_c.tool_id,
-					name=t_c.tool_name,
-					arguments=t_c.tool_kwargs,
-				)
-				for t_c in tool_calls
-			],
-		)
-		return Response(message=message)
+        message = AssistantMessage(
+            content=[
+                ToolCall(
+                    identifier=t_c.tool_id,
+                    name=t_c.tool_name,
+                    arguments=t_c.tool_kwargs,
+                )
+                for t_c in tool_calls
+            ],
+        )
+        return Response(message=message)
 
-	def __str__(self):
-		return f"Model(type={self._model_type}, name={self._model_name})"
+    def __str__(self):
+        return f"Model(type={self._model_type}, name={self._model_name})"

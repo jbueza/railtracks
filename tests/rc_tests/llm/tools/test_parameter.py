@@ -6,200 +6,200 @@ in the requestcompletion.llm.tools.parameter module.
 """
 
 from src.requestcompletion.llm.tools.parameter import (
-	Parameter,
-	PydanticParameter,
+    Parameter,
+    PydanticParameter,
 )
 from src.requestcompletion.llm.tools import Tool
 
 
 class TestParameter:
-	"""Tests for the Parameter base class."""
+    """Tests for the Parameter base class."""
 
-	def test_parameter_initialization(self):
-		"""Test that Parameter objects can be initialized with expected values."""
-		param = Parameter(
-			name="test_param",
-			param_type="string",
-			description="A test parameter",
-			required=True,
-		)
+    def test_parameter_initialization(self):
+        """Test that Parameter objects can be initialized with expected values."""
+        param = Parameter(
+            name="test_param",
+            param_type="string",
+            description="A test parameter",
+            required=True,
+        )
 
-		assert param.name == "test_param"
-		assert param.param_type == "string"
-		assert param.description == "A test parameter"
-		assert param.required is True
+        assert param.name == "test_param"
+        assert param.param_type == "string"
+        assert param.description == "A test parameter"
+        assert param.required is True
 
-	def test_parameter_default_values(self):
-		"""Test that Parameter objects use default values correctly."""
-		param = Parameter(name="test_param", param_type="integer")
+    def test_parameter_default_values(self):
+        """Test that Parameter objects use default values correctly."""
+        param = Parameter(name="test_param", param_type="integer")
 
-		assert param.name == "test_param"
-		assert param.param_type == "integer"
-		assert param.description == ""
-		assert param.required is True
+        assert param.name == "test_param"
+        assert param.param_type == "integer"
+        assert param.description == ""
+        assert param.required is True
 
-	def test_parameter_string_representation(self):
-		"""Test the string representation of Parameter objects."""
-		param = Parameter(
-			name="test_param",
-			param_type="boolean",
-			description="A test parameter",
-			required=False,
-		)
+    def test_parameter_string_representation(self):
+        """Test the string representation of Parameter objects."""
+        param = Parameter(
+            name="test_param",
+            param_type="boolean",
+            description="A test parameter",
+            required=False,
+        )
 
-		expected_str = (
-			"Parameter(name=test_param, type=boolean, "
-			"description=A test parameter, required=False, "
-			"additional_properties=False)"
-		)
-		assert str(param) == expected_str
+        expected_str = (
+            "Parameter(name=test_param, type=boolean, "
+            "description=A test parameter, required=False, "
+            "additional_properties=False)"
+        )
+        assert str(param) == expected_str
 
-	def test_type_mapping(self):
-		"""Test that type_mapping returns the expected mapping."""
-		mapping = Parameter.type_mapping()
+    def test_type_mapping(self):
+        """Test that type_mapping returns the expected mapping."""
+        mapping = Parameter.type_mapping()
 
-		assert mapping["string"] is str
-		assert mapping["integer"] is int
-		assert mapping["float"] is float
-		assert mapping["boolean"] is bool
-		assert mapping["array"] is list
-		assert mapping["object"] is dict
+        assert mapping["string"] is str
+        assert mapping["integer"] is int
+        assert mapping["float"] is float
+        assert mapping["boolean"] is bool
+        assert mapping["array"] is list
+        assert mapping["object"] is dict
 
 
 class TestPydanticParameter:
-	"""Tests for the PydanticParameter class."""
+    """Tests for the PydanticParameter class."""
 
-	def test_pydantic_parameter_initialization(self):
-		"""Test that PydanticParameter objects can be initialized with expected values."""
-		param = PydanticParameter(
-			name="test_param",
-			param_type="object",
-			description="A test parameter",
-			required=True,
-			properties={},
-		)
+    def test_pydantic_parameter_initialization(self):
+        """Test that PydanticParameter objects can be initialized with expected values."""
+        param = PydanticParameter(
+            name="test_param",
+            param_type="object",
+            description="A test parameter",
+            required=True,
+            properties={},
+        )
 
-		assert param.name == "test_param"
-		assert param.param_type == "object"
-		assert param.description == "A test parameter"
-		assert param.required is True
-		assert param.properties == {}
+        assert param.name == "test_param"
+        assert param.param_type == "object"
+        assert param.description == "A test parameter"
+        assert param.required is True
+        assert param.properties == {}
 
-	def test_pydantic_parameter_default_properties(self):
-		"""Test that PydanticParameter uses an empty dict for properties by default."""
-		param = PydanticParameter(name="test_param", param_type="object")
+    def test_pydantic_parameter_default_properties(self):
+        """Test that PydanticParameter uses an empty dict for properties by default."""
+        param = PydanticParameter(name="test_param", param_type="object")
 
-		assert param.properties == {}
+        assert param.properties == {}
 
-	def test_pydantic_parameter_with_nested_properties(self):
-		"""Test PydanticParameter with nested properties."""
-		nested_param = Parameter(
-			name="nested", param_type="string", description="A nested parameter"
-		)
+    def test_pydantic_parameter_with_nested_properties(self):
+        """Test PydanticParameter with nested properties."""
+        nested_param = Parameter(
+            name="nested", param_type="string", description="A nested parameter"
+        )
 
-		param = PydanticParameter(
-			name="test_param",
-			param_type="object",
-			properties={"nested": nested_param},
-		)
+        param = PydanticParameter(
+            name="test_param",
+            param_type="object",
+            properties={"nested": nested_param},
+        )
 
-		assert param.properties["nested"] is nested_param
-		assert param.properties["nested"].name == "nested"
-		assert param.properties["nested"].param_type == "string"
+        assert param.properties["nested"] is nested_param
+        assert param.properties["nested"].name == "nested"
+        assert param.properties["nested"].param_type == "string"
 
-	def test_pydantic_parameter_string_representation(self):
-		"""Test the string representation of PydanticParameter objects."""
-		nested_param = Parameter(name="nested", param_type="string")
-		param = PydanticParameter(
-			name="test_param",
-			param_type="object",
-			description="A test parameter",
-			required=False,
-			properties={"nested": nested_param},
-		)
+    def test_pydantic_parameter_string_representation(self):
+        """Test the string representation of PydanticParameter objects."""
+        nested_param = Parameter(name="nested", param_type="string")
+        param = PydanticParameter(
+            name="test_param",
+            param_type="object",
+            description="A test parameter",
+            required=False,
+            properties={"nested": nested_param},
+        )
 
-		# The string representation should include properties
-		str_repr = str(param)
-		assert "PydanticParameter" in str_repr
-		assert "name=test_param" in str_repr
-		assert "type=object" in str_repr
-		assert "required=False" in str_repr
-		assert "properties=" in str_repr
-		assert "nested" in str_repr
+        # The string representation should include properties
+        str_repr = str(param)
+        assert "PydanticParameter" in str_repr
+        assert "name=test_param" in str_repr
+        assert "type=object" in str_repr
+        assert "required=False" in str_repr
+        assert "properties=" in str_repr
+        assert "nested" in str_repr
 
 
 class TestParameterEdgeCases:
-	"""Tests for edge cases and validation in Parameter classes."""
+    """Tests for edge cases and validation in Parameter classes."""
 
-	def test_deep_nested_pydantic_parameters(self):
-		"""Test deeply nested PydanticParameter structures."""
-		level3 = Parameter(name="level3", param_type="string")
-		level2 = PydanticParameter(
-			name="level2", param_type="object", properties={"level3": level3}
-		)
-		level1 = PydanticParameter(
-			name="level1", param_type="object", properties={"level2": level2}
-		)
+    def test_deep_nested_pydantic_parameters(self):
+        """Test deeply nested PydanticParameter structures."""
+        level3 = Parameter(name="level3", param_type="string")
+        level2 = PydanticParameter(
+            name="level2", param_type="object", properties={"level3": level3}
+        )
+        level1 = PydanticParameter(
+            name="level1", param_type="object", properties={"level2": level2}
+        )
 
-		assert level1.properties["level2"].properties["level3"] is level3
-		assert level1.properties["level2"].properties["level3"].param_type == "string"
+        assert level1.properties["level2"].properties["level3"] is level3
+        assert level1.properties["level2"].properties["level3"].param_type == "string"
 
-	def test_properties_are_isolated(self):
-		"""Test that modifying properties in one instance doesn't affect others."""
-		param1 = PydanticParameter(name="param1", param_type="object")
-		param2 = PydanticParameter(name="param2", param_type="object")
+    def test_properties_are_isolated(self):
+        """Test that modifying properties in one instance doesn't affect others."""
+        param1 = PydanticParameter(name="param1", param_type="object")
+        param2 = PydanticParameter(name="param2", param_type="object")
 
-		# Add a property to param1
-		param1.properties["new_prop"] = Parameter(name="new", param_type="string")
+        # Add a property to param1
+        param1.properties["new_prop"] = Parameter(name="new", param_type="string")
 
-		# param2's properties should still be empty
-		assert "new_prop" not in param2.properties
+        # param2's properties should still be empty
+        assert "new_prop" not in param2.properties
 
 
 class TestClassMethodParameters:
-	"""Tests for handling self and cls parameters in class methods."""
+    """Tests for handling self and cls parameters in class methods."""
 
-	def test_instance_method_self_parameter(self):
-		"""Test that self parameter is excluded from instance methods."""
+    def test_instance_method_self_parameter(self):
+        """Test that self parameter is excluded from instance methods."""
 
-		class TestClass:
-			def instance_method(self, value: str) -> str:
-				"""
-				Args:
-				    value: The value to process
-				Returns:
-				    The processed value
-				"""
-				return value.upper()
+        class TestClass:
+            def instance_method(self, value: str) -> str:
+                """
+                Args:
+                    value: The value to process
+                Returns:
+                    The processed value
+                """
+                return value.upper()
 
-		tool = Tool.from_function(TestClass.instance_method)
-		params = tool.parameters.model_json_schema().get("properties", {})
+        tool = Tool.from_function(TestClass.instance_method)
+        params = tool.parameters.model_json_schema().get("properties", {})
 
-		# Verify self is not in parameters
-		assert "self" not in params
-		# Verify value parameter is present
-		assert "value" in params
-		assert params["value"]["type"] == "string"
+        # Verify self is not in parameters
+        assert "self" not in params
+        # Verify value parameter is present
+        assert "value" in params
+        assert params["value"]["type"] == "string"
 
-	def test_class_method_cls_parameter(self):
-		"""Test that cls parameter is excluded from class methods."""
+    def test_class_method_cls_parameter(self):
+        """Test that cls parameter is excluded from class methods."""
 
-		class TestClass:
-			@classmethod
-			def class_method(cls, value: str) -> str:
-				"""
-				Args:
-				    value: The value to process
-				Returns:
-				    The processed value
-				"""
-				return value.upper()
+        class TestClass:
+            @classmethod
+            def class_method(cls, value: str) -> str:
+                """
+                Args:
+                    value: The value to process
+                Returns:
+                    The processed value
+                """
+                return value.upper()
 
-		tool = Tool.from_function(TestClass.class_method)
-		params = tool.parameters.model_json_schema().get("properties", {})
+        tool = Tool.from_function(TestClass.class_method)
+        params = tool.parameters.model_json_schema().get("properties", {})
 
-		# Verify cls is not in parameters
-		assert "cls" not in params
-		# Verify value parameter is present
-		assert "value" in params
-		assert params["value"]["type"] == "string"
+        # Verify cls is not in parameters
+        assert "cls" not in params
+        # Verify value parameter is present
+        assert "value" in params
+        assert params["value"]["type"] == "string"
