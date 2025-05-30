@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextvars
 import multiprocessing
 import threading
 import queue
@@ -14,24 +15,37 @@ from abc import ABC, abstractmethod
 
 from typing import List, Callable, Dict, Literal, TypeVar, Generator, Generic, Coroutine, Awaitable
 
+
+from ..utils.logging.create import get_rc_logger
+
 _T = TypeVar("_T")
 _TOutput = TypeVar("_TOutput")
+
+logger = get_rc_logger(__name__)
 
 
 class Subscriber(Generic[_T]):
     """A simple wrapper class of a callback function."""
 
     # this could be done without a class, but I want to keep as extendable as possible.
-    def __init__(self, callback: Callable[[_T], None] | Callable[[_T], Coroutine[None, None, None]]):
+    def __init__(
+        self,
+        callback: Callable[[_T], None] | Callable[[_T], Coroutine[None, None, None]],
+        name: str | None = None,
+    ):
         self.callback = callback
+        self.name = name if name is not None else callback.__name__
         self.id = str(uuid.uuid4())
 
     async def trigger(self, message: _T):
         """Trigger this subscriber with the given message."""
-
-        result = self.callback(message)
-        if asyncio.iscoroutine(result):
-            await result
+        try:
+            result = self.callback(message)
+            if asyncio.iscoroutine(result):
+                await result
+        except Exception as e:
+            print(e)
+            # logger.exception(f'Error while triggering "%s": %s', self.name, e)
 
 
 class RCPublisher(Generic[_T]):
@@ -79,7 +93,6 @@ class RCPublisher(Generic[_T]):
             message: The message you would like to publish.
 
         """
-        print("Publishing message:", message)
         if self._killed:
             raise RuntimeError("Publisher is not currently running.")
 
@@ -107,17 +120,23 @@ class RCPublisher(Generic[_T]):
             except asyncio.TimeoutError:
                 continue
 
-    def subscribe(self, callback: Callable[[_T], None] | Callable[[_T], Coroutine[None, None, None]]) -> str:
+    def subscribe(
+        self,
+        callback: Callable[[_T], None] | Callable[[_T], Coroutine[None, None, None]],
+        name: str | None = None,
+    ) -> str:
         """
         Subscribe the publisher so whenever we receive a message the callback will be triggered.
 
         Args:
             callback: The callback function that will be triggered when a message is published.
+            name: Optional name for the subscriber, mainly used for debugging.
 
         Returns:
             str: A unique identifier for the subscriber. You can use this key to unsubscribe later.
+
         """
-        sub = Subscriber(callback)
+        sub = Subscriber(callback, name)
         self._subscribers.append(sub)
         return sub.id
 
@@ -142,6 +161,7 @@ class RCPublisher(Generic[_T]):
         self,
         message_filter: Callable[[_T], bool],
         result_mapping: Callable[[_T], _TOutput] = lambda x: x,
+        listener_name: str | None = None,
     ):
         async def single_listener():
             returnable_result: RequestCompletionMessage | None = None
@@ -156,7 +176,10 @@ class RCPublisher(Generic[_T]):
                     listener_event.set()
                     return
 
-            sub_id = self.subscribe(special_subscriber)
+            sub_id = self.subscribe(
+                callback=special_subscriber,
+                name=listener_name,
+            )
 
             while True:
                 try:

@@ -1,26 +1,28 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
-import queue
-import threading
-import uuid
+
 import warnings
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, Future
+
 
 from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING, Any
 
 
-from .execute import RCWorkerManager, Result
-
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
-from ..context import get_globals, register_globals, ThreadContext
+from ..context import get_globals, register_globals, ThreadContext, update_parent_id
 from ..execution.coordinator import Coordinator
+from ..execution.publisher import RCPublisher
 from ..execution.task import Task
-from ..utils.stream import Subscriber
-from ..execution.messages import RequestCreation, RequestSuccess, RequestFinishedBase, RequestFailure, FatalFailure
+from ..execution.messages import (
+    RequestCreation,
+    RequestSuccess,
+    RequestFinishedBase,
+    RequestFailure,
+    FatalFailure,
+    RequestCompletionMessage,
+)
 
 from ..utils.logging.action import RequestCreationAction, RequestCompletionAction, NodeExceptionAction
 
@@ -57,7 +59,13 @@ class RCState:
     """
 
     # TODO seperate the logic in the executor config and the state object.
-    def __init__(self, execution_info: ExecutionInfo, executor_config: ExecutorConfig, coordinator: Coordinator):
+    def __init__(
+        self,
+        execution_info: ExecutionInfo,
+        executor_config: ExecutorConfig,
+        coordinator: Coordinator,
+        publisher: RCPublisher[RequestCompletionMessage],
+    ):
 
         self._node_heap = execution_info.node_heap
         self._request_heap = execution_info.request_heap
@@ -74,17 +82,16 @@ class RCState:
         # each new instance of a state object should have its own logger.
         self.logger = get_rc_logger(LOGGER_NAME)
 
-        publisher = get_globals().publisher
-        publisher.subscribe(self.handle)
+        publisher.subscribe(self.handle, "State Object Handler")
         self.publisher = publisher
 
     # TODO: fix up these abstractions so it consistent that we are mapping the request type into its proper type.
-    async def handle(self, item: RequestCompletionAction) -> None:
-        print(f"Handling item: {item}")
+    async def handle(self, item: RequestCompletionMessage) -> None:
 
         if isinstance(item, RequestFinishedBase):
             await self.handle_result(item)
         if isinstance(item, RequestCreation):
+            # TODO fix this logic. It works but it is far from clean. Trace the line of context to make this work better.
             register_globals(
                 ThreadContext(
                     parent_id=item.current_node_id,
