@@ -139,36 +139,36 @@ def setup_file_handler(
 # TODO fill out the rest of the logic
 def prepare_logger(
     setting: allowable_log_levels,
-    # file_name: str | None = None,
-    # file_logging_config: dict | None = None,
-    # file_logging_level: (
-    #     logging.DEBUG | logging.INFO | logging.WARNING | logging.ERROR | logging.CRITICAL
-    # ) = logging.DEBUG,
+    file_name: str | None = None,
+    file_logging_config: dict | None = None,
+    file_logging_level: (
+        logging.DEBUG | logging.INFO | logging.WARNING | logging.ERROR | logging.CRITICAL
+    ) = logging.DEBUG,
 ):
-    # # the file injection will happen no matter what.
-    # if file_name is not None:
-    #     setup_file_handler(file_name, file_logging_config, file_logging_level)
-    # # We should raise a warning if the file logging config was provided
-    # else:
-    #     if file_logging_config is not None:
-    #         warnings.warn(
-    #             "File logging config provided but no file was provided. The file logging config will be ignored"
-    #
+    # the file injection will happen no matter what.
+    if file_name is not None:
+        setup_file_handler(file_name, file_logging_config, file_logging_level)
+    # We should raise a warning if the file logging config was provided
+    else:
+        if file_logging_config is not None:
+            warnings.warn(
+                "File logging config provided but no file was provided. The file logging config will be ignored"
+            )
 
     # TODO: write logic to figure out how to check to make sure a logger has not already been created.
 
     # now for each of our predefined settings we will set up the logger.
-    # if setting == "VERBOSE":
-    #     setup_verbose_logger_config()
-    # elif setting == "REGULAR":
-    #     setup_regular_logger_config()
-    # elif setting == "QUIET":
-    #     setup_quiet_logger_config()
-    # elif setting == "NONE":
-    #     setup_none_logger_config()
-    # else:
-    #     raise ValueError("Invalid log level setting")
-    setup_none_logger_config()
+    if setting == "VERBOSE":
+        setup_verbose_logger_config()
+    elif setting == "REGULAR":
+        setup_regular_logger_config()
+    elif setting == "QUIET":
+        setup_quiet_logger_config()
+    elif setting == "NONE":
+        setup_none_logger_config()
+    else:
+        raise ValueError("Invalid log level setting")
+    # setup_none_logger_config()
 
 
 def detach_logging_handlers():

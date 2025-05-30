@@ -101,7 +101,7 @@ class Runner:
 
         executor_info = ExecutionInfo.create_new()
         self.coordinator = Coordinator(execution_modes={"async": AsyncioExecutionStrategy()})
-        self.rc_state = RCState(executor_info, executor_config, self.coordinator)
+        self.rc_state = RCState(executor_info, executor_config, self.coordinator, self.publisher)
         self.subscriber = subscriber
 
     def __enter__(self):
@@ -125,7 +125,7 @@ class Runner:
         """
 
         if self.subscriber is not None:
-            self.publisher.subscribe(stream_subscriber(self.subscriber))
+            self.publisher.subscribe(stream_subscriber(self.subscriber), name="Streaming Subscriber")
 
     async def _run_base(
         self,

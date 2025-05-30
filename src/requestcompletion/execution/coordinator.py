@@ -16,6 +16,7 @@ from .messages import (
     RequestCreation,
     ExecutionConfigurations,
 )
+from .publisher import RCPublisher
 from .task import Task
 from ..context import get_globals
 
@@ -107,8 +108,8 @@ class Coordinator:
         ), "You must provide all execution modes."
         self.execution_strategy = execution_modes
 
-    def start(self, publisher):
-        publisher.subscribe(self.handle_item)
+    def start(self, publisher: RCPublisher[RequestCompletionMessage]):
+        publisher.subscribe(self.handle_item, name="Coordinator Subscriber")
 
     def handle_item(self, item: RequestCompletionMessage):
         if isinstance(item, RequestFinishedBase):
