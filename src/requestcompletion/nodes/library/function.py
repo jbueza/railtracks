@@ -9,22 +9,22 @@ from ...llm.tools import Tool
 from ...llm.tools.parameter_handlers import UnsupportedParameterException
 
 from typing import (
-	Any,
-	TypeVar,
-	Callable,
-	List,
-	Dict,
-	Type,
-	Dict,
-	Optional,
-	Tuple,
-	Union,
-	get_origin,
-	get_args,
-	Coroutine,
-	Awaitable,
-	ParamSpec,
-	Generic,
+    Any,
+    TypeVar,
+    Callable,
+    List,
+    Dict,
+    Type,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+    get_origin,
+    get_args,
+    Coroutine,
+    Awaitable,
+    ParamSpec,
+    Generic,
 )
 
 from ..nodes import Node, Tool
@@ -37,213 +37,218 @@ _P = ParamSpec("_P")
 
 
 def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
-	"""
-	A function to create a node from a function
-	"""
+    """
+    A function to create a node from a function
+    """
 
-	# TODO figure out how to type this properly
-	class DynamicFunctionNode(Node[_TOutput], Generic[_P, _TOutput]):
-		def __init__(self, *args: _P.args, **kwargs: _P.kwargs):
-			super().__init__()
-			self.args = args
-			self.kwargs = kwargs
+    # TODO figure out how to type this properly
+    class DynamicFunctionNode(Node[_TOutput], Generic[_P, _TOutput]):
+        def __init__(self, *args: _P.args, **kwargs: _P.kwargs):
+            super().__init__()
+            self.args = args
+            self.kwargs = kwargs
 
-		async def invoke(self) -> _TOutput:
-			"""Invoke the function with converted arguments."""
-			try:
-				# Convert kwargs to appropriate types based on function signature
-				converted_kwargs = self._convert_kwargs_to_appropriate_types()
+        async def invoke(self) -> _TOutput:
+            """Invoke the function with converted arguments."""
+            try:
+                # Convert kwargs to appropriate types based on function signature
+                converted_kwargs = self._convert_kwargs_to_appropriate_types()
 
-				# we want to have different behavior if the function is a coroutine or not
-				if inspect.iscoroutinefunction(func):
-					result = await func(*self.args, **converted_kwargs)
-				else:
-					result = await asyncio.to_thread(
-						func, *self.args, **converted_kwargs
-					)
-				return result
+                # we want to have different behavior if the function is a coroutine or not
+                if inspect.iscoroutinefunction(func):
+                    result = await func(*self.args, **converted_kwargs)
+                else:
+                    result = await asyncio.to_thread(
+                        func, *self.args, **converted_kwargs
+                    )
+                return result
 
-			except Exception as e:
-				warnings.warn(
-					f"Error invoking function {func.__name__}\n ProvidedArgs: {self.args}\nProvided kwargs:\n{self.kwargs}.\n: {str(e)}"
-				)
-				raise
+            except Exception as e:
+                warnings.warn(
+                    f"Error invoking function {func.__name__}\n ProvidedArgs: {self.args}\nProvided kwargs:\n{self.kwargs}.\n: {str(e)}"
+                )
+                raise
 
-		def _convert_kwargs_to_appropriate_types(self) -> Dict[str, Any]:
-			"""Convert kwargs to appropriate types based on function signature."""
-			converted_kwargs = {}
-			sig = inspect.signature(func)
+        def _convert_kwargs_to_appropriate_types(self) -> Dict[str, Any]:
+            """Convert kwargs to appropriate types based on function signature."""
+            converted_kwargs = {}
 
-			# Process all parameters from the function signature
-			for param_name, param in sig.parameters.items():
-				# If the parameter is in kwargs, convert it
-				if param_name in self.kwargs:
-					converted_kwargs[param_name] = self._convert_value(
-						self.kwargs[param_name], param.annotation, param_name
-					)
+            try:
+                sig = inspect.signature(func)
 
-			return converted_kwargs
+            except ValueError:
+                raise RuntimeError("Cannot convert kwargs for builtin functions. " "Please use a custom function.")
 
-		def _convert_value(
-			self, value: Any, target_type: Any, param_name: str = "unknown"
-		) -> Any:
-			"""
-			Convert a value to the target type based on type annotation.
+            # Process all parameters from the function signature
+            for param_name, param in sig.parameters.items():
+                # If the parameter is in kwargs, convert it
+                if param_name in self.kwargs:
+                    converted_kwargs[param_name] = self._convert_value(
+                        self.kwargs[param_name], param.annotation, param_name
+                    )
 
-			Args:
-			    value: The value to convert
-			    target_type: The target type annotation
-			    param_name: The name of the parameter (for error reporting)
+            return converted_kwargs
 
-			Returns:
-			    The converted value
-			"""
-			# If the value is None or the target_type is Any, return as is
-			if value is None or target_type is Any:
-				return value
+        def _convert_value(
+            self, value: Any, target_type: Any, param_name: str = "unknown"
+        ) -> Any:
+            """
+            Convert a value to the target type based on type annotation.
 
-			# Handle Pydantic models
-			if inspect.isclass(target_type) and issubclass(target_type, BaseModel):
-				return self._convert_to_pydantic_model(value, target_type)
+            Args:
+                value: The value to convert
+                target_type: The target type annotation
+                param_name: The name of the parameter (for error reporting)
 
-			# Get the origin type (for generics like List, Dict, etc.)
-			origin = get_origin(target_type)
-			args = get_args(target_type)
+            Returns:
+                The converted value
+            """
+            # If the value is None or the target_type is Any, return as is
+            if value is None or target_type is Any:
+                return value
 
-			# Handle dictionary types - raise UnsupportedParameterException
-			if origin in (dict, Dict):
-				param_type = str(target_type)
-				raise UnsupportedParameterException(param_name, param_type)
+            # Handle Pydantic models
+            if inspect.isclass(target_type) and issubclass(target_type, BaseModel):
+                return self._convert_to_pydantic_model(value, target_type)
 
-			# Handle sequence types (lists and tuples) consistently
-			if origin in (list, tuple):
-				return self._convert_to_sequence(value, origin, args)
+            # Get the origin type (for generics like List, Dict, etc.)
+            origin = get_origin(target_type)
+            args = get_args(target_type)
 
-			# For primitive types, try direct conversion
-			try:
-				# Only attempt conversion for basic types, not for complex types
-				if inspect.isclass(target_type) and not hasattr(
-					target_type, "__origin__"
-				):
-					return target_type(value)
-			except (TypeError, ValueError):
-				return "Tool call parameter type conversion failed."
+            # Handle dictionary types - raise UnsupportedParameterException
+            if origin in (dict, Dict):
+                param_type = str(target_type)
+                raise UnsupportedParameterException(param_name, param_type)
 
-			# If conversion fails or isn't applicable, return the original value
-			return value
+            # Handle sequence types (lists and tuples) consistently
+            if origin in (list, tuple):
+                return self._convert_to_sequence(value, origin, args)
 
-		def _convert_to_pydantic_model(
-			self, value: Any, model_class: Type[BaseModel]
-		) -> Any:
-			"""Convert a value to a Pydantic model."""
-			if isinstance(value, dict):
-				return model_class(**value)
-			elif hasattr(value, "__dict__"):
-				return model_class(**value.__dict__)
-			return value
+            # For primitive types, try direct conversion
+            try:
+                # Only attempt conversion for basic types, not for complex types
+                if inspect.isclass(target_type) and not hasattr(
+                    target_type, "__origin__"
+                ):
+                    return target_type(value)
+            except (TypeError, ValueError):
+                return "Tool call parameter type conversion failed."
 
-		def _convert_to_sequence(
-			self, value: Any, target_type: Type, type_args: Tuple[Type, ...]
-		) -> Union[List[Any], Tuple[Any, ...]]:
-			"""
-			Convert a value to a sequence (list or tuple) with the expected element types.
+            # If conversion fails or isn't applicable, return the original value
+            return value
 
-			Args:
-			    value: The value to convert
-			    target_type: The target sequence type (list or tuple)
-			    type_args: The type arguments for the sequence elements
+        def _convert_to_pydantic_model(
+            self, value: Any, model_class: Type[BaseModel]
+        ) -> Any:
+            """Convert a value to a Pydantic model."""
+            if isinstance(value, dict):
+                return model_class(**value)
+            elif hasattr(value, "__dict__"):
+                return model_class(**value.__dict__)
+            return value
 
-			Returns:
-			    The converted sequence
-			"""
-			# If it's any kind of sequence (list or tuple), process each element
-			if isinstance(value, (list, tuple)):
-				# Convert each element to the appropriate type
-				result = [
-					self._convert_element(item, type_args, i)
-					for i, item in enumerate(value)
-				]
-				# Return as the target type (list or tuple)
-				return tuple(result) if target_type is tuple else result
+        def _convert_to_sequence(
+            self, value: Any, target_type: Type, type_args: Tuple[Type, ...]
+        ) -> Union[List[Any], Tuple[Any, ...]]:
+            """
+            Convert a value to a sequence (list or tuple) with the expected element types.
 
-			# For any non-sequence type, wrap in a sequence with a single element
-			result = [self._convert_element(value, type_args, 0)]
-			return tuple(result) if target_type is tuple else result
+            Args:
+                value: The value to convert
+                target_type: The target sequence type (list or tuple)
+                type_args: The type arguments for the sequence elements
 
-		def _convert_element(
-			self, value: Any, type_args: Tuple[Type, ...], index: int
-		) -> Any:
-			"""
-			Convert a sequence element to the expected type.
+            Returns:
+                The converted sequence
+            """
+            # If it's any kind of sequence (list or tuple), process each element
+            if isinstance(value, (list, tuple)):
+                # Convert each element to the appropriate type
+                result = [
+                    self._convert_element(item, type_args, i)
+                    for i, item in enumerate(value)
+                ]
+                # Return as the target type (list or tuple)
+                return tuple(result) if target_type is tuple else result
 
-			Args:
-			    value: The value to convert
-			    type_args: The type arguments for the sequence elements
-			    index: The index of the element in the sequence
+            # For any non-sequence type, wrap in a sequence with a single element
+            result = [self._convert_element(value, type_args, 0)]
+            return tuple(result) if target_type is tuple else result
 
-			Returns:
-			    The converted element
-			"""
-			# Determine the appropriate type for this element
-			if not type_args:
-				# No type information available, return as is
-				return value
-			elif index < len(type_args):
-				# For tuples with heterogeneous types, use the type at the corresponding index
-				element_type = type_args[index]
-			else:
-				# For lists or when index exceeds available types, use the first type
-				# (Lists typically have a single type argument that applies to all elements)
-				element_type = type_args[0]
+        def _convert_element(
+            self, value: Any, type_args: Tuple[Type, ...], index: int
+        ) -> Any:
+            """
+            Convert a sequence element to the expected type.
 
-			# Convert the value to the determined type
-			return self._convert_value(value, element_type)
+            Args:
+                value: The value to convert
+                type_args: The type arguments for the sequence elements
+                index: The index of the element in the sequence
 
-		@classmethod
-		def pretty_name(cls) -> str:
-			return f"{func.__name__} Node"
+            Returns:
+                The converted element
+            """
+            # Determine the appropriate type for this element
+            if not type_args:
+                # No type information available, return as is
+                return value
+            elif index < len(type_args):
+                # For tuples with heterogeneous types, use the type at the corresponding index
+                element_type = type_args[index]
+            else:
+                # For lists or when index exceeds available types, use the first type
+                # (Lists typically have a single type argument that applies to all elements)
+                element_type = type_args[0]
 
-		@classmethod
-		def tool_info(cls) -> Tool:
-			return Tool.from_function(func)
+            # Convert the value to the determined type
+            return self._convert_value(value, element_type)
 
-		@classmethod
-		def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
-			return cls(**tool_parameters)
+        @classmethod
+        def pretty_name(cls) -> str:
+            return f"{func.__name__} Node"
 
-	return DynamicFunctionNode
+        @classmethod
+        def tool_info(cls) -> Tool:
+            return Tool.from_function(func)
+
+        @classmethod
+        def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
+            return cls(**tool_parameters)
+
+    return DynamicFunctionNode
 
 
 class FunctionNode(Node[_TOutput]):
-	"""
-	A class for ease of creating a function node for the user
-	"""
+    """
+    A class for ease of creating a function node for the user
+    """
 
-	def __init__(
-		self,
-		func: Callable[[_P], Awaitable[_TOutput] | _TOutput],
-		*args: _P.args,
-		**kwargs: _P.kwargs,
-	):
-		super().__init__()
-		self.func = func
-		self.args = args
-		self.kwargs = kwargs
+    def __init__(
+        self,
+        func: Callable[[_P], Awaitable[_TOutput] | _TOutput],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
 
-	async def invoke(self) -> _TOutput:
-		if asyncio.iscoroutinefunction(self.func):
-			result = await self.func(*self.args, **self.kwargs)
-		else:
-			result = asyncio.to_thread(self.func(*self.args, **self.kwargs))
+    async def invoke(self) -> _TOutput:
+        if asyncio.iscoroutinefunction(self.func):
+            result = await self.func(*self.args, **self.kwargs)
+        else:
+            result = asyncio.to_thread(self.func(*self.args, **self.kwargs))
 
-		return result
+        return result
 
-	def pretty_name(self) -> str:
-		return f"Function Node - {self.__class__.__name__}({self.func.__name__})"
+    def pretty_name(self) -> str:
+        return f"Function Node - {self.__class__.__name__}({self.func.__name__})"
 
-	def tool_info(self) -> Tool:
-		return Tool.from_function(self.func)
+    def tool_info(self) -> Tool:
+        return Tool.from_function(self.func)
 
-	@classmethod
-	def prepare_tool(cls, tool_parameters):
-		return cls(**tool_parameters)
+    @classmethod
+    def prepare_tool(cls, tool_parameters):
+        return cls(**tool_parameters)
