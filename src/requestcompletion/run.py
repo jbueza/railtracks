@@ -111,11 +111,19 @@ class Runner:
         self._close()
 
     async def prepare(self):
+        """
+        Prepares the publisher and attaches
+        """
+
         await self.publisher.start()
         self.coordinator.start(self.publisher)
         self.setup_subscriber()
 
     def setup_subscriber(self):
+        """
+        Prepares and attaches the saved subscriber to the publisher attached to this runner.
+        """
+
         if self.subscriber is not None:
             self.publisher.subscribe(stream_subscriber(self.subscriber))
 
