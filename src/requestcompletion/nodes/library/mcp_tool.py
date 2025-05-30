@@ -60,6 +60,5 @@ async def async_from_server_auth(
     Returns:
         True if authentication is successful.
     """
-    client = SimpleAuthClient(config.url, "sse")
-    await client.connect()
-    return True
+    async with SimpleAuthClient(config.url, "sse") as client:
+        return await client.list_tools()

@@ -43,6 +43,7 @@ class MCPAsyncClient:
     def __init__(
         self,
         config: Union[StdioServerParameters, MCPHttpParams],
+        client_session: ClientSession | None = None,
     ):
         self.config = config
         self.session = None
@@ -291,6 +292,65 @@ class SimpleAuthClient:
         self.server_url = server_url
         self.transport_type = transport_type
         self.session: ClientSession | None = None
+        self.exit_stack = AsyncExitStack()
+
+    async def __aenter__(self):
+        callback_server = CallbackServer(port=3000)
+        callback_server.start()
+
+        async def callback_handler() -> tuple[str, str | None]:
+            """Wait for OAuth callback and return auth code and state."""
+            print("⏳ Waiting for authorization callback...")
+            try:
+                auth_code = callback_server.wait_for_callback(timeout=300)
+                return auth_code, callback_server.get_state()
+            finally:
+                callback_server.stop()
+
+        client_metadata_dict = {
+            "client_name": "Simple Auth Client",
+            "redirect_uris": ["http://localhost:3000/callback"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "client_secret_post",
+        }
+
+        async def _default_redirect_handler(authorization_url: str) -> None:
+            """Default redirect handler that opens the URL in a browser."""
+            print(f"Opening browser for authorization: {authorization_url}")
+            webbrowser.open(authorization_url)
+
+        # Create OAuth authentication handler using the new interface
+        oauth_auth = OAuthClientProvider(
+            server_url=self.server_url,  # .replace("/mcp", ""),
+            client_metadata=OAuthClientMetadata.model_validate(
+                client_metadata_dict
+            ),
+            storage=InMemoryTokenStorage(),
+            redirect_handler=_default_redirect_handler,
+            callback_handler=callback_handler,
+        )
+
+        if self.transport_type == "sse":
+            client = sse_client(
+                    url=self.server_url,
+                    auth=oauth_auth,
+                    timeout=60,
+            )
+        else:
+            client = streamablehttp_client(
+                    url=self.server_url,
+                    auth=oauth_auth,
+                    timeout=timedelta(seconds=60),
+            )
+
+        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(client)
+        self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+        await self.session.initialize()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.exit_stack.aclose()
 
     async def connect(self):
         """Connect to the MCP server."""
