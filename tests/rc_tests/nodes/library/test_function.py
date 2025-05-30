@@ -216,14 +216,19 @@ class TestPrimitiveInputTypes:
 
 			assert isinstance(children.output, Failure)
 
-    @pytest.mark.parametrize("model_provider", MODEL_PROVIDERS)
-    def test_builtin_function_raises_error(self, model_provider, create_top_level_node):
-        """Test that a builtin function raises error."""
+	@pytest.mark.parametrize("model_provider", MODEL_PROVIDERS)
+	def test_builtin_function_raises_error(self, model_provider, create_top_level_node):
+		"""Test that a builtin function raises error."""
 
-        with pytest.raises(ValueError):
-            agent = create_top_level_node(time.sleep, model_provider=model_provider)
-            with rc.Runner() as run:
-                response = run.run_sync(agent, rc.llm.MessageHistory([rc.llm.UserMessage("Try to run this function")]))
+		with pytest.raises(ValueError):
+			agent = create_top_level_node(time.sleep, model_provider=model_provider)
+			with rc.Runner() as run:
+				response = run.run_sync(
+					agent,
+					rc.llm.MessageHistory(
+						[rc.llm.UserMessage("Try to run this function")]
+					),
+				)
 
 
 class TestSequenceInputTypes:
