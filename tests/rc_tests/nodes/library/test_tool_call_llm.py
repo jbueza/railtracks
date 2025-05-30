@@ -2,23 +2,19 @@ from copy import deepcopy
 from typing import Dict, Any
 
 import pytest
-import requestcompletion as rc
-from itertools import product
+import src.requestcompletion as rc
 
 from pydantic import BaseModel
 
-from requestcompletion.llm import MessageHistory, UserMessage
+from src.requestcompletion.llm import MessageHistory, UserMessage
 
 from src.requestcompletion.nodes.library import from_function
 
 # ============ TEST CASES ===========
 NODE_INIT_METHODS = ["easy_wrapper", "class_based"]
 
-simple_model_test_cases = list(product(NODE_INIT_METHODS, ["simple_model"]))
-
-
 @pytest.mark.asyncio
-@pytest.mark.parametrize("simple_node", simple_model_test_cases, indirect=True, ids=lambda x: f"{x[0]}_with_{x[1]}")
+@pytest.mark.parametrize("simple_node", NODE_INIT_METHODS, indirect=True)
 async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
     """Test basic functionality of returning a structured output."""
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET")) as runner:
@@ -29,20 +25,45 @@ async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
         assert isinstance(response.answer.number, int)
 
 
-empty_model_test_cases = list(product(NODE_INIT_METHODS, ["empty_model"]))
-
-
 @pytest.mark.asyncio
-@pytest.mark.parametrize("simple_node", empty_model_test_cases, indirect=True, ids=lambda x: f"{x[0]}_with_{x[1]}")
-async def test_empty_output_model(simple_node, empty_output_model):
-    """Test when the output model is empty."""
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET")) as runner:
-        message_history = rc.llm.MessageHistory([rc.llm.UserMessage("Generate a simple text and number.")])
-        response = await runner.run(simple_node, message_history=message_history)
-        assert isinstance(
-            response.answer, empty_output_model
-        ), f"Expected instance of {empty_output_model}, got {type(response.answer)}"
+async def test_empty_output_model_easy_wrapper(empty_output_model, model):
+    """Test when the output model is empty while making a node with easy wrapper."""
+    with pytest.raises(ValueError, match="Output model cannot be empty"):
+        _ = rc.library.structured_llm(
+            output_model=empty_output_model,
+            system_message=rc.llm.SystemMessage("You are a helpful assistant that can strucure the response into a structured output."),
+            model=model,
+            pretty_name="Structured ToolCallLLM",
+        )
 
+@pytest.mark.asyncio  
+async def test_empty_output_model_class_based(empty_output_model, model):
+    """Test when the output model is empty while making a node with class based."""
+
+    system_simple = rc.llm.SystemMessage("Return a simple text and number. Don't use any tools.")
+
+    class SimpleNode(rc.library.StructuredToolCallLLM):
+            def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+                output_model: BaseModel = empty_output_model,
+                llm_model: rc.llm.ModelBase = model,
+            ):
+                message_history = [x for x in message_history if x.role != "system"]
+                message_history.insert(0, system_simple)
+                super().__init__(message_history=message_history, llm_model=llm_model, output_model=output_model)
+
+            @classmethod
+            def connected_nodes(cls):
+                return {}
+
+            @classmethod
+            def pretty_name(cls) -> str:
+                return "Simple Node"
+            
+    with pytest.raises(ValueError, match="Output model cannot be empty"):
+        await rc.call(SimpleNode, message_history=MessageHistory([]))
+        
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("travel_planner_node", NODE_INIT_METHODS, indirect=True)
