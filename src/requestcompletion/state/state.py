@@ -159,7 +159,11 @@ class RCState:
         """
 
         # 1. Create the node here
-        node = node(*args, **kwargs)
+        try:
+            node = node(*args, **kwargs)
+        except Exception as e:
+            self.publisher.publish(FatalFailure(error=e))
+            raise e
 
         # This is a critical registration step so other elements are aware that we have officially created the node.
 
