@@ -85,7 +85,7 @@ class RequestFailure(RequestFinishedBase):
         self,
         *,
         request_id: str,
-        node_state: NodeState[_TNode[_TOutput]],
+        node_state: NodeState[_TNode[_TOutput]] | None,
         error: Exception,
     ):
         super().__init__(request_id=request_id, node_state=node_state)
