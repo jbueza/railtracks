@@ -29,7 +29,7 @@ from ..utils.logging.action import RequestCreationAction, RequestCompletionActio
 if TYPE_CHECKING:
     from .. import ExecutorConfig
 from ..exceptions import FatalError
-from ..nodes.nodes import Node
+from ..nodes.nodes import Node, NodeState
 from ..info import ExecutionInfo
 from ..exceptions import ExecutionException, GlobalTimeOut
 from ..utils.profiling import Stamp
@@ -166,11 +166,8 @@ class RCState:
         """
 
         # 1. Create the node here
-        try:
-            node = node(*args, **kwargs)
-        except Exception as e:
-            self.publisher.publish(FatalFailure(error=e))
-            raise e
+
+        node = node(*args, **kwargs)
 
         # This is a critical registration step so other elements are aware that we have officially created the node.
 
@@ -219,10 +216,20 @@ class RCState:
             The output of the node that was run. It will match the output type of the child node that was run.
 
         """
-
-        request_id = self._create_node_and_request(
-            parent_node_id=parent_node_id, request_id=request_id, node=node, args=args, kwargs=kwargs
-        )
+        try:
+            request_id = self._create_node_and_request(
+                parent_node_id=parent_node_id, request_id=request_id, node=node, args=args, kwargs=kwargs
+            )
+        except Exception as e:
+            # if there was an error creating the node we want to handle it here.
+            await self.publisher.publish(
+                RequestFailure(
+                    request_id=request_id,
+                    node_state=None,
+                    error=e,
+                )
+            )
+            raise e
         # you have to run this in a task so it isn't blocking other completions
         outputs = asyncio.create_task(self._run_request(request_id))
 

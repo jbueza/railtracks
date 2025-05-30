@@ -84,6 +84,7 @@ async def test_terminal_llm_as_tool_correct_initialization(model, encoder_system
             for message in response.answer
         )  # inside tool_call_llm's invoke function is this exact string in case of error
 
+
 @pytest.mark.asyncio
 async def test_terminal_llm_as_tool_correct_initialization_no_params(model):
 
@@ -98,19 +99,22 @@ async def test_terminal_llm_as_tool_correct_initialization_no_params(model):
         tool_details=rng_tool_details,
         tool_params=None,
     )
-    
+
     assert rng_node.tool_info().name == "RNG_Tool"
-    assert rng_node.tool_info().detail == rng_tool_details 
+    assert rng_node.tool_info().detail == rng_tool_details
     assert rng_node.tool_info().parameters is None
 
-    system_message = rc.llm.SystemMessage("You are a math genius that calls the RNG tool to generate 5 random numbers between 1 and 100 and gives the sum of those numbers.")
-    math_node = rc.library.tool_call_llm(connected_nodes={rng_node},
-                                  pretty_name="Math Node", 
-                                  system_message=system_message, 
-                                  model=rc.llm.OpenAILLM("gpt-4o"),
-                                  output_type="MessageHistory",
-                                  )
-    
+    system_message = rc.llm.SystemMessage(
+        "You are a math genius that calls the RNG tool to generate 5 random numbers between 1 and 100 and gives the sum of those numbers."
+    )
+    math_node = rc.library.tool_call_llm(
+        connected_nodes={rng_node},
+        pretty_name="Math Node",
+        system_message=system_message,
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        output_type="MessageHistory",
+    )
+
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
         message_history = rc.llm.MessageHistory([rc.llm.UserMessage("Start the Math node.")])
         response = await runner.run(math_node, message_history=message_history)
@@ -141,7 +145,8 @@ async def test_terminal_llm_no_pretty_name_with_tool(model, encoder_system_messa
     encoder_tool_params = {rc.llm.Parameter("text_input", "string", "The string to encode.")}
 
     with pytest.raises(
-        RuntimeError, match="You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
+        RuntimeError,
+        match="You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool.",
     ):
         encoder = rc.library.terminal_llm(
             # Intentionally omitting pretty_name
@@ -153,7 +158,7 @@ async def test_terminal_llm_no_pretty_name_with_tool(model, encoder_system_messa
         encoder.pretty_name()
 
 
-
+@pytest.mark.timeout(30)
 @pytest.mark.asyncio
 async def test_terminal_llm_tool_with_invalid_parameters(model, encoder_system_message):
     # Test case where tool is called with incorrect parameters
@@ -168,7 +173,9 @@ async def test_terminal_llm_tool_with_invalid_parameters(model, encoder_system_m
         tool_params=encoder_tool_params,
     )
 
-    system_message = rc.llm.SystemMessage("You are a helful assitant. Use the encoder tool with invalid parameters (invoke the tool with invalid parameters) once and then invoke it again with valid parameters.")
+    system_message = rc.llm.SystemMessage(
+        "You are a helful assitant. Use the encoder tool with invalid parameters (invoke the tool with invalid parameters) once and then invoke it again with valid parameters."
+    )
     tool_call_llm = rc.library.tool_call_llm(
         connected_nodes={encoder},
         model=model,
@@ -177,7 +184,7 @@ async def test_terminal_llm_tool_with_invalid_parameters(model, encoder_system_m
         system_message=system_message,
     )
 
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="VERBOSE")) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Encode this text but use an invalid parameter name.")]
         )

@@ -44,8 +44,7 @@ class Subscriber(Generic[_T]):
             if asyncio.iscoroutine(result):
                 await result
         except Exception as e:
-            print(e)
-            # logger.exception(f'Error while triggering "%s": %s', self.name, e)
+            logger.exception(msg=f"Error in {self.name}", exc_info=e)
 
 
 class RCPublisher(Generic[_T]):
@@ -93,6 +92,7 @@ class RCPublisher(Generic[_T]):
             message: The message you would like to publish.
 
         """
+        logger.debug(f"Publishing message: {message}")
         if self._killed:
             raise RuntimeError("Publisher is not currently running.")
 

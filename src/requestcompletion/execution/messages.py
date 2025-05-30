@@ -28,18 +28,18 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
         self,
         *,
         request_id: str,
-        node_state: NodeState[Node[_TOutput]],
+        node_state: NodeState[Node[_TOutput]] | None,
     ):
 
         self.request_id = request_id
         self.node_state = node_state
 
     @property
-    def node(self) -> Node[_TOutput]:
-        try:
-            return self.node_state.instantiate()
-        except Exception as e:
-            print(e)
+    def node(self) -> Node[_TOutput] | None:
+        if self.node_state is None:
+            return None
+
+        return self.node_state.instantiate()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(request_id={self.request_id}, node_state={self.node_state})"
