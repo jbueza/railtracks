@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 import warnings
-from copy import deepcopy
+from copy import deepcopy, copy
 
 from ..llm import Tool
 
@@ -54,7 +54,7 @@ class NodeState(Generic[_TNode]):
     A stripped down representation of a Node which can be passed along the process barrier.
     """
 
-    # This object should json seriliazable such that it can be passed accross the process barrier
+    # This object should json serializable such that it can be passed across the process barrier
     # TODO come up with a more intelligent way to recreate the node
     def __init__(
         self,
@@ -63,7 +63,7 @@ class NodeState(Generic[_TNode]):
         self.node = node
 
     def instantiate(self) -> _TNode:
-        return deepcopy(self.node)
+        return self.node
 
 
 # TODO add generic for required context object

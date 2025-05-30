@@ -36,7 +36,10 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
 
     @property
     def node(self) -> Node[_TOutput]:
-        return self.node_state.instantiate()
+        try:
+            return self.node_state.instantiate()
+        except Exception as e:
+            print(e)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(request_id={self.request_id}, node_state={self.node_state})"
