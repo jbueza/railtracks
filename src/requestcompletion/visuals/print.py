@@ -384,7 +384,7 @@ id: {node.uuid}
             ]
         )
 
-        return f"""## Request Ledger 
+        return f"""## Request Ledger
 {self.request_info_table(insertion_request, requests, failed_tree)}
 
 ## Node Library

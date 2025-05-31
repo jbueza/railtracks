@@ -1,8 +1,8 @@
 from abc import abstractmethod
-from typing import List, Callable, Any, Type, Dict, Optional
+from typing import List, Callable, Type, Dict
 
 from llama_index.core.llms import ChatMessage
-from llama_index.core.tools import FunctionTool, ToolMetadata
+from llama_index.core.tools import ToolMetadata
 
 import json
 import warnings
@@ -13,7 +13,7 @@ from ..message import Message
 from ..response import Response
 from ..history import MessageHistory
 from ..message import AssistantMessage, ToolMessage
-from ..content import ToolCall, Content
+from ..content import ToolCall
 from ..tools import Tool
 
 
@@ -213,7 +213,7 @@ class LlamaWrapper(ModelBase):
             return Response(
                 message=AssistantMessage(schema(**json.loads(response.message.content)))
             )
-        except ValidationError as e:
+        except ValidationError:
             # TODO come up with a better exception message here.
             return Exception()
 

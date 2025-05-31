@@ -3,7 +3,7 @@ import warnings
 
 from typing import ParamSpec, Callable, TypeVar
 
-from ..run import get_runner, Runner, RunnerNotFoundError
+from ..run import get_runner, Runner
 from ..context import parent_id
 from ..nodes.nodes import Node
 

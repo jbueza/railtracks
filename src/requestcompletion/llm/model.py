@@ -2,8 +2,7 @@
 # In the following document, we will use the interface types defined in this module to interact with the llama index to
 # route to a given model.
 ###
-import warnings
-from typing import Literal, List, Generator
+from typing import List
 
 
 from pydantic import BaseModel

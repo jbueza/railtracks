@@ -2,14 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import random
-import time
-from typing import Dict, Any
 
 import pytest
 import requestcompletion as rc
-from typing_extensions import Self
 
-from src.requestcompletion.state.request import RequestTemplate
 
 RNGNode = rc.library.from_function(random.random)
 

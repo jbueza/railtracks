@@ -1,5 +1,5 @@
 import warnings
-from typing import TypeVar, Type, Dict, Any
+from typing import Type, Dict, Any
 from copy import deepcopy
 
 from requestcompletion.llm import (

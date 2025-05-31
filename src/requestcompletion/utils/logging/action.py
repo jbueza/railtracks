@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Tuple, Any, Dict
 
 
-import logging
 
 
 class RCAction(ABC):

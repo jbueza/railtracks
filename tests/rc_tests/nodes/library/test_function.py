@@ -11,7 +11,6 @@ import pytest
 from typing import Tuple, List, Dict
 from pydantic import BaseModel, Field
 import time
-import math
 
 from requestcompletion.state.request import Failure
 import requestcompletion as rc

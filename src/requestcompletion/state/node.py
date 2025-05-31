@@ -4,7 +4,7 @@ from __future__ import annotations
 import warnings
 
 from dataclasses import dataclass
-from typing import Optional, Iterable, Callable, ParamSpec, List, Dict, Type
+from typing import Optional, Iterable, ParamSpec, Dict, Type
 
 from .forest import (
     AbstractLinkedObject,

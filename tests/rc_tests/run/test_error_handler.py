@@ -40,7 +40,7 @@ def test_error():
 async def error_handler():
     try:
         answer = await rc.call(ErrorThrower)
-    except TestError as e:
+    except TestError:
         return "Caught the error"
 
 
@@ -63,7 +63,7 @@ async def error_handler_with_retry(retries: int):
     for _ in range(retries):
         try:
             return await rc.call(ErrorThrower)
-        except TestError as e:
+        except TestError:
             continue
 
     return "Caught the error"
@@ -120,7 +120,7 @@ def test_parallel_error_tester():
 async def error_handler_wrapper(num_calls: int, parallel_calls: int):
     try:
         return await rc.call(ParallelErrorHandler, num_calls, parallel_calls)
-    except TestError as e:
+    except TestError:
         return "Caught the error"
 
 

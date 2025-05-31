@@ -38,14 +38,30 @@ name = "requestcompletion"
 
 [tool.ruff]
 target-version = "py310"
-[tool.ruff.format]
-indent-style = "space"
-docstring-code-format = true
+line-length = 88
 
-[tool.ruff.lint]
-select = [
+format.indent-style = "space"
+format.docstring-code-format = true
+
+lint.select = [
     "E",
+    "W",
+    "F",
+    "C",
+    "N",
 ]
+
+ignore = ["E501"]
+
+fix = true
+lint.fixable = ["F401", "F841",]
+
+exclude = [".git", "examples", "docs", ".venv", ".conda", "tests"]
+
+
+
+lint.mccabe.max-complexity = 10
+
 
 
 

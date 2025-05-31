@@ -1,10 +1,8 @@
 import concurrent.futures
 import random
 
-import pytest
 
 from src.requestcompletion.llm import (
-    ModelBase,
     AssistantMessage,
     MessageHistory,
     UserMessage,
@@ -13,7 +11,7 @@ from src.requestcompletion.llm import (
     ToolCall,
 )
 
-from typing import Type, List
+from typing import List
 
 from src.requestcompletion.llm.response import Response
 from tests.rc_tests.llm.fixtures import MockLLM

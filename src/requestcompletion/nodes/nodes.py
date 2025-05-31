@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-import warnings
 from copy import deepcopy
 
 from ..llm import Tool
@@ -13,10 +12,7 @@ import inspect
 from typing import (
     TypeVar,
     Generic,
-    Type,
-    List,
     Dict,
-    Callable,
     ParamSpec,
     Any,
     Coroutine,

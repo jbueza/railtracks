@@ -1,8 +1,7 @@
 import logging
-import warnings
-from typing import Literal, Optional
+from typing import Literal
 import re
-from colorama import Fore, Style, init
+from colorama import Fore, init
 
 allowable_log_levels = Literal["VERBOSE", "REGULAR", "QUIET", "NONE"]
 # the temporary name for the logger that RC will use.

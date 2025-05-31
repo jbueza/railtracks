@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from typing import Generic, TypeVar, Union, List, Any, Dict, AnyStr
+from typing import Union, List, Any, Dict, AnyStr
 
 from pydantic import BaseModel, Field
 
