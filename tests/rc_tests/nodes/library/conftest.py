@@ -1,5 +1,5 @@
 import pytest
-import requestcompletion as rc
+import src.requestcompletion as rc
 from typing import List, Callable
 from pydantic import BaseModel, Field
 import random

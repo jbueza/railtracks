@@ -2,7 +2,7 @@ import warnings
 from typing import TypeVar, Type, Dict, Any
 from copy import deepcopy
 
-from requestcompletion.llm import UserMessage, MessageHistory, ModelBase, SystemMessage, Tool
+from src.requestcompletion.llm import UserMessage, MessageHistory, ModelBase, SystemMessage, Tool
 from typing_extensions import Self
 
 from src.requestcompletion.nodes.library.structured_llm import StructuredLLM
