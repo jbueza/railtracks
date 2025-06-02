@@ -166,7 +166,7 @@ async def test_tool_with_llm_tool_as_input_easy_tools():
     parent_tool = rc.library.tool_call_llm(
         connected_nodes={child_tool},
         pretty_name="Parent Tool",
-        system_message=rc.llm.SystemMessage("Provide a response using the tool avaliable to you."),
+        system_message=rc.llm.SystemMessage("Provide a response using the tool avaliable to you. Provide only the response, no additional text."),
         model=rc.llm.OpenAILLM("gpt-4o"),
     )
 
@@ -361,7 +361,7 @@ async def test_tool_with_llm_tool_as_input_class_tools():
                 message_history: rc.llm.MessageHistory,
         ):
             message_history_copy = deepcopy(message_history)
-            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool avalaible to you."))
+            message_history_copy.insert(0, rc.llm.SystemMessage("Provide a response using the tool avalaible to you. Provide only the response, no additional text."))
 
             super().__init__(message_history=message_history_copy,
                              model=rc.llm.OpenAILLM("gpt-4o"))
@@ -419,7 +419,7 @@ async def test_tool_with_structured_output_child_tool():
         output_model=ParentResponse,
         connected_nodes={child_tool},
         pretty_name="Parent Tool",
-        system_message=rc.llm.SystemMessage("Use the child tool to generate a structured response."),
+        system_message=rc.llm.SystemMessage("Use the child tool to generate a structured response. Provide only what you get from the child tool, no additional text."),
         model=rc.llm.OpenAILLM("gpt-4o"),
     )
 
