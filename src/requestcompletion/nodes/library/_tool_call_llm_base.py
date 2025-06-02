@@ -42,7 +42,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         This function may be overwritten to fit the needs of the given node as needed.
         """
         node = [x for x in self.connected_nodes() if x.tool_info().name == tool_name]
-        if node is []:
+        if node == []:
             raise RuntimeError(f"Tool {tool_name} cannot be create a node")
         if len(node) > 1:
             raise FatalError(
@@ -70,7 +70,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 # if the returned item is a list then it is a list of tool calls
                 if isinstance(returned_mess.message.content, list):
                     assert all(
-                        [isinstance(x, ToolCall) for x in returned_mess.message.content]
+                        isinstance(x, ToolCall) for x in returned_mess.message.content
                     )
                     contracts = [
                         call(
@@ -86,9 +86,11 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                         *contracts, return_exceptions=True
                     )
                     tool_responses = [
-                        x
-                        if not isinstance(x, Exception)
-                        else f"There was an error running the tool: \n Exception message: {x} "
+                        (
+                            x
+                            if not isinstance(x, Exception)
+                            else f"There was an error running the tool: \n Exception message: {x} "
+                        )
                         for x in tool_responses
                     ]
 

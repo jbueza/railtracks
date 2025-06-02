@@ -6,14 +6,13 @@ from typing_extensions import Self
 import warnings
 
 from ...llm.tools import Tool
-from ...llm.tools.parameter_handlers import UnsupportedParameterException
+from ...llm.tools.parameter_handlers import UnsupportedParameterError
 
 from typing import (
     Any,
     TypeVar,
     Callable,
     List,
-    Dict,
     Type,
     Dict,
     Tuple,
@@ -25,7 +24,7 @@ from typing import (
     Generic,
 )
 
-from ..nodes import Node, Tool
+from ..nodes import Node
 import inspect
 from pydantic import BaseModel
 
@@ -34,7 +33,7 @@ _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
+def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):  # noqa: C901
     """
     A function to create a node from a function
     """
@@ -116,10 +115,10 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):
             origin = get_origin(target_type)
             args = get_args(target_type)
 
-            # Handle dictionary types - raise UnsupportedParameterException
+            # Handle dictionary types - raise UnsupportedParameterError
             if origin in (dict, Dict):
                 param_type = str(target_type)
-                raise UnsupportedParameterException(param_name, param_type)
+                raise UnsupportedParameterError(param_name, param_type)
 
             # Handle sequence types (lists and tuples) consistently
             if origin in (list, tuple):

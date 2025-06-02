@@ -93,7 +93,7 @@ def parse_json_schema_to_parameter(
         )
 
 
-def parse_model_properties(schema: dict) -> Dict[str, Parameter]:
+def parse_model_properties(schema: dict) -> Dict[str, Parameter]:  # noqa: C901
     """
     Given a JSON schema (usually from BaseModel.model_json_schema()),
     returns a dictionary mapping property names to Parameter objects.
@@ -193,7 +193,7 @@ def parse_model_properties(schema: dict) -> Dict[str, Parameter]:
     return result
 
 
-def convert_params_to_model_recursive(
+def convert_params_to_model_recursive(  # noqa: C901
     model_name: str, parameters: Set[Parameter]
 ) -> Type[BaseModel]:
     """

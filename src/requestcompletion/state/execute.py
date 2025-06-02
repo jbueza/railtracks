@@ -21,7 +21,7 @@ from ..context import parent_id
 from ..exceptions import FatalError
 from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..exceptions import ExecutionException, GlobalTimeOut
+from ..exceptions import ExecutionError, GlobalTimeOutError
 from ..utils.profiling import Stamp
 from ..utils.logging.create import get_rc_logger
 
@@ -85,16 +85,16 @@ class RCState:
         # TODO: come up with a better algorithm for finding the start of execution.
 
         try:
-            output = await asyncio.wait_for(
+            _ = await asyncio.wait_for(
                 self._run_request(request_id), timeout=self.executor_config.timeout
             )
             # Note that since this is the insertion requests, its output is our answer.
 
         except asyncio.TimeoutError:
-            raise ExecutionException(
+            raise ExecutionError(
                 failed_request=self._request_heap["START"],
                 execution_info=self.info,
-                final_exception=GlobalTimeOut(self.executor_config.timeout),
+                final_exception=GlobalTimeOutError(self.executor_config.timeout),
             )
 
     async def cancel(self, node_id: str):
@@ -221,9 +221,9 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all([n in self._node_heap for n in children]), (
-            "You cannot add a request for a node which has not yet been added"
-        )
+        assert all(
+            n in self._node_heap for n in children
+        ), "You cannot add a request for a node which has not yet been added"
         parent_node_name = (
             self._node_heap.id_type_mapping[parent_node]
             if parent_node is not None
@@ -300,7 +300,7 @@ class RCState:
         Handles the provided exception for the given request identifier.
 
         If the given exception is a `FatalException` or if the config flag for `end_on_error` is set to be true, then
-        the function will return a `ExecutionException` object wrapped in a `Failure` object.
+        the function will return a `ExecutionError` object wrapped in a `Failure` object.
 
         Otherwise, it will return a `Failure` object containing the exception that was thrown.
 
@@ -312,7 +312,7 @@ class RCState:
             An object containing the error thrown during the request wrapped in a Failure object.
 
         Raises:
-            ExecutionException: If the exception was a `FatalException`, or if the config flag for `end_on_error` is set
+            ExecutionError: If the exception was a `FatalException`, or if the config flag for `end_on_error` is set
             to be true.
 
         """
@@ -325,7 +325,7 @@ class RCState:
 
         if self.executor_config.end_on_error:
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionException(
+            ee = ExecutionError(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
                 final_exception=exception,
@@ -335,7 +335,7 @@ class RCState:
         # fatal exceptions should only be thrown if there is something seriously wrong.
         if isinstance(exception, FatalError):
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionException(
+            ee = ExecutionError(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
                 final_exception=exception,

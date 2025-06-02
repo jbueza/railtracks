@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import List, Callable, Type, Dict
 
 from llama_index.core.llms import ChatMessage
-from llama_index.core.tools import ToolMetadata
 
 import json
 import warnings

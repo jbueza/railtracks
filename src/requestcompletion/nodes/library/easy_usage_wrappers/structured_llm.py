@@ -15,7 +15,7 @@ from requestcompletion.nodes.library.structured_llm import StructuredLLM
 from pydantic import BaseModel
 
 
-def structured_llm(
+def structured_llm( # noqa: C901
     output_model: Type[BaseModel],
     system_message: SystemMessage | None = None,
     model: ModelBase | None = None,

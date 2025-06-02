@@ -172,11 +172,11 @@ class SequenceParameterHandler(ParameterHandler):
 
     def _get_param_type_for_annotation(self, annotation: Any) -> str:
         """Get the parameter type string for a type annotation."""
-        if annotation == int:
+        if issubclass(annotation, int):
             return "integer"
-        elif annotation == float:
+        elif issubclass(annotation, float):
             return "float"
-        elif annotation == bool:
+        elif issubclass(annotation, bool):
             return "boolean"
         else:
             return "string"  # Default to string for other types
@@ -210,7 +210,7 @@ class DictParameterHandler(ParameterHandler):
         param_type = f"Dict[{key_type_name}, {value_type_name}]"
 
         # Raise an exception for dictionary parameters
-        raise UnsupportedParameterException(param_name, param_type)
+        raise UnsupportedParameterError(param_name, param_type)
 
 
 class DefaultParameterHandler(ParameterHandler):
@@ -241,7 +241,7 @@ class DefaultParameterHandler(ParameterHandler):
         """Create a Parameter for a primitive or unknown type."""
         # Check if it's a dictionary type that wasn't caught by DictParameterHandler
         if param_annotation in (dict, Dict):
-            raise UnsupportedParameterException(param_name, str(param_annotation))
+            raise UnsupportedParameterError(param_name, str(param_annotation))
 
         # Default to object if type not found in mapping
         mapped_type = self.type_mapping.get(param_annotation, "object")
@@ -253,7 +253,7 @@ class DefaultParameterHandler(ParameterHandler):
         )
 
 
-class UnsupportedParameterException(Exception):
+class UnsupportedParameterError(Exception):
     """Exception raised when a parameter type is not supported."""
 
     def __init__(self, param_name: str, param_type: str):

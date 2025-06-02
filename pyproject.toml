@@ -51,12 +51,12 @@ lint.select = [
     "N",
 ]
 
-ignore = ["E501"]
+lint.ignore = ["E501"]
 
 fix = true
 lint.fixable = ["F401", "F841",]
 
-exclude = [".git", "examples", "docs", ".venv", ".conda", "tests"]
+exclude = [".git", "examples", "docs", ".venv", ".conda", "tests", "src/requestcompletion/visuals"]
 
 
 

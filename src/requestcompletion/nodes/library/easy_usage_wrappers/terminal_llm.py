@@ -6,7 +6,7 @@ from ....llm.tools import Parameter, Tool
 from copy import deepcopy
 
 
-def terminal_llm(
+def terminal_llm(  # noqa: C901
     pretty_name: str | None = None,
     system_message: SystemMessage | None = None,
     model: ModelBase | None = None,
@@ -49,7 +49,9 @@ def terminal_llm(
         @classmethod
         def pretty_name(cls) -> str:
             if pretty_name is None:
-                if tool_details:  # at this point if tool_details is not None, then terminal_llm is being used as a tool
+                if (
+                    tool_details
+                ):  # at this point if tool_details is not None, then terminal_llm is being used as a tool
                     raise RuntimeError(
                         "You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
                     )
@@ -86,8 +88,7 @@ def terminal_llm(
     elif (
         tool_details
         and tool_params
-        and len([x.name for x in tool_params])
-        != len(set([x.name for x in tool_params]))
+        and len([x.name for x in tool_params]) != len({x.name for x in tool_params})
     ):
         raise ValueError("Duplicate parameter names are not allowed")
 

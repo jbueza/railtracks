@@ -259,7 +259,7 @@ class MCPAsyncClient:
             )
 
 
-def from_mcp(
+def from_mcp( # noqa: C901
     tool,
     command: str,
     args: list,

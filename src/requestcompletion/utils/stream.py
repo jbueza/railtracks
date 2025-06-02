@@ -69,7 +69,7 @@ class DataStream(Generic[T]):
     def is_unhandled(self):
         """Is there any outstanding data publish which is waiting to be collected by the subscribers."""
         # thankfully queues are thread safe so we dont have to worry about concurrent reads and writes
-        return any([not q.empty() for q in self._queues.values()])
+        return any(not q.empty() for q in self._queues.values())
 
     def publish(self, item: T):
         """

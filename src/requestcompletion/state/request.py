@@ -126,9 +126,9 @@ class RequestTemplate(AbstractLinkedObject):
         # BASE CASE
         if len(open_downstream_requests) == 0:
             open_upstreams = cls.upstream(requests, source_id)
-            assert len(open_upstreams) <= 1, (
-                f"There should only be one or 0 upstream request, instead there was {len(open_upstreams)}"
-            )
+            assert (
+                len(open_upstreams) <= 1
+            ), f"There should only be one or 0 upstream request, instead there was {len(open_upstreams)}"
             return [r for r in open_upstreams if not r.closed]
 
         # RECURSIVE CASE
@@ -148,7 +148,7 @@ class RequestTemplate(AbstractLinkedObject):
         """
         downstream_requests = cls.downstream(requests, source_node_id)
 
-        return all([x.closed for x in downstream_requests])
+        return all(x.closed for x in downstream_requests)
 
 
 class RequestForest(Forest[RequestTemplate]):
@@ -166,7 +166,7 @@ class RequestForest(Forest[RequestTemplate]):
                 warnings.warn(
                     "You are attempting to access a request that has been reverted."
                 )
-                raise DeadRequestException(
+                raise DeadRequestError(
                     "You are attempting to access a request that has been reverted."
                 )
             try:
@@ -192,7 +192,7 @@ class RequestForest(Forest[RequestTemplate]):
         new_set = set()
         for tree in self._failure_tree:
             if at_step is None:
-                new_set.add({x for x in tree})
+                new_set.add(set(tree))
             else:
                 new_set.add({x for x in tree if x.stamp.step <= at_step})
 
@@ -203,13 +203,13 @@ class RequestForest(Forest[RequestTemplate]):
         A special method to collect a request which had died via some sort of error in the system.
         """
         with self._lock:
-            l = sorted(
+            deads = sorted(
                 [x for x in self._full_data if x.identifier == request_id],
                 key=lambda x: x.stamp.step,
             )
-            if len(l) == 0:
+            if len(deads) == 0:
                 return None
-            return l[-1]
+            return deads[-1]
 
     def revert_heap(self, request_id: str):
         """
@@ -229,7 +229,7 @@ class RequestForest(Forest[RequestTemplate]):
             request id is the next item that can be completed.
 
         Raises:
-            DeadRequestException: If the request has already been reverted.
+            DeadRequestError: If the request has already been reverted.
 
         """
 
@@ -238,7 +238,7 @@ class RequestForest(Forest[RequestTemplate]):
                 warnings.warn(
                     "You are attempting to revert a request that has already been reverted. This is ok, but nothing will be reverted."
                 )
-                raise DeadRequestException(
+                raise DeadRequestError(
                     "You are attempting to revert a request that has already been reverted."
                 )
 
@@ -268,13 +268,13 @@ class RequestForest(Forest[RequestTemplate]):
             # note the upstream request contains the stamp we care about
             # it is assumed that the upstream request is at the state when the request was completed
             new_upstream_request = upstream_request
-            assert new_upstream_request is not None, (
-                f"Fix this bug here {upstream_request}"
-            )
+            assert (
+                new_upstream_request is not None
+            ), f"Fix this bug here {upstream_request}"
             for child in all_children:
-                assert child.stamp.step > new_upstream_request.stamp.step, (
-                    "All children should have been created in the future of this request."
-                )
+                assert (
+                    child.stamp.step > new_upstream_request.stamp.step
+                ), "All children should have been created in the future of this request."
                 del self._heap[child.identifier]
 
             # finally we revert that upstream_request
@@ -282,7 +282,8 @@ class RequestForest(Forest[RequestTemplate]):
 
             self._dead_children.update([x.identifier for x in all_children])
             try:
-                failed_elements = {x for x in all_children}
+                failed_elements = set(all_children)
+
             except TypeError as e:
                 print("\n".join([repr(x) for x in all_children]))
                 print(e)
@@ -311,7 +312,7 @@ class RequestForest(Forest[RequestTemplate]):
         # note we just need t be careful of any sort of race condition so we will be extra safe with our locking mechanism.
         with self._lock:
             if identifier in self._heap:
-                raise RequestAlreadyExistsException(
+                raise RequestAlreadyExistsError(
                     f"You are trying to create a request {identifier} which already exists. "
                 )
 
@@ -341,7 +342,7 @@ class RequestForest(Forest[RequestTemplate]):
 
         I will outline the special cases for this function:
         1. If the request you are trying to update has already been killed, then nothing will happen.
-        2. If you have provided a request id that does not exist in the heap, it will raise `RequestDoesNotExistException`
+        2. If you have provided a request id that does not exist in the heap, it will raise `RequestDoesNotExistError`
 
         Args:
             identifier (str): The identifier of the request
@@ -366,7 +367,7 @@ class RequestForest(Forest[RequestTemplate]):
 
             # one cannot update a request that does not exist
             if old_request is None:
-                raise RequestDoesNotExistException(
+                raise RequestDoesNotExistError(
                     f"Request with identifier {identifier} does not exist in the heap."
                 )
 
@@ -425,12 +426,12 @@ class RequestForest(Forest[RequestTemplate]):
         with self._lock:
             upstreams = RequestTemplate.upstream(list(self._heap.values()), child_id)
             if len(upstreams) == 0:
-                raise RequestDoesNotExistException(
+                raise RequestDoesNotExistError(
                     f"Request with child id {child_id} does not exist in the heap."
                 )
-            assert len(upstreams) == 1, (
-                f"Expected 1 upstream request, instead got {len(upstreams)}"
-            )
+            assert (
+                len(upstreams) == 1
+            ), f"Expected 1 upstream request, instead got {len(upstreams)}"
             return upstreams[0]
 
     def open_tails(self):
@@ -464,18 +465,18 @@ class RequestForest(Forest[RequestTemplate]):
                 upstreams = RequestTemplate.upstream(
                     list(self._heap.values()), parent_node_id
                 )
-                assert len(upstreams) == 1, (
-                    f"Expected 1 upstream request, instead got {len(upstreams)}"
-                )
+                assert (
+                    len(upstreams) == 1
+                ), f"Expected 1 upstream request, instead got {len(upstreams)}"
                 return upstreams[0].identifier
             return None
 
     @property
     def insertion_request(self):
         insertions = [v for v in self._heap.values() if v.source_id is None]
-        assert len(insertions) == 1, (
-            f"Expected 1 insertion request, instead got {len(insertions)}"
-        )
+        assert (
+            len(insertions) == 1
+        ), f"Expected 1 insertion request, instead got {len(insertions)}"
         return insertions[0]
 
     @property
@@ -484,7 +485,7 @@ class RequestForest(Forest[RequestTemplate]):
         return self.insertion_request.output
 
 
-class DeadRequestException(Exception):
+class DeadRequestError(Exception):
     """
     A special exception to be thrown when the request you are looking collect has been killed during a scorched earth
      process
@@ -493,7 +494,7 @@ class DeadRequestException(Exception):
     pass
 
 
-class RequestDoesNotExistException(Exception):
+class RequestDoesNotExistError(Exception):
     """
     A special exception to be thrown when you are trying to update a Request which does not exist.
     """
@@ -501,5 +502,5 @@ class RequestDoesNotExistException(Exception):
     pass
 
 
-class RequestAlreadyExistsException(Exception):
+class RequestAlreadyExistsError(Exception):
     pass

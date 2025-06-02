@@ -19,7 +19,7 @@ from requestcompletion.llm.message import Role
 from typing_extensions import Self
 
 
-def tool_call_llm(
+def tool_call_llm(  # noqa: C901
     connected_nodes: Set[Type[Node]],
     pretty_name: str | None = None,
     model: ModelBase | None = None,
@@ -30,9 +30,9 @@ def tool_call_llm(
     tool_params: dict | None = None,
 ) -> Type[OutputLessToolCallLLM[Union[MessageHistory, AssistantMessage, BaseModel]]]:
     if output_model:
-        OutputType = output_model
+        OutputType = output_model  # noqa: N806
     else:
-        OutputType = (
+        OutputType = (  # noqa: N806
             MessageHistory if output_type == "MessageHistory" else AssistantMessage
         )
 
