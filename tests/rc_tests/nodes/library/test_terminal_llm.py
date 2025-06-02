@@ -32,6 +32,7 @@ async def test_call_capitalize_text_stream():
 
 
 # ======== Tests using TerminalLLMs as tools ==========
+@pytest.mark.timeout(10)
 @pytest.mark.asyncio
 async def test_terminal_llm_as_tool_correct_initialization(
     model, encoder_system_message, decoder_system_message
@@ -87,7 +88,9 @@ async def test_terminal_llm_as_tool_correct_initialization(
         system_message=system_randomizer,
     )
 
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(logging_setting="VERBOSE")
+    ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("The input string is 'hello world'")]
         )
