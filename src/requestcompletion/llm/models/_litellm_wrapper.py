@@ -212,7 +212,7 @@ class LiteLLMWrapper(ModelBase):
         choice = resp.choices[0]
 
         # If no tool calls were emitted, return plain assistant response: NOT IDEAL
-        if choice.finish_reason == "stop":
+        if choice.finish_reason == "stop" and not choice.message.tool_calls:
             return Response(message=AssistantMessage(content=choice.message.content))
 
         calls: List[ToolCall] = []
