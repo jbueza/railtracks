@@ -117,6 +117,7 @@ class Runner:
         threading.Thread(
             self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)
         ).start()
+
         delete_loggers()
         # by deleting all of the state variables we are ensuring that the next time we create a runner it is fresh
         active_runner.set(None)
