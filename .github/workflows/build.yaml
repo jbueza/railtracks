@@ -34,9 +34,6 @@ jobs:
           ruff check .
           ruff format .
 
-      - uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: 'Ruff style fixes'
 
       - name: Check pyproject.toml dependency order
         run: |
