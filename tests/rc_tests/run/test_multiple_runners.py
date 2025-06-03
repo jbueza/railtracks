@@ -28,7 +28,7 @@ def test_sync_runners_w_executor():
         for m in mapped_results:
             assert isinstance(m, float), "Expected a float result from RNGNode"
 
-
+@pytest.mark.asyncio
 async def test_async_runners_w_async():
     async def run_rng(timeout_len: float):
         with rc.Runner() as run:
@@ -66,9 +66,3 @@ def nested_runner_call():
 
 NestedRunner = rc.library.from_function(nested_runner_call)
 
-
-# this is a new update in expected behavior.
-# def test_nested_runners():
-#     with rc.Runner() as run:
-#         with pytest.raises(rc.run.RunnerCreationError):
-#             run.run_sync(NestedRunner)

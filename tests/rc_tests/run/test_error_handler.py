@@ -56,7 +56,7 @@ def test_error_handler():
 
 
 def test_error_handler_wo_retry():
-    with pytest.raises(rc.state.state.ExecutionException):
+    with pytest.raises(rc.state.state.ExecutionError):
         with rc.Runner(executor_config=rc.ExecutorConfig(end_on_error=True)) as run:
             result = run.run_sync(ErrorHandler)
 
