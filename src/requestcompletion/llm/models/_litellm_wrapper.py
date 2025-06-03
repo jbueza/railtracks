@@ -21,20 +21,12 @@ def _handle_dict_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
         warnings.warn(
             "The 'required' key is not present in the parameters dictionary. Parsing Properties parameters to check for required fields."
         )
-        required: list[str] = [
-            key for key, value in parameters["properties"].items()
-            if value.get("required", True)
-        ]
+        required: list[str] = []
+        for key, value in parameters["properties"].items():
+            if value.get("required", True):
+                required.append(key)
         parameters["required"] = required
     return parameters
-
-
-def _handle_pydantic_model(parameters: Type[BaseModel]) -> Dict[str, Any]:
-    """Handle the case where parameters are a Pydantic model."""
-    dump = getattr(parameters, "model_json_schema", None)
-    if callable(dump):
-        return dump()
-    raise RuntimeError(f"Cannot get schema from Pydantic model {parameters!r}")
 
 
 def _handle_set_of_parameters(parameters: Set[Parameter]) -> Dict[str, Any]:
@@ -72,8 +64,13 @@ def _parameters_to_json_schema(
     """
     if isinstance(parameters, dict):
         return _handle_dict_parameters(parameters)
+    
     if isinstance(parameters, type) and issubclass(parameters, BaseModel):
-        return _handle_pydantic_model(parameters)
+        dump = getattr(parameters, "model_json_schema", None)
+        if callable(dump):
+            return dump()
+        raise RuntimeError(f"Cannot get schema from Pydantic model {parameters!r}")
+    
     if isinstance(parameters, set):
         return _handle_set_of_parameters(parameters)
 
