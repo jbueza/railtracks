@@ -171,5 +171,4 @@ def prepare_logger(
 
 
 def delete_loggers():
-    # TODO implement this
-    pass
+    rc_logger.handlers = []
