@@ -9,8 +9,8 @@ import httpx
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import create_mcp_http_client
-from src.requestcompletion.llm import Tool
-from src.requestcompletion.nodes.nodes import Node
+from ..llm import Tool
+from ..nodes.nodes import Node
 from typing_extensions import Self, Type
 
 try:

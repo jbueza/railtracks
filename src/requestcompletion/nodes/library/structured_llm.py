@@ -6,7 +6,6 @@ from ..nodes import Node
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
 
-print("hello world")
 _TOutput = TypeVar("_TOutput", bound=BaseModel)
 
 

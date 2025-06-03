@@ -2,7 +2,7 @@ import warnings
 from typing import Type, Dict, Any
 from copy import deepcopy
 
-from src.requestcompletion.llm import (
+from ....llm import (
     UserMessage,
     MessageHistory,
     ModelBase,
@@ -11,7 +11,7 @@ from src.requestcompletion.llm import (
 )
 from typing_extensions import Self
 
-from src.requestcompletion.nodes.library.structured_llm import StructuredLLM
+from ....nodes.library.structured_llm import StructuredLLM
 from pydantic import BaseModel
 
 
