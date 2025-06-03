@@ -57,7 +57,11 @@ def test_error_handler():
 
 def test_error_handler_wo_retry():
     with pytest.raises(rc.state.state.ExecutionError):
-        with rc.Runner(executor_config=rc.ExecutorConfig(end_on_error=True, logging_setting="NONE"),) as run:
+        with rc.Runner(
+            executor_config=rc.ExecutorConfig(
+                end_on_error=True, logging_setting="NONE"
+            ),
+        ) as run:
             result = run.run_sync(ErrorHandler)
 
 
@@ -114,7 +118,9 @@ ParallelErrorHandler = rc.library.from_function(parallel_error_handler)
 def test_parallel_error_tester():
 
     for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
-        with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
+        with rc.Runner(
+            executor_config=rc.ExecutorConfig(logging_setting="NONE")
+        ) as run:
             result = run.run_sync(ParallelErrorHandler, n_c, p_c)
 
         assert isinstance(result.answer, list)
@@ -135,7 +141,9 @@ ErrorHandlerWrapper = rc.library.from_function(error_handler_wrapper)
 
 def test_parallel_error_wrapper():
     for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
-        with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
+        with rc.Runner(
+            executor_config=rc.ExecutorConfig(logging_setting="NONE")
+        ) as run:
             result = run.run_sync(ErrorHandlerWrapper, n_c, p_c)
 
         assert len(result.answer) == n_c * p_c
