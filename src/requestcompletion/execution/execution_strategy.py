@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 
 class TaskExecutionStrategy(ABC):
-
     def shutdown(self):
         pass
 
@@ -27,7 +26,6 @@ class TaskExecutionStrategy(ABC):
 
 
 class AsyncioExecutionStrategy(TaskExecutionStrategy):
-
     def shutdown(self):
         pass
 
@@ -38,9 +36,15 @@ class AsyncioExecutionStrategy(TaskExecutionStrategy):
 
         try:
             result = await invoke_func()
-            response = RequestSuccess(request_id=task.request_id, node_state=NodeState(task.node), result=result)
+            response = RequestSuccess(
+                request_id=task.request_id,
+                node_state=NodeState(task.node),
+                result=result,
+            )
         except Exception as e:
-            response = RequestFailure(request_id=task.request_id, node_state=NodeState(task.node), error=e)
+            response = RequestFailure(
+                request_id=task.request_id, node_state=NodeState(task.node), error=e
+            )
         finally:
             await publisher.publish(response)
 
@@ -79,9 +83,15 @@ class ConcurrentFuturesExecutor(TaskExecutionStrategy):
             )
             try:
                 result = invoke_func()
-                response = RequestSuccess(request_id=task.request_id, node_state=NodeState(task.node), result=result)
+                response = RequestSuccess(
+                    request_id=task.request_id,
+                    node_state=NodeState(task.node),
+                    result=result,
+                )
             except Exception as e:
-                response = RequestFailure(request_id=task.request_id, node_state=NodeState(task.node), error=e)
+                response = RequestFailure(
+                    request_id=task.request_id, node_state=NodeState(task.node), error=e
+                )
             finally:
                 publisher.publish(response)
 
@@ -91,13 +101,13 @@ class ConcurrentFuturesExecutor(TaskExecutionStrategy):
 
 
 class ThreadedExecutionStrategy(ConcurrentFuturesExecutor):
-
     # TODO add config as required here
     def __init__(self):
         super().__init__(concurrent.futures.ThreadPoolExecutor())
 
 
 class ProcessExecutionStrategy(TaskExecutionStrategy):
-
     def __init__(self):
-        raise NotImplementedError("We do not support Process Task Execution Strategy yet.")
+        raise NotImplementedError(
+            "We do not support Process Task Execution Strategy yet."
+        )

@@ -130,9 +130,9 @@ class RequestTemplate(AbstractLinkedObject):
         # BASE CASE
         if len(open_downstream_requests) == 0:
             open_upstreams = cls.upstream(requests, source_id)
-            assert (
-                len(open_upstreams) <= 1
-            ), f"There should only be one or 0 upstream request, instead there was {len(open_upstreams)}"
+            assert len(open_upstreams) <= 1, (
+                f"There should only be one or 0 upstream request, instead there was {len(open_upstreams)}"
+            )
             return [r for r in open_upstreams if not r.closed]
 
         # RECURSIVE CASE
@@ -272,13 +272,13 @@ class RequestForest(Forest[RequestTemplate]):
             # note the upstream request contains the stamp we care about
             # it is assumed that the upstream request is at the state when the request was completed
             new_upstream_request = upstream_request
-            assert (
-                new_upstream_request is not None
-            ), f"Fix this bug here {upstream_request}"
+            assert new_upstream_request is not None, (
+                f"Fix this bug here {upstream_request}"
+            )
             for child in all_children:
-                assert (
-                    child.stamp.step > new_upstream_request.stamp.step
-                ), "All children should have been created in the future of this request."
+                assert child.stamp.step > new_upstream_request.stamp.step, (
+                    "All children should have been created in the future of this request."
+                )
                 del self._heap[child.identifier]
 
             # finally we revert that upstream_request
@@ -433,9 +433,9 @@ class RequestForest(Forest[RequestTemplate]):
                 raise RequestDoesNotExistError(
                     f"Request with child id {child_id} does not exist in the heap."
                 )
-            assert (
-                len(upstreams) == 1
-            ), f"Expected 1 upstream request, instead got {len(upstreams)}"
+            assert len(upstreams) == 1, (
+                f"Expected 1 upstream request, instead got {len(upstreams)}"
+            )
             return upstreams[0]
 
     def open_tails(self):
@@ -469,18 +469,18 @@ class RequestForest(Forest[RequestTemplate]):
                 upstreams = RequestTemplate.upstream(
                     list(self._heap.values()), parent_node_id
                 )
-                assert (
-                    len(upstreams) == 1
-                ), f"Expected 1 upstream request, instead got {len(upstreams)}"
+                assert len(upstreams) == 1, (
+                    f"Expected 1 upstream request, instead got {len(upstreams)}"
+                )
                 return upstreams[0].identifier
             return None
 
     @property
     def insertion_request(self):
         insertions = [v for v in self._heap.values() if v.source_id is None]
-        assert (
-            len(insertions) == 1
-        ), f"Expected 1 insertion request, instead got {len(insertions)}"
+        assert len(insertions) == 1, (
+            f"Expected 1 insertion request, instead got {len(insertions)}"
+        )
         return insertions[0]
 
     @property

@@ -16,7 +16,6 @@ _TOutput = TypeVar("_TOutput")
 
 
 class Result(Generic[_TOutput]):
-
     def __init__(
         self,
         request_id: str,
@@ -77,7 +76,6 @@ class RCWorkerManager:
             finally:
                 returned_result = handler(response)
                 if isinstance(returned_result, Exception):
-
                     raise returned_result
 
             return returned_result

@@ -12,7 +12,6 @@ from typing import TypeVar, Generic, List, Optional, Dict, Callable
 T = TypeVar("T")
 
 
-
 class Subscriber(ABC, Generic[T]):
     """A simple interface that defines the requirements for a subscriber to a data stream."""
 
@@ -29,6 +28,7 @@ class Subscriber(ABC, Generic[T]):
 
 def create_subscriber(handler: Callable[[T], None]) -> Subscriber[T]:
     """A simple factory method that creates a concrete subscriber that will call the given handler with the item."""
+
     class ConcreteSubscriber(Subscriber[T]):
         def handle(self, item: T) -> None:
             handler(item)

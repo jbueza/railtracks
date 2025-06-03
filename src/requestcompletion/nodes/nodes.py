@@ -99,7 +99,9 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         This is commonly used with LLMs Tool Calling tooling.
         """
         # TODO: finish implementing this method
-        raise NotImplementedError("You must implement the tool_info method in your node")
+        raise NotImplementedError(
+            "You must implement the tool_info method in your node"
+        )
         # detail = inspect.getdoc(cls)
         # if detail is None:
         #     warnings.warn(f"Node {cls.__name__} does not have a docstring. Using empty string instead.")

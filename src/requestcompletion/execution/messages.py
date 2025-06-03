@@ -28,7 +28,6 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
         request_id: str,
         node_state: NodeState[Node[_TOutput]] | None,
     ):
-
         self.request_id = request_id
         self.node_state = node_state
 
@@ -44,7 +43,13 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
 
 
 class RequestSuccess(RequestFinishedBase):
-    def __init__(self, *, request_id: str, node_state: NodeState[_TNode[_TOutput]], result: _TOutput):
+    def __init__(
+        self,
+        *,
+        request_id: str,
+        node_state: NodeState[_TNode[_TOutput]],
+        result: _TOutput,
+    ):
         super().__init__(request_id=request_id, node_state=node_state)
         self.result = result
 

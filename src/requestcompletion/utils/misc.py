@@ -2,11 +2,16 @@ from ..execution.messages import (
     RequestCompletionMessage,
     RequestFinishedBase,
     RequestSuccess,
-    RequestFailure, FatalFailure, RequestCreationFailure,
+    RequestFailure,
+    FatalFailure,
+    RequestCreationFailure,
 )
 
+
 def output_mapping(result: RequestCompletionMessage):
-    assert isinstance(result, (RequestFinishedBase, FatalFailure)), "Expected a RequestFinishedBase message type"
+    assert isinstance(result, (RequestFinishedBase, FatalFailure)), (
+        "Expected a RequestFinishedBase message type"
+    )
     result: RequestFinishedBase
     if isinstance(result, RequestSuccess):
         result: RequestSuccess

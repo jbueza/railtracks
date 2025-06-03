@@ -13,11 +13,12 @@ if TYPE_CHECKING:
 
 config = contextvars.ContextVar("executor_config", default=None)
 streamer = contextvars.ContextVar("data_streamer", default=None)
-thread_context: contextvars.ContextVar[ThreadContext | None] = contextvars.ContextVar("thread_context", default=None)
+thread_context: contextvars.ContextVar[ThreadContext | None] = contextvars.ContextVar(
+    "thread_context", default=None
+)
 
 
 class ThreadContext:
-
     def __init__(
         self,
         publisher: RCPublisher,
@@ -57,7 +58,9 @@ def register_global_wrapper(parent_id: str | None = None):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Register the global variables before executing the function
-            register_globals(parent_global_variables.prepare_new(new_parent_id=parent_id))
+            register_globals(
+                parent_global_variables.prepare_new(new_parent_id=parent_id)
+            )
 
             return func(*args, **kwargs)
 

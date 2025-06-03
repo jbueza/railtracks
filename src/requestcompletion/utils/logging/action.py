@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Tuple, Any, Dict
 
 
-
-
 class RCAction(ABC):
     # TODO add different configuration modes for logging styles
     @abstractmethod

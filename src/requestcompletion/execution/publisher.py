@@ -71,7 +71,9 @@ class RCPublisher(Generic[_T]):
     async def start(self):
         # you must set the kill variables first or the publisher loop will early exit.
         self._killed = False
-        self.pub_loop = asyncio.create_task(self._published_data_loop(), name="Publisher Loop")
+        self.pub_loop = asyncio.create_task(
+            self._published_data_loop(), name="Publisher Loop"
+        )
 
     async def __aexit__(self, exc_type, exc_value, traceback):
         """Shutdown the publisher when exiting the context manager."""
@@ -97,7 +99,9 @@ class RCPublisher(Generic[_T]):
         """
         while not self._killed:
             try:
-                message = await asyncio.wait_for(self._queue.get(), timeout=self.timeout)
+                message = await asyncio.wait_for(
+                    self._queue.get(), timeout=self.timeout
+                )
 
                 try:
                     contracts = [sub.trigger(message) for sub in self._subscribers]
@@ -142,7 +146,9 @@ class RCPublisher(Generic[_T]):
         Raises:
             KeyError: If no subscriber with the given identifier exists.
         """
-        index_to_remove = [index for index, sub in enumerate(self._subscribers) if sub.id == identifier]
+        index_to_remove = [
+            index for index, sub in enumerate(self._subscribers) if sub.id == identifier
+        ]
         if not index_to_remove:
             raise KeyError(f"No subscriber with identifier {identifier} found.")
 
@@ -181,9 +187,13 @@ class RCPublisher(Generic[_T]):
                     pass
 
                 if self._killed:
-                    raise ValueError("Listener has been killed before receiving the correct message.")
+                    raise ValueError(
+                        "Listener has been killed before receiving the correct message."
+                    )
 
-            assert returnable_result is not None, "Listener should have received a message before returning."
+            assert returnable_result is not None, (
+                "Listener should have received a message before returning."
+            )
             self.unsubscribe(sub_id)
             return result_mapping(returnable_result)
 

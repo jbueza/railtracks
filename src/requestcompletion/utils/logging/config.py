@@ -114,7 +114,11 @@ def setup_none_logger_config():
 def setup_file_handler(
     file_name: str,
     file_logging_config: dict | None,
-    file_logging_level: logging.DEBUG | logging.INFO | logging.WARNING | logging.ERROR | logging.CRITICAL,
+    file_logging_level: logging.DEBUG
+    | logging.INFO
+    | logging.WARNING
+    | logging.ERROR
+    | logging.CRITICAL,
 ):
     file_handler = logging.FileHandler(file_name)
     logging_level = logging.DEBUG if file_logging_level else file_logging_level
@@ -142,7 +146,11 @@ def prepare_logger(
     file_name: str | None = None,
     file_logging_config: dict | None = None,
     file_logging_level: (
-        logging.DEBUG | logging.INFO | logging.WARNING | logging.ERROR | logging.CRITICAL
+        logging.DEBUG
+        | logging.INFO
+        | logging.WARNING
+        | logging.ERROR
+        | logging.CRITICAL
     ) = logging.DEBUG,
 ):
     # the file injection will happen no matter what.
@@ -180,5 +188,3 @@ def detach_logging_handlers():
         # Remove all handlers from the logger
         logging.getLogger(rc_logger_name).removeHandler(handler)
         handler.close()
-
-

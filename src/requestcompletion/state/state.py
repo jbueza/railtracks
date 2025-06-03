@@ -71,7 +71,6 @@ class RCState:
         coordinator: Coordinator,
         publisher: RCPublisher[RequestCompletionMessage],
     ):
-
         self._node_heap = execution_info.node_heap
         self._request_heap = execution_info.request_heap
         self._stamper = execution_info.stamper
@@ -92,7 +91,6 @@ class RCState:
 
     # TODO: fix up these abstractions so it consistent that we are mapping the request type into its proper type.
     async def handle(self, item: RequestCompletionMessage) -> None:
-
         if isinstance(item, RequestFinishedBase):
             await self.handle_result(item)
         if isinstance(item, RequestCreation):
@@ -269,9 +267,9 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(
-            n in self._node_heap for n in children
-        ), "You cannot add a request for a node which has not yet been added"
+        assert all(n in self._node_heap for n in children), (
+            "You cannot add a request for a node which has not yet been added"
+        )
 
         if request_ids is None:
             request_ids = [None] * len(children)

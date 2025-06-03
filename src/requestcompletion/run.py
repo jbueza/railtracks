@@ -6,7 +6,12 @@ from typing import TypeVar, ParamSpec, Callable
 from .config import ExecutorConfig
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
-from .execution.messages import RequestCompletionMessage, RequestCreation, RequestFinishedBase, FatalFailure
+from .execution.messages import (
+    RequestCompletionMessage,
+    RequestCreation,
+    RequestFinishedBase,
+    FatalFailure,
+)
 from .execution.publisher import RCPublisher
 from .execution.subscriber import stream_subscriber
 from .utils.misc import output_mapping
@@ -69,7 +74,6 @@ class Runner:
         subscriber: Callable[[str], None] = None,
         executor_config: ExecutorConfig = None,
     ):
-
         # first lets read from defaults if nessecary for the provided input config
         if executor_config is None:
             saved_config = config.get()
@@ -95,8 +99,12 @@ class Runner:
         register_globals(ThreadContext(publisher=self.publisher, parent_id=None))
 
         executor_info = ExecutionInfo.create_new()
-        self.coordinator = Coordinator(execution_modes={"async": AsyncioExecutionStrategy()})
-        self.rc_state = RCState(executor_info, executor_config, self.coordinator, self.publisher)
+        self.coordinator = Coordinator(
+            execution_modes={"async": AsyncioExecutionStrategy()}
+        )
+        self.rc_state = RCState(
+            executor_info, executor_config, self.coordinator, self.publisher
+        )
         self.subscriber = subscriber
 
     def __enter__(self):
@@ -120,7 +128,9 @@ class Runner:
         """
 
         if self.subscriber is not None:
-            self.publisher.subscribe(stream_subscriber(self.subscriber), name="Streaming Subscriber")
+            self.publisher.subscribe(
+                stream_subscriber(self.subscriber), name="Streaming Subscriber"
+            )
 
     async def _run_base(
         self,
@@ -131,14 +141,18 @@ class Runner:
         await self.prepare()
 
         if not self.rc_state.is_empty:
-            raise RuntimeError("The run function can only be used to start not in the middle of a run.")
+            raise RuntimeError(
+                "The run function can only be used to start not in the middle of a run."
+            )
 
         start_request_id = "START"
 
         def message_filter(item: RequestCompletionMessage) -> bool:
-
             # we want to filter and collect the message that matches this request_id
-            matches_request_id = isinstance(item, RequestFinishedBase) and item.request_id == start_request_id
+            matches_request_id = (
+                isinstance(item, RequestFinishedBase)
+                and item.request_id == start_request_id
+            )
             fatal_failure = isinstance(item, FatalFailure)
 
             return matches_request_id or fatal_failure
@@ -161,7 +175,12 @@ class Runner:
         await self.publisher.shutdown()
         return result
 
-    def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
+    def run_sync(
+        self,
+        start_node: Callable[_P, Node] | None = None,
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ):
         """Runs the provided node synchronously."""
         asyncio.run(self._run_base(start_node, *args, **kwargs))
 

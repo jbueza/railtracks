@@ -140,9 +140,9 @@ class Coordinator:
         execution_modes: Dict[ExecutionConfigurations, TaskExecutionStrategy] = None,
     ):
         self.state = CoordinatorState.empty()
-        assert set(execution_modes.keys()) == set(
-            get_args(ExecutionConfigurations)
-        ), "You must provide all execution modes."
+        assert set(execution_modes.keys()) == set(get_args(ExecutionConfigurations)), (
+            "You must provide all execution modes."
+        )
         self.execution_strategy = execution_modes
 
     def start(self, publisher: RCPublisher[RequestCompletionMessage]):
@@ -153,7 +153,10 @@ class Coordinator:
             # we ignore requests that were never created.
             if isinstance(item, RequestCreationFailure):
                 return
-            self.state.end_job(item.request_id, "success" if isinstance(item, RequestSuccess) else "failure")
+            self.state.end_job(
+                item.request_id,
+                "success" if isinstance(item, RequestSuccess) else "failure",
+            )
 
     # TODO write up required params here
     async def submit(

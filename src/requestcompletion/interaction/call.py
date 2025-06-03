@@ -1,4 +1,3 @@
-
 from typing import ParamSpec, Callable, TypeVar
 
 from ..run import Runner
@@ -74,7 +73,8 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
 
 
 async def stream(item: str):
-
     publisher = get_globals().publisher
 
-    await publisher.publish(Streaming(node_id=get_globals().parent_id, streamed_object=item))
+    await publisher.publish(
+        Streaming(node_id=get_globals().parent_id, streamed_object=item)
+    )
