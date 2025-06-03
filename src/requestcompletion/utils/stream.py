@@ -57,7 +57,6 @@ class DataStream(Generic[T]):
         }
         # default to running.
         self._running = True
-
         self._executor = ThreadPoolExecutor(max_workers=len(self._subscribers) + 1)
         self._futures = []
 
