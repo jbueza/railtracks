@@ -49,13 +49,13 @@ TopLevel = rc.library.from_function(top_level)
 # by leveraging timeout we can ensure that the test is properly using parallelization
 @pytest.mark.timeout(4)
 def test_regular_style_parallel():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(TopLevel)
         assert result.answer == [1, 2, 3, 2, 1]
 
 
 @pytest.mark.timeout(4)
 def test_async_style_parallel():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(TopLevelAsync)
         assert result.answer == [1, 2, 3, 2, 1]

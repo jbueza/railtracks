@@ -60,7 +60,7 @@ async def test_message_history_not_mutated_terminal_llm(model, terminal_nodes):
 
     MathGameNode = rc.library.from_function(make_math_game_node)
 
-    with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as runner:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("You can start the game")]
         )
@@ -128,7 +128,7 @@ async def test_message_history_not_mutated_structured_llm(model, structured_node
 
     MathProofNode = rc.library.from_function(math_proof_node)
 
-    with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as runner:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Prove that the sum of all numbers until infinity is -1/12")]
         )
@@ -183,7 +183,7 @@ async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nod
         return response
 
     TravelSummarizerNode = rc.library.from_function(travel_summarizer_node)
-    with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as runner:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as runner:
         message_history = rc.llm.MessageHistory(
             [
                 rc.llm.UserMessage(

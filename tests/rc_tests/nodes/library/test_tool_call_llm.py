@@ -18,7 +18,7 @@ NODE_INIT_METHODS = ["easy_wrapper", "class_based"]
 async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
     """Test basic functionality of returning a structured output."""
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET")
+        executor_config=rc.ExecutorConfig(logging_setting="NONE")
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Generate a simple text and number.")]
@@ -76,7 +76,7 @@ async def test_structured_with_tool_calls(
 ):
     """Test the functionality of a ToolCallLLM node (using actual tools) with a structured output model."""
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(timeout=50, logging_setting="QUIET")
+        executor_config=rc.ExecutorConfig(timeout=50, logging_setting="NONE")
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [
@@ -99,7 +99,7 @@ async def test_structured_with_tool_calls(
 async def test_structured_with_terminal_llm_as_tool(math_node, math_output_model):
     """Test the functionality of a ToolCallLLM node (using terminalLLM as tool) with a structured output model."""
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET")
+        executor_config=rc.ExecutorConfig(logging_setting="NONE")
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Start the Math node.")]
@@ -117,7 +117,7 @@ async def test_structured_with_complex_output_model(
 ):
     """Test the functionality of structured output model with complex output model."""
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET")
+        executor_config=rc.ExecutorConfig(logging_setting="NONE")
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [
@@ -200,7 +200,7 @@ async def test_tool_with_llm_tool_as_input_easy_tools():
 
     # Run the parent tool
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=1000)
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Give me a response.")]
@@ -281,7 +281,7 @@ async def test_tool_with_llm_tool_as_input_class_easy():
 
     # Run the parent tool
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=1000)
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Give me a response.")]
@@ -345,7 +345,7 @@ async def test_tool_with_llm_tool_as_input_easy_class():
 
     # Run the parent tool
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=1000)
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Give me a response.")]
@@ -439,7 +439,7 @@ async def test_tool_with_llm_tool_as_input_class_tools():
 
     # Run the parent tool
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=1000)
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Give me a response.")]
@@ -491,7 +491,7 @@ async def test_tool_with_structured_output_child_tool():
 
     # Run the parent tool
     with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=1000)
     ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Generate a structured response for 'Hello World'.")]
