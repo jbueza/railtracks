@@ -1,5 +1,4 @@
 from abc import abstractmethod
-import os
 import json
 from typing import List, Dict, Type, Optional, Any, Generator, Union, Set
 from pydantic import BaseModel, ValidationError
@@ -16,7 +15,54 @@ from ..tools import Tool, Parameter
 import warnings
 
 
-def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter], Dict[str, Any]]) -> Dict[str, Any]:
+def _handle_dict_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle the case where parameters are already a dictionary."""
+    if "required" not in parameters and "properties" in parameters:
+        warnings.warn(
+            "The 'required' key is not present in the parameters dictionary. Parsing Properties parameters to check for required fields."
+        )
+        required: list[str] = [
+            key for key, value in parameters["properties"].items()
+            if value.get("required", True)
+        ]
+        parameters["required"] = required
+    return parameters
+
+
+def _handle_pydantic_model(parameters: Type[BaseModel]) -> Dict[str, Any]:
+    """Handle the case where parameters are a Pydantic model."""
+    dump = getattr(parameters, "model_json_schema", None)
+    if callable(dump):
+        return dump()
+    raise RuntimeError(f"Cannot get schema from Pydantic model {parameters!r}")
+
+
+def _handle_set_of_parameters(parameters: Set[Parameter]) -> Dict[str, Any]:
+    """Handle the case where parameters are a set of Parameter instances."""
+    props: Dict[str, Any] = {}
+    required: list[str] = []
+    for p in parameters:
+        props[p.name] = {
+            "type": p.param_type,
+            "description": p.description,
+        }
+        if p.param_type == "object":
+            props[p.name]["additionalProperties"] = p.additional_properties
+        if p.required:
+            required.append(p.name)
+
+    model_schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": props,
+    }
+    if required:
+        model_schema["required"] = required
+    return model_schema
+
+
+def _parameters_to_json_schema(
+    parameters: Union[Type[BaseModel], Set[Parameter], Dict[str, Any]],
+) -> Dict[str, Any]:
     """
     Turn one of:
       - a Pydantic model class (subclass of BaseModel)
@@ -24,48 +70,12 @@ def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter]
       - an already-built dict
     into a JSON Schema dict.
     """
-    # 1) Already a dict?
     if isinstance(parameters, dict):
-        if "required" not in parameters and "properties" in parameters:
-            warnings.warn(
-                "The 'required' key is not present in the parameters dictionary. Parsing Properties parameters to check for required fields."
-            )
-            required: list[str] = []
-            for key, value in parameters["properties"].items():
-                if value.get("required", True):
-                    required.append(key)
-            parameters["required"] = required
-        return parameters
-
-    # 2) Pydantic model?
+        return _handle_dict_parameters(parameters)
     if isinstance(parameters, type) and issubclass(parameters, BaseModel):
-        dump = getattr(parameters, "model_json_schema", None)
-        if callable(dump):
-            return dump()
-        raise RuntimeError(f"Cannot get schema from Pydantic model {parameters!r}")
-
-    # 3) Set of Parameter?
+        return _handle_pydantic_model(parameters)
     if isinstance(parameters, set):
-        props: Dict[str, Any] = {}
-        required: list[str] = []
-        for p in parameters:
-            props[p.name] = {
-                "type": p.param_type,
-                "description": p.description,
-            }
-            # allow extra props inside an "object"
-            if p.param_type == "object":
-                props[p.name]["additionalProperties"] = p.additional_properties
-            if p.required:
-                required.append(p.name)
-
-        model_schema: Dict[str, Any] = {
-            "type": "object",
-            "properties": props,
-        }
-        if required:
-            model_schema["required"] = required
-        return model_schema
+        return _handle_set_of_parameters(parameters)
 
     raise TypeError(
         "Tool.parameters must be either:\n"
@@ -110,7 +120,9 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
         base["content"] = ""
         base["tool_calls"] = [
             litellm.utils.ChatCompletionMessageToolCall(
-                function=litellm.utils.Function(arguments=tool_call.arguments, name=tool_call.name),
+                function=litellm.utils.Function(
+                    arguments=tool_call.arguments, name=tool_call.name
+                ),
                 id=tool_call.identifier,
                 type="function",
             )
@@ -162,14 +174,18 @@ class LiteLLMWrapper(ModelBase):
         merged = {**self._default_kwargs, **call_kwargs}
         if response_format is not None:
             merged["response_format"] = response_format
-        return litellm.completion(model=self._model_name, messages=litellm_messages, stream=stream, **merged)
+        return litellm.completion(
+            model=self._model_name, messages=litellm_messages, stream=stream, **merged
+        )
 
     def chat(self, messages: MessageHistory, **kwargs) -> Response:
         raw = self._invoke(messages, **kwargs)
         content = raw["choices"][0]["message"]["content"]
         return Response(message=AssistantMessage(content=content))
 
-    def structured(self, messages: MessageHistory, schema: Type[BaseModel], **kwargs) -> Response:
+    def structured(
+        self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
+    ) -> Response:
         try:
             raw = self._invoke(messages, response_format=schema, **kwargs)
             content_str = raw["choices"][0]["message"]["content"]
@@ -189,7 +205,9 @@ class LiteLLMWrapper(ModelBase):
 
         return Response(message=None, streamer=streamer())
 
-    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs: Any) -> Response:
+    def chat_with_tools(
+        self, messages: MessageHistory, tools: List[Tool], **kwargs: Any
+    ) -> Response:
         """
         Chat with the model using tools.
 
@@ -218,7 +236,9 @@ class LiteLLMWrapper(ModelBase):
         calls: List[ToolCall] = []
         for tc in choice.message.tool_calls:
             args = json.loads(tc.function.arguments)
-            calls.append(ToolCall(identifier=tc.id, name=tc.function.name, arguments=args))
+            calls.append(
+                ToolCall(identifier=tc.id, name=tc.function.name, arguments=args)
+            )
 
         return Response(message=AssistantMessage(content=calls))
 

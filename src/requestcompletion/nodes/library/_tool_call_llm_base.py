@@ -99,7 +99,13 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                         [x.name for x in returned_mess.message.content],
                         tool_responses,
                     ):
-                        self.message_hist.append(ToolMessage(ToolResponse(identifier=r_id, result=str(resp), name=r_name)))
+                        self.message_hist.append(
+                            ToolMessage(
+                                ToolResponse(
+                                    identifier=r_id, result=str(resp), name=r_name
+                                )
+                            )
+                        )
 
                 elif returned_mess.message.content is not None:
                     # this means the tool call is finished

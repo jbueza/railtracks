@@ -2,7 +2,13 @@ import warnings
 from typing import Type, Dict, Any
 from copy import deepcopy
 
-from src.requestcompletion.llm import UserMessage, MessageHistory, ModelBase, SystemMessage, Tool
+from src.requestcompletion.llm import (
+    UserMessage,
+    MessageHistory,
+    ModelBase,
+    SystemMessage,
+    Tool,
+)
 from typing_extensions import Self
 
 from src.requestcompletion.nodes.library.structured_llm import StructuredLLM
@@ -96,6 +102,6 @@ def structured_llm(  # noqa: C901
     ):
         raise ValueError("Duplicate parameter names are not allowed.")
     if not output_model or len(output_model.model_fields) == 0:
-            raise ValueError("Output model cannot be empty")
+        raise ValueError("Output model cannot be empty")
 
     return StructuredLLMNode

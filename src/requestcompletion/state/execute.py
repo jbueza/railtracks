@@ -221,9 +221,9 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(
-            n in self._node_heap for n in children
-        ), "You cannot add a request for a node which has not yet been added"
+        assert all(n in self._node_heap for n in children), (
+            "You cannot add a request for a node which has not yet been added"
+        )
         parent_node_name = (
             self._node_heap.id_type_mapping[parent_node]
             if parent_node is not None
