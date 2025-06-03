@@ -23,6 +23,7 @@ class MCPAsyncClient:
     """
     Async client for communicating with an MCP server via stdio or HTTP Stream, with streaming support.
     """
+
     def __init__(
         self,
         command: str,
@@ -50,29 +51,37 @@ class MCPAsyncClient:
         self._main_loop = asyncio.get_running_loop()
         if self.transport_type == "stdio":
             server_params = StdioServerParameters(
-                command=self.command,
-                args=self.args,
-                env=self.env
+                command=self.command, args=self.args, env=self.env
             )
-            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
-            self.session = await self.exit_stack.enter_async_context(ClientSession(*stdio_transport))
+            stdio_transport = await self.exit_stack.enter_async_context(
+                stdio_client(server_params)
+            )
+            self.session = await self.exit_stack.enter_async_context(
+                ClientSession(*stdio_transport)
+            )
             await self.session.initialize()
         elif self.transport_type == "http-stream":
             self.http_headers = self.transport_options.get("headers", {})
             self.endpoint = self.transport_options.get("endpoint", "/mcp")
-            self.base_url = self.transport_options.get("base_url", "http://localhost:8080") + self.endpoint
+            self.base_url = (
+                self.transport_options.get("base_url", "http://localhost:8080")
+                + self.endpoint
+            )
             self.response_mode = self.transport_options.get("responseMode", "batch")
             self.session_id = None
 
             self.http_session = await self.exit_stack.enter_async_context(
-                create_mcp_http_client(headers=self.http_headers, timeout=self.transport_options.get("batchTimeout"))
+                create_mcp_http_client(
+                    headers=self.http_headers,
+                    timeout=self.transport_options.get("batchTimeout"),
+                )
             )
             # Initialize session
             init_req = {
                 "jsonrpc": "2.0",
                 "id": "init-" + str(int(time.time() * 1000)),
                 "method": "initialize",
-                "params": {}
+                "params": {},
             }
             resp = await self.http_session.post(
                 self.base_url,
@@ -81,7 +90,7 @@ class MCPAsyncClient:
                     "Accept": "application/json, text/event-stream",
                     **self.http_headers,
                 },
-                json=init_req
+                json=init_req,
             )
             self.session_id = resp.headers.get("Mcp-Session-Id")
             await resp.aread()
@@ -107,7 +116,9 @@ class MCPAsyncClient:
         def sse_worker():
             try:
                 with httpx.Client() as client:
-                    with client.stream("GET", url, headers=self.http_headers) as response:
+                    with client.stream(
+                        "GET", url, headers=self.http_headers
+                    ) as response:
                         sse = SSEClient(response)
                         for event in sse:
                             if self.sse_stop_event.is_set():
@@ -138,7 +149,7 @@ class MCPAsyncClient:
                 await self.http_session.request(
                     "DELETE",
                     self.base_url,
-                    headers={"Mcp-Session-Id": self.session_id, **self.http_headers}
+                    headers={"Mcp-Session-Id": self.session_id, **self.http_headers},
                 )
             except Exception as e:
                 logging.exception("Error terminating HTTP session: %s", e)
@@ -161,7 +172,7 @@ class MCPAsyncClient:
                 "jsonrpc": "2.0",
                 "id": "list_tools-" + str(int(time.time() * 1000)),
                 "method": "list_tools",
-                "params": {}
+                "params": {},
             }
             headers = {
                 "Content-Type": "application/json",
@@ -171,9 +182,7 @@ class MCPAsyncClient:
             if self.session_id:
                 headers["Mcp-Session-Id"] = self.session_id
             resp = await self.http_session.post(
-                self.base_url,
-                headers=headers,
-                json=req
+                self.base_url, headers=headers, json=req
             )
             data = resp.json()
             if asyncio.iscoroutine(data):
@@ -190,7 +199,7 @@ class MCPAsyncClient:
                 "jsonrpc": "2.0",
                 "id": tool_name + "-" + str(int(time.time() * 1000)),
                 "method": tool_name,
-                "params": tool_args
+                "params": tool_args,
             }
             headers = {
                 "Content-Type": "application/json",
@@ -200,9 +209,7 @@ class MCPAsyncClient:
             if self.session_id:
                 headers["Mcp-Session-Id"] = self.session_id
             resp = await self.http_session.post(
-                self.base_url,
-                headers=headers,
-                json=req
+                self.base_url, headers=headers, json=req
             )
             content_type = resp.headers.get("Content-Type", "")
             if content_type.startswith("application/json"):
@@ -213,7 +220,9 @@ class MCPAsyncClient:
                 return data.get("result")
             elif "text/event-stream" in content_type:
                 await resp.aread()
-                raise NotImplementedError("Use stream_tool_call for streaming responses.")
+                raise NotImplementedError(
+                    "Use stream_tool_call for streaming responses."
+                )
             else:
                 await resp.aread()
                 raise NotImplementedError("Unknown response type.")
@@ -222,12 +231,14 @@ class MCPAsyncClient:
 
     async def stream_tool_call(self, tool_name: str, tool_args: dict):
         if self.transport_type != "http-stream":
-            raise NotImplementedError("Streaming only supported for http-stream transport.")
+            raise NotImplementedError(
+                "Streaming only supported for http-stream transport."
+            )
         req = {
             "jsonrpc": "2.0",
             "id": tool_name + "-" + str(int(time.time() * 1000)),
             "method": tool_name,
-            "params": tool_args
+            "params": tool_args,
         }
         headers = {
             "Content-Type": "application/json",
@@ -236,26 +247,24 @@ class MCPAsyncClient:
         }
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
-        resp = await self.http_session.post(
-            self.base_url,
-            headers=headers,
-            json=req
-        )
+        resp = await self.http_session.post(self.base_url, headers=headers, json=req)
         content_type = resp.headers.get("Content-Type", "")
         if "text/event-stream" in content_type:
             async for chunk in resp.aiter_text():
                 yield chunk
         else:
             await resp.aread()
-            raise NotImplementedError("Non-streaming response received in stream_tool_call.")
+            raise NotImplementedError(
+                "Non-streaming response received in stream_tool_call."
+            )
 
 
-def from_mcp(
+def from_mcp( # noqa: C901
     tool,
     command: str,
     args: list,
     transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None
+    transport_options: Optional[dict] = None,
 ):
     """
     Wrap an MCP tool as a Node class for use in the requestcompletion framework.
@@ -270,21 +279,26 @@ def from_mcp(
     Returns:
         A Node subclass that invokes the MCP tool.
     """
+
     class MCPToolNode(Node):
         def __init__(self, **kwargs):
             super().__init__()
             self.kwargs = kwargs
             if transport_type not in ["stdio"]:
-                raise NotImplementedError("Only 'stdio' transport type is currently supported for MCP tools, contact Levi.")
+                raise NotImplementedError(
+                    "Only 'stdio' transport type is currently supported for MCP tools, contact Levi."
+                )
             if self.kwargs.get("stream"):
-                raise NotImplementedError("Streaming is not supported yet, contact Levi.")
+                raise NotImplementedError(
+                    "Streaming is not supported yet, contact Levi."
+                )
 
         async def invoke(self):
             async with MCPAsyncClient(
                 command,
                 args,
                 transport_type=transport_type,
-                transport_options=transport_options
+                transport_options=transport_options,
             ) as client:
                 if self.kwargs.get("stream", False):
                     result = []
@@ -316,7 +330,7 @@ async def from_mcp_server_async(
     command: str,
     args: list,
     transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None
+    transport_options: Optional[dict] = None,
 ) -> [Type[Node]]:
     """
     Discover all tools from an MCP server and wrap them as Node classes.
@@ -334,7 +348,7 @@ async def from_mcp_server_async(
         command,
         args,
         transport_type=transport_type,
-        transport_options=transport_options
+        transport_options=transport_options,
     ) as client:
         tools = await client.list_tools()
         return [
@@ -343,7 +357,7 @@ async def from_mcp_server_async(
                 command,
                 args,
                 transport_type=transport_type,
-                transport_options=transport_options
+                transport_options=transport_options,
             )
             for tool in tools
         ]
