@@ -162,9 +162,9 @@ def test_to_litellm_message_tool_call_list(tool_call):
     tool_calls = [tool_call]
     message = AssistantMessage(content=tool_calls)
     litellm_message = _to_litellm_message(message)
-    assert litellm_message.role == "assistant"
-    assert len(litellm_message.tool_calls) == 1
-    assert litellm_message.tool_calls[0].function.name == "example_tool"
+    assert litellm_message["role"] == "assistant"
+    assert len(litellm_message["tool_calls"]) == 1
+    assert litellm_message["tool_calls"][0].function.name == "example_tool"
 
 
 # =================================== END _to_litellm_message Tests ====================================
