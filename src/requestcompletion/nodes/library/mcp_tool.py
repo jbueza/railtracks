@@ -46,19 +46,3 @@ async def async_from_mcp_server(
             )
             for tool in tools
         ]
-
-
-async def async_from_server_auth(
-    config: Union[StdioServerParameters, MCPHttpParams],
-) -> Literal[True]:
-    """
-    Authenticate with the MCP server.
-
-    Args:
-        config: Configuration for the MCP server, either as StdioServerParameters or MCPHttpParams.
-
-    Returns:
-        True if authentication is successful.
-    """
-    async with SimpleAuthClient(config.url, "sse") as client:
-        return await client.list_tools()

@@ -1,4 +1,3 @@
-import inspect
 import threading
 import time
 import webbrowser
@@ -8,6 +7,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Any, Dict
 from urllib.parse import urlparse, parse_qs
 
+import httpx
 from typing_extensions import Self, Union
 
 from mcp import ClientSession, StdioServerParameters
@@ -39,6 +39,8 @@ class MCPHttpParams(BaseModel):
 class MCPAsyncClient:
     """
     Async client for communicating with an MCP server via stdio or HTTP Stream, with streaming support.
+
+    If a client session is provided, it will be used; otherwise, a new session will be created.
     """
     def __init__(
         self,
@@ -46,15 +48,9 @@ class MCPAsyncClient:
         client_session: ClientSession | None = None,
     ):
         self.config = config
-        self.session = None
+        self.session = client_session
         self.exit_stack = AsyncExitStack()
         self._tools_cache = None
-        self.sse_client = False
-
-        # If config is HTTP and url ends with /sse, set sse_client flag to True
-        if isinstance(self.config, MCPHttpParams):
-            if self.config.url.rstrip("/").endswith("/sse"):
-                self.sse_client = True
 
     async def __aenter__(self):
         if isinstance(self.config, StdioServerParameters):
@@ -62,48 +58,12 @@ class MCPAsyncClient:
             self.session = await self.exit_stack.enter_async_context(ClientSession(*stdio_transport))
             await self.session.initialize()
         elif isinstance(self.config, MCPHttpParams):
-
-            if not self.sse_client:
-                try:
-                    await self._init_session(streamablehttp_client)
-                except Exception:  # McpError
-                    await self._init_session(sse_client)
-                    self.sse_client = True
-            else:
-                await self._init_session(sse_client)
+            await self._init_http()
 
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.exit_stack.aclose()
-
-    async def _init_session(self, client_factory):
-        sig = inspect.signature(client_factory)
-        accepted_params = set(sig.parameters.keys())
-
-        # Prepare kwargs from self.config
-        config_dict = self.config.__dict__
-        filtered_kwargs = {}
-
-        for k, v in config_dict.items():
-            if k in sig.parameters:
-                param = sig.parameters[k]
-                expected_type = param.annotation
-                # Convert timedelta to float if needed
-                if expected_type is float and isinstance(v, timedelta):
-                    filtered_kwargs[k] = v.total_seconds()
-                # Convert float to timedelta if needed
-                elif expected_type is timedelta and isinstance(v, (int, float)):
-                    filtered_kwargs[k] = timedelta(seconds=v)
-                else:
-                    filtered_kwargs[k] = v
-
-        # Call client_factory with only accepted kwargs
-        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(
-            client_factory(**filtered_kwargs)
-        )
-        self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
-        await self.session.initialize()
 
     async def list_tools(self):
         if self._tools_cache is not None:
@@ -115,6 +75,98 @@ class MCPAsyncClient:
 
     async def call_tool(self, tool_name: str, tool_args: dict):
         return await self.session.call_tool(tool_name, tool_args)
+
+    async def _init_http(self):
+        # Set transport type based on URL ending
+        if self.config.url.rstrip("/").endswith("/sse"):
+            self.transport_type = "sse"
+        else:
+            self.transport_type = "streamable_http"
+
+        async def get_oauth_metadata(server_url: str):
+            from urllib.parse import urlparse, urlunparse, urljoin
+            parsed = urlparse(server_url)
+            base_url = urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
+            metadata_url = urljoin(base_url, "/.well-known/oauth-authorization-server")
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(metadata_url)
+                if resp.status_code == 200:
+                    return resp.json()
+                return None
+
+        oauth_metadata = await get_oauth_metadata(self.config.url)
+
+        if oauth_metadata:
+            callback_server = CallbackServer(port=3000)
+            callback_server.start()
+
+            async def callback_handler() -> tuple[str, str | None]:
+                print("⏳ Waiting for authorization callback...")
+                try:
+                    auth_code = callback_server.wait_for_callback(timeout=300)
+                    return auth_code, callback_server.get_state()
+                finally:
+                    callback_server.stop()
+
+            client_metadata_dict = {
+                "client_name": "Simple Auth Client",
+                "redirect_uris": ["http://localhost:3000/callback"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "response_types": ["code"],
+                "token_endpoint_auth_method": "client_secret_post",
+            }
+
+            async def _default_redirect_handler(authorization_url: str) -> None:
+                print(f"Opening browser for authorization: {authorization_url}")
+                webbrowser.open(authorization_url)
+
+            oauth_auth = OAuthClientProvider(
+                server_url=self.config.url,
+                client_metadata=OAuthClientMetadata.model_validate(client_metadata_dict),
+                storage=InMemoryTokenStorage(),
+                redirect_handler=_default_redirect_handler,
+                callback_handler=callback_handler,
+            )
+
+            if self.transport_type == "sse":
+                client = sse_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout.total_seconds(),
+                    sse_read_timeout=self.config.sse_read_timeout.total_seconds(),
+                    auth=oauth_auth,
+                )
+            else:
+                client = streamablehttp_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout.total_seconds(),
+                    sse_read_timeout=self.config.sse_read_timeout.total_seconds(),
+                    terminate_on_close=self.config.terminate_on_close,
+                    auth=oauth_auth,
+                )
+        else:
+            if self.transport_type == "sse":
+                client = sse_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout.total_seconds(),
+                    sse_read_timeout=self.config.sse_read_timeout.total_seconds(),
+                    auth=self.config.auth if hasattr(self.config, 'auth') else None,
+                )
+            else:
+                client = streamablehttp_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout,
+                    sse_read_timeout=self.config.sse_read_timeout,
+                    terminate_on_close=self.config.terminate_on_close,
+                    auth=self.config.auth if hasattr(self.config, 'auth') else None,
+                )
+
+        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(client)
+        self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+        await self.session.initialize()
 
 
 def from_mcp(
@@ -283,249 +335,3 @@ class CallbackServer:
     def get_state(self):
         """Get the received state parameter."""
         return self.callback_data["state"]
-
-
-class SimpleAuthClient:
-    """Simple MCP client with auth support."""
-
-    def __init__(self, server_url: str, transport_type: str = "streamable_http"):
-        self.server_url = server_url
-        self.transport_type = transport_type
-        self.session: ClientSession | None = None
-        self.exit_stack = AsyncExitStack()
-
-    async def __aenter__(self):
-        callback_server = CallbackServer(port=3000)
-        callback_server.start()
-
-        async def callback_handler() -> tuple[str, str | None]:
-            """Wait for OAuth callback and return auth code and state."""
-            print("⏳ Waiting for authorization callback...")
-            try:
-                auth_code = callback_server.wait_for_callback(timeout=300)
-                return auth_code, callback_server.get_state()
-            finally:
-                callback_server.stop()
-
-        client_metadata_dict = {
-            "client_name": "Simple Auth Client",
-            "redirect_uris": ["http://localhost:3000/callback"],
-            "grant_types": ["authorization_code", "refresh_token"],
-            "response_types": ["code"],
-            "token_endpoint_auth_method": "client_secret_post",
-        }
-
-        async def _default_redirect_handler(authorization_url: str) -> None:
-            """Default redirect handler that opens the URL in a browser."""
-            print(f"Opening browser for authorization: {authorization_url}")
-            webbrowser.open(authorization_url)
-
-        # Create OAuth authentication handler using the new interface
-        oauth_auth = OAuthClientProvider(
-            server_url=self.server_url,  # .replace("/mcp", ""),
-            client_metadata=OAuthClientMetadata.model_validate(
-                client_metadata_dict
-            ),
-            storage=InMemoryTokenStorage(),
-            redirect_handler=_default_redirect_handler,
-            callback_handler=callback_handler,
-        )
-
-        if self.transport_type == "sse":
-            client = sse_client(
-                    url=self.server_url,
-                    auth=oauth_auth,
-                    timeout=60,
-            )
-        else:
-            client = streamablehttp_client(
-                    url=self.server_url,
-                    auth=oauth_auth,
-                    timeout=timedelta(seconds=60),
-            )
-
-        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(client)
-        self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
-        await self.session.initialize()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.exit_stack.aclose()
-
-    async def connect(self):
-        """Connect to the MCP server."""
-        print(f"🔗 Attempting to connect to {self.server_url}...")
-
-        try:
-            # Set up callback server
-            callback_server = CallbackServer(port=3000)
-            callback_server.start()
-
-            async def callback_handler() -> tuple[str, str | None]:
-                """Wait for OAuth callback and return auth code and state."""
-                print("⏳ Waiting for authorization callback...")
-                try:
-                    auth_code = callback_server.wait_for_callback(timeout=300)
-                    return auth_code, callback_server.get_state()
-                finally:
-                    callback_server.stop()
-
-            client_metadata_dict = {
-                "client_name": "Simple Auth Client",
-                "redirect_uris": ["http://localhost:3000/callback"],
-                "grant_types": ["authorization_code", "refresh_token"],
-                "response_types": ["code"],
-                "token_endpoint_auth_method": "client_secret_post",
-            }
-
-            async def _default_redirect_handler(authorization_url: str) -> None:
-                """Default redirect handler that opens the URL in a browser."""
-                print(f"Opening browser for authorization: {authorization_url}")
-                webbrowser.open(authorization_url)
-
-            # Create OAuth authentication handler using the new interface
-            oauth_auth = OAuthClientProvider(
-                server_url=self.server_url, #.replace("/mcp", ""),
-                client_metadata=OAuthClientMetadata.model_validate(
-                    client_metadata_dict
-                ),
-                storage=InMemoryTokenStorage(),
-                redirect_handler=_default_redirect_handler,
-                callback_handler=callback_handler,
-            )
-
-            # Create transport with auth handler based on transport type
-            if self.transport_type == "sse":
-                print("📡 Opening SSE transport connection with auth...")
-                async with sse_client(
-                    url=self.server_url,
-                    auth=oauth_auth,
-                    timeout=60,
-                ) as (read_stream, write_stream):
-                    await self._run_session(read_stream, write_stream, None)
-            else:
-                print("📡 Opening StreamableHTTP transport connection with auth...")
-                async with streamablehttp_client(
-                    url=self.server_url,
-                    auth=oauth_auth,
-                    timeout=timedelta(seconds=60),
-                ) as (read_stream, write_stream, get_session_id):
-                    await self._run_session(read_stream, write_stream, get_session_id)
-
-        except Exception as e:
-            print(f"❌ Failed to connect: {e}")
-            import traceback
-
-            traceback.print_exc()
-
-    async def _run_session(self, read_stream, write_stream, get_session_id):
-        """Run the MCP session with the given streams."""
-        print("🤝 Initializing MCP session...")
-        async with ClientSession(read_stream, write_stream) as session:
-            self.session = session
-            print("⚡ Starting session initialization...")
-            await session.initialize()
-            print("✨ Session initialization complete!")
-
-            print(f"\n✅ Connected to MCP server at {self.server_url}")
-            if get_session_id:
-                session_id = get_session_id()
-                if session_id:
-                    print(f"Session ID: {session_id}")
-
-            # Run interactive loop
-            await self.interactive_loop()
-
-    async def list_tools(self):
-        """List available tools from the server."""
-        if not self.session:
-            print("❌ Not connected to server")
-            return
-
-        try:
-            result = await self.session.list_tools()
-            if hasattr(result, "tools") and result.tools:
-                print("\n📋 Available tools:")
-                for i, tool in enumerate(result.tools, 1):
-                    print(f"{i}. {tool.name}")
-                    if tool.description:
-                        print(f"   Description: {tool.description}")
-                    print()
-            else:
-                print("No tools available")
-        except Exception as e:
-            print(f"❌ Failed to list tools: {e}")
-
-    async def call_tool(self, tool_name: str, arguments: dict[str, Any] | None = None):
-        """Call a specific tool."""
-        if not self.session:
-            print("❌ Not connected to server")
-            return
-
-        try:
-            result = await self.session.call_tool(tool_name, arguments or {})
-            print(f"\n🔧 Tool '{tool_name}' result:")
-            if hasattr(result, "content"):
-                for content in result.content:
-                    if content.type == "text":
-                        print(content.text)
-                    else:
-                        print(content)
-            else:
-                print(result)
-        except Exception as e:
-            print(f"❌ Failed to call tool '{tool_name}': {e}")
-
-    async def interactive_loop(self):
-        """Run interactive command loop."""
-        print("\n🎯 Interactive MCP Client")
-        print("Commands:")
-        print("  list - List available tools")
-        print("  call <tool_name> [args] - Call a tool")
-        print("  quit - Exit the client")
-        print()
-
-        while True:
-            try:
-                command = input("mcp> ").strip()
-
-                if not command:
-                    continue
-
-                if command == "quit":
-                    break
-
-                elif command == "list":
-                    await self.list_tools()
-
-                elif command.startswith("call "):
-                    parts = command.split(maxsplit=2)
-                    tool_name = parts[1] if len(parts) > 1 else ""
-
-                    if not tool_name:
-                        print("❌ Please specify a tool name")
-                        continue
-
-                    # Parse arguments (simple JSON-like format)
-                    arguments = {}
-                    if len(parts) > 2:
-                        import json
-
-                        try:
-                            arguments = json.loads(parts[2])
-                        except json.JSONDecodeError:
-                            print("❌ Invalid arguments format (expected JSON)")
-                            continue
-
-                    await self.call_tool(tool_name, arguments)
-
-                else:
-                    print(
-                        "❌ Unknown command. Try 'list', 'call <tool_name>', or 'quit'"
-                    )
-
-            except KeyboardInterrupt:
-                print("\n\n👋 Goodbye!")
-                break
-            except EOFError:
-                break
