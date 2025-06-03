@@ -113,11 +113,13 @@ def setup_none_logger_config():
 def setup_file_handler(
     file_name: str,
     file_logging_config: dict | None,
-    file_logging_level: logging.DEBUG
-    | logging.INFO
-    | logging.WARNING
-    | logging.ERROR
-    | logging.CRITICAL,
+    file_logging_level: (
+        logging.DEBUG
+        | logging.INFO
+        | logging.WARNING
+        | logging.ERROR
+        | logging.CRITICAL
+    ),
 ):
     file_handler = logging.FileHandler(file_name)
     logging_level = logging.DEBUG if file_logging_level else file_logging_level
@@ -161,18 +163,17 @@ def prepare_logger(
     # TODO: write logic to figure out how to check to make sure a logger has not already been created.
 
     # now for each of our predefined settings we will set up the logger.
-    setup_none_logger_config()
-    # if setting == "VERBOSE":
-    #     setup_verbose_logger_config()
-    # elif setting == "REGULAR":
-    #     setup_regular_logger_config()
-    # elif setting == "QUIET":
-    #     setup_quiet_logger_config()
-    # elif setting == "NONE":
-    #     setup_none_logger_config()
-    # else:
-    #     raise ValueError("Invalid log level setting")
+    if setting == "VERBOSE":
+        setup_verbose_logger_config()
+    elif setting == "REGULAR":
+        setup_regular_logger_config()
+    elif setting == "QUIET":
+        setup_quiet_logger_config()
+    elif setting == "NONE":
+        setup_none_logger_config()
+    else:
+        raise ValueError("Invalid log level setting")
 
 
 def delete_loggers():
-    rc_logger.handlers = []
+    pass
