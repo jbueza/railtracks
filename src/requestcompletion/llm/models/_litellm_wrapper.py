@@ -15,6 +15,7 @@ from ..content import ToolCall
 from ..tools import Tool, Parameter
 import warnings
 
+
 def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter], Dict[str, Any]]) -> Dict[str, Any]:
     """
     Turn one of:
@@ -26,7 +27,9 @@ def _parameters_to_json_schema(parameters: Union[Type[BaseModel], Set[Parameter]
     # 1) Already a dict?
     if isinstance(parameters, dict):
         if "required" not in parameters and "properties" in parameters:
-            warnings.warn("The 'required' key is not present in the parameters dictionary. Parsing Properties parameters to check for required fields.")
+            warnings.warn(
+                "The 'required' key is not present in the parameters dictionary. Parsing Properties parameters to check for required fields."
+            )
             required: list[str] = []
             for key, value in parameters["properties"].items():
                 if value.get("required", True):
@@ -104,18 +107,15 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
     # only time this is true is tool calls, need to return litellm.utils.Message
     elif isinstance(msg.content, list):
         assert all(isinstance(t_c, ToolCall) for t_c in msg.content)
-        return litellm.utils.Message(
-            content="", 
-            role="assistant",
-            tool_calls=[
-                litellm.utils.ChatCompletionMessageToolCall(
-                    function= litellm.utils.Function(arguments=tool_call.arguments, name= tool_call.name),
-                    id=tool_call.identifier,
-                    type="function",
-                )
-                for tool_call in msg.content
-            ],
-        )
+        base["content"] = ""
+        base["tool_calls"] = [
+            litellm.utils.ChatCompletionMessageToolCall(
+                function=litellm.utils.Function(arguments=tool_call.arguments, name=tool_call.name),
+                id=tool_call.identifier,
+                type="function",
+            )
+            for tool_call in msg.content
+        ]
     else:
         base["content"] = msg.content
     return base

@@ -1,8 +1,8 @@
 from typing import Type, Optional, Literal
-from requestcompletion.nodes.nodes import Node
+from src.requestcompletion.nodes.nodes import Node
 import asyncio
 
-from requestcompletion.utils.mcp_utils import from_mcp_server_async
+from src.requestcompletion.utils.mcp_utils import from_mcp_server_async
 
 
 def from_mcp_server(
