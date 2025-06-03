@@ -241,7 +241,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
         self.callback_data = callback_data
         super().__init__(request, client_address, server)
 
-    def do_GET(self):
+    def do_GET(self):  # noqa: N802 Need to use do_GET for GET requests
         """Handle GET request from OAuth redirect."""
         parsed = urlparse(self.path)
         query_params = parse_qs(parsed.query)
