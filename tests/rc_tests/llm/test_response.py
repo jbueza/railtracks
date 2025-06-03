@@ -1,5 +1,5 @@
-from src.requestcompletion.llm.response import Response
-from src.requestcompletion.llm import AssistantMessage, UserMessage
+from requestcompletion.llm.response import Response
+from requestcompletion.llm import AssistantMessage, UserMessage
 import pytest
 
 

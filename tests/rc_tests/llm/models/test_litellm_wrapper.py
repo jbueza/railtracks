@@ -1,11 +1,11 @@
 import pytest
-from src.requestcompletion.llm.models._litellm_wrapper import (
+from requestcompletion.llm.models._litellm_wrapper import (
     _parameters_to_json_schema,
     _to_litellm_tool,
     _to_litellm_message,
 )
-from src.requestcompletion.llm.message import AssistantMessage
-from src.requestcompletion.llm.history import MessageHistory
+from requestcompletion.llm.message import AssistantMessage
+from requestcompletion.llm.history import MessageHistory
 from pydantic import BaseModel
 import litellm
 from typing import Generator

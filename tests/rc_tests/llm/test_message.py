@@ -1,7 +1,7 @@
 import pytest
 from typing import List
-from src.requestcompletion.llm import UserMessage, SystemMessage, AssistantMessage, ToolMessage
-from src.requestcompletion.llm.content import ToolResponse, ToolCall
+from requestcompletion.llm import UserMessage, SystemMessage, AssistantMessage, ToolMessage
+from requestcompletion.llm.content import ToolResponse, ToolCall
 
 
 # =================================== START Message Structure Tests ==================================

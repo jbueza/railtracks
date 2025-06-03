@@ -1,10 +1,10 @@
 import pytest
 from pydantic import BaseModel, Field
-from src.requestcompletion.llm.message import UserMessage, AssistantMessage, ToolMessage
-from src.requestcompletion.llm.history import MessageHistory
-from src.requestcompletion.llm.content import ToolCall, ToolResponse
-from src.requestcompletion.llm.tools import Tool, Parameter
-from src.requestcompletion.llm.models._litellm_wrapper import LiteLLMWrapper
+from requestcompletion.llm.message import UserMessage, AssistantMessage, ToolMessage
+from requestcompletion.llm.history import MessageHistory
+from requestcompletion.llm.content import ToolCall, ToolResponse
+from requestcompletion.llm.tools import Tool, Parameter
+from requestcompletion.llm.models._litellm_wrapper import LiteLLMWrapper
 
 
 # ====================================== START Tool Fixtures ======================================

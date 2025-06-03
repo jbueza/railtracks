@@ -1,5 +1,5 @@
 import pytest
-import src.requestcompletion as rc
+import requestcompletion as rc
 import asyncio
 import time
 

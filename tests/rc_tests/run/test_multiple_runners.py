@@ -1,6 +1,6 @@
 import asyncio
 import concurrent.futures
-import src.requestcompletion as rc
+import requestcompletion as rc
 import pytest
 
 

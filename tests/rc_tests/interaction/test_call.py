@@ -1,6 +1,6 @@
 import pytest
 from copy import deepcopy
-import src.requestcompletion as rc
+import requestcompletion as rc
 
 NODE_INIT_METHODS = ["class_based", "easy_wrapper"]
 

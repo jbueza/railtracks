@@ -5,7 +5,7 @@ import random
 
 from enum import Enum
 from typing import List, Callable
-import src.requestcompletion as rc
+import requestcompletion as rc
 
 EMPHATIC_ERROR = "The Node has failed emphatically"
 

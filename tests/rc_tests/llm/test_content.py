@@ -1,5 +1,5 @@
 import pytest
-from src.requestcompletion.llm.content import ToolCall, ToolResponse
+from requestcompletion.llm.content import ToolCall, ToolResponse
 
 
 def test_tool_call_str():

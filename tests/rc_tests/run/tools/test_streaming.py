@@ -1,7 +1,7 @@
 import threading
 import time
 
-from src.requestcompletion.utils.stream import (
+from requestcompletion.utils.stream import (
     DataStream,
     Subscriber,
 )

@@ -2,9 +2,9 @@ import random
 import time
 import asyncio
 
-import src.requestcompletion as rc
+import requestcompletion as rc
 
-from src.requestcompletion import ExecutorConfig
+from requestcompletion import ExecutorConfig
 
 
 async def streaming_rng():

@@ -4,7 +4,7 @@ import asyncio
 import random
 
 import pytest
-import src.requestcompletion as rc
+import requestcompletion as rc
 from typing_extensions import Self
 
 

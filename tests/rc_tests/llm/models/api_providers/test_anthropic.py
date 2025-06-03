@@ -1,6 +1,6 @@
 import pytest
-from src.requestcompletion.llm import AnthropicLLM
-from src.requestcompletion.llm.history import MessageHistory
+from requestcompletion.llm import AnthropicLLM
+from requestcompletion.llm.history import MessageHistory
 
 def test_anthropic_llm_correct_init():
     """

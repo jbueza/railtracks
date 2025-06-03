@@ -2,13 +2,13 @@ from copy import deepcopy
 from typing import Dict, Any
 
 import pytest
-import src.requestcompletion as rc
+import requestcompletion as rc
 
 from pydantic import BaseModel
 
-from src.requestcompletion.llm import MessageHistory, UserMessage
+from requestcompletion.llm import MessageHistory, UserMessage
 
-from src.requestcompletion.nodes.library import from_function
+from requestcompletion.nodes.library import from_function
 
 # ============ TEST CASES ===========
 NODE_INIT_METHODS = ["easy_wrapper", "class_based"]

@@ -2,7 +2,7 @@ import concurrent.futures
 import random
 
 
-from src.requestcompletion.llm import (
+from requestcompletion.llm import (
     AssistantMessage,
     MessageHistory,
     UserMessage,
@@ -13,7 +13,7 @@ from src.requestcompletion.llm import (
 
 from typing import List
 
-from src.requestcompletion.llm.response import Response
+from requestcompletion.llm.response import Response
 
 # ======================================================= START Mock LLM + Messages Testing ========================================================
 def test_simple_message(mock_llm):

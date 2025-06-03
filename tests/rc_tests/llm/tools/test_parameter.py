@@ -5,11 +5,11 @@ This module contains tests for the Parameter classes and related functionality
 in the requestcompletion.llm.tools.parameter module.
 """
 
-from src.requestcompletion.llm.tools.parameter import (
+from requestcompletion.llm.tools.parameter import (
     Parameter,
     PydanticParameter,
 )
-from src.requestcompletion.llm.tools import Tool
+from requestcompletion.llm.tools import Tool
 
 
 class TestParameter:

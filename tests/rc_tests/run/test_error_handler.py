@@ -5,9 +5,9 @@ import asyncio
 import pytest
 import random
 
-import src.requestcompletion as rc
+import requestcompletion as rc
 
-from src.requestcompletion.state.request import Failure
+from requestcompletion.state.request import Failure
 
 RNGNode = rc.library.from_function(random.random)
 
