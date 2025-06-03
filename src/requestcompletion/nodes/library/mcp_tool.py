@@ -1,15 +1,14 @@
-from typing import Type, Optional, Literal
+from typing import Type
 
 from mcp import StdioServerParameters
-from requestcompletion.nodes.nodes import Node
 import asyncio
 
-from requestcompletion.utils.mcp_utils import MCPAsyncClient, MCPHttpParams, from_mcp, SimpleAuthClient
-from typing_extensions import Union
+from ...utils.mcp_utils import MCPAsyncClient, MCPHttpParams, from_mcp
+from ...nodes.nodes import Node
 
 
 def from_mcp_server(
-    config: Union[StdioServerParameters, MCPHttpParams],
+    config: StdioServerParameters | MCPHttpParams,
 ) -> [Type[Node]]:
     """
     Discover all tools from an MCP server and wrap them as Node classes.
@@ -26,7 +25,7 @@ def from_mcp_server(
 
 
 async def async_from_mcp_server(
-    config: Union[StdioServerParameters, MCPHttpParams],
+    config: StdioServerParameters | MCPHttpParams,
 ) -> [Type[Node]]:
     """
     Asynchronously discover all tools from an MCP server and wrap them as Node classes.

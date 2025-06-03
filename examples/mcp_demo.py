@@ -6,13 +6,13 @@ from requestcompletion.utils.mcp_utils import MCPHttpParams
 
 # MCP server URL
 urls = [
-    # "http://localhost:8080/sse",
-    # "https://mcp.deepwiki.com/sse",
+    "https://mcp.paypal.com/sse",
     "https://remote.mcpservers.org/fetch/mcp",
-    # "https://remote.mcpservers.org/sequentialthinking/mcp"
 ]
 
 if "node" not in st.session_state:
+    print("Initializing MCP tools...")
+
     # Initialize tools in session state
     async def get_node():
         all_tools = set()

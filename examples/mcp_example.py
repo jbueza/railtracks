@@ -3,9 +3,8 @@ import os
 
 import requestcompletion as rc
 from mcp import StdioServerParameters
-from requestcompletion.nodes.library.mcp_tool import async_from_mcp_server
 
-from requestcompletion.nodes.library.mcp_tool import async_from_server_auth
+from requestcompletion.nodes.library.mcp_tool import async_from_mcp_server
 from requestcompletion.utils.mcp_utils import MCPHttpParams
 
 #%%
@@ -17,11 +16,12 @@ MCP_ARGS = ["mcp-remote", "https://mcp.paypal.com/sse"]
 
 #%%
 # Discover all tools
-tools = asyncio.run(async_from_server_auth(MCPHttpParams(url="https://remote.mcpservers.org/fetch/mcp")))
+fetch_tools = asyncio.run(async_from_mcp_server(MCPHttpParams(url="https://remote.mcpservers.org/fetch/mcp")))
+paypal_tools = asyncio.run(async_from_mcp_server(MCPHttpParams(url="https://mcp.paypal.com/sse")))
 
 #%%
 parent_tool = rc.library.tool_call_llm(
-    connected_nodes={*tools},
+    connected_nodes={*paypal_tools},
     pretty_name="Parent Tool",
     system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
     model=rc.llm.OpenAILLM("gpt-4o"),

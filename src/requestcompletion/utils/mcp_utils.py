@@ -8,7 +8,7 @@ from typing import Any, Dict
 from urllib.parse import urlparse, parse_qs
 
 import httpx
-from typing_extensions import Self, Union
+from typing_extensions import Self
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.auth import OAuthClientProvider, TokenStorage
@@ -18,8 +18,8 @@ from mcp.client.streamable_http import streamablehttp_client
 from mcp.client.sse import sse_client
 
 from pydantic import BaseModel
-from requestcompletion.llm import Tool
-from requestcompletion.nodes.nodes import Node
+from ..llm import Tool
+from ..nodes.nodes import Node
 
 
 try:
@@ -44,7 +44,7 @@ class MCPAsyncClient:
     """
     def __init__(
         self,
-        config: Union[StdioServerParameters, MCPHttpParams],
+        config: StdioServerParameters | MCPHttpParams,
         client_session: ClientSession | None = None,
     ):
         self.config = config
@@ -171,7 +171,7 @@ class MCPAsyncClient:
 
 def from_mcp(
     tool,
-    config: Union[StdioServerParameters, MCPHttpParams],
+    config: StdioServerParameters | MCPHttpParams,
 ):
     """
     Wrap an MCP tool as a Node class for use in the requestcompletion framework.
