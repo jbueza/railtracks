@@ -77,7 +77,7 @@ ErrorHandlerWithRetry = rc.library.from_function(error_handler_with_retry)
 @pytest.mark.timeout(5)
 def test_error_handler_with_retry():
     for num_retries in range(5, 15):
-        with rc.Runner() as run:
+        with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
             result = run.run_sync(ErrorHandlerWithRetry, num_retries)
 
         assert result.answer == "Caught the error"

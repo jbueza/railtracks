@@ -22,6 +22,7 @@ from ..execution.messages import (
     RequestFailure,
     FatalFailure,
     RequestCompletionMessage,
+    RequestCreationFailure,
 )
 
 from ..utils.logging.action import RequestCreationAction, RequestCompletionAction, NodeExceptionAction
@@ -111,8 +112,6 @@ class RCState:
 
     def shutdown(self):
         self.rc_coordinator.shutdown()
-        publisher = get_globals().publisher
-        publisher.shutdown()
 
     @property
     def is_empty(self):
@@ -223,9 +222,8 @@ class RCState:
         except Exception as e:
             # if there was an error creating the node we want to handle it here.
             await self.publisher.publish(
-                RequestFailure(
+                RequestCreationFailure(
                     request_id=request_id,
-                    node_state=None,
                     error=e,
                 )
             )
@@ -380,8 +378,9 @@ class RCState:
 
     async def handle_result(self, result: RequestFinishedBase):
         if isinstance(result, RequestFailure):
+            # if the node state is None, it means the node was never created so we don't need to handle it
             output = await self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
-            returnable_result = output.exception
+            returnable_result = result.error
         elif isinstance(result, RequestSuccess):
             output = result.result
             request_completion_obj = RequestCompletionAction(
@@ -391,6 +390,9 @@ class RCState:
 
             self.logger.info(request_completion_obj.to_logging_msg())
             returnable_result = output
+        elif isinstance(result, RequestCreationFailure):
+            # we do not need to both handling this.
+            return
         else:
             raise TypeError(f"Unknown result type: {type(result)}")
 

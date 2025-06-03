@@ -177,6 +177,4 @@ def detach_logging_handlers():
     """
     # Get the root logger
     root_logger = logging.getLogger(rc_logger_name)
-
-def delete_loggers():
-    rc_logger.handlers = []
+    root_logger.handlers = []

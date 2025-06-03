@@ -15,6 +15,7 @@ from .messages import (
     RequestSuccess,
     RequestCreation,
     ExecutionConfigurations,
+    RequestCreationFailure,
 )
 from .publisher import RCPublisher
 from .task import Task
@@ -32,6 +33,18 @@ class Job:
         start_time: float = None,
         end_time: float = None,
     ):
+        """
+        A simple object that represents a job to be completed.
+
+        Args:
+            request_id (str): The unique identifier for the request.
+            parent_node_id (str): The ID of the parent node in the workflow.
+            child_node_id (str): The ID of the child node in the workflow.
+            status (Literal["opened", "closed"]): The status of the job.
+            result (Literal["success", "failure"] | None): The result of the job, if completed.
+            start_time (float): The time when the job started.
+            end_time (float): The time when the job ended.
+        """
         self.request_id = request_id
         self.parent_node_id = parent_node_id
         self.child_node_id = child_node_id
@@ -45,6 +58,10 @@ class Job:
         cls,
         task: Task,
     ):
+        """Creates a new job from a given task.
+
+        Note it will timestamp the start time to `time.time()` and set it to 'opened' status.
+        """
         return cls(
             request_id=task.request_id,
             parent_node_id=task.node.uuid,
@@ -54,6 +71,14 @@ class Job:
         )
 
     def end_job(self, result: Literal["success", "failure"]):
+        """
+        Ends the job with the given result.
+
+        Note this will set the end time to `time.time()` and change the status to 'closed'.
+
+        Args:
+            result (Literal["success", "failure"]): The result of the job.
+        """
         self.result = result
         self.status = "closed"
         self.end_time = time.time()
@@ -66,17 +91,35 @@ class Job:
 
 
 class CoordinatorState:
+    """
+    A simple object that stores the state of the coordinator in terms of the jobs it has and is currently processing.
+    """
+
     # simple objects that stores the history of the coordinator
     # TODO implement accordingly
-    def __init__(self):
-        self.job_list: List[Job] = []
+    def __init__(self, job_list: List[Job] = None):
+        if job_list is None:
+            job_list = []
+
+        self.job_list: List[Job] = job_list
 
     @classmethod
     def empty(cls):
+        """
+        Creates an empty CoordinatorState instance.
+
+        One which no jobs have been completed
+        """
         return cls()
 
     def add_job(self, task: Task):
-        """ """
+        """
+        Adds a job to the coordinator state.
+
+        Args:
+            task (Task): The task to create a job from.
+
+        """
         new_job = Job.create_new(task)
         self.job_list.append(new_job)
 
@@ -97,6 +140,7 @@ class CoordinatorState:
 
 # Note the coordinator will be the concrete invoker of the commands
 class Coordinator:
+    """ """
 
     def __init__(
         self,
@@ -113,6 +157,9 @@ class Coordinator:
 
     def handle_item(self, item: RequestCompletionMessage):
         if isinstance(item, RequestFinishedBase):
+            # we ignore requests that were never created.
+            if isinstance(item, RequestCreationFailure):
+                return
             self.state.end_job(item.request_id, "success" if isinstance(item, RequestSuccess) else "failure")
 
     # TODO write up required params here

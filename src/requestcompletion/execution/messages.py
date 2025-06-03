@@ -98,6 +98,15 @@ class RequestFailure(RequestFinishedBase):
         )
 
 
+class RequestCreationFailure(RequestFinishedBase):
+    def __init__(self, *, request_id: str, error: Exception):
+        super().__init__(request_id=request_id, node_state=None)
+        self.error = error
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(request_id={self.request_id}, error={self.error})"
+
+
 class FatalFailure(RequestCompletionMessage):
     def __init__(self, *, error: Exception):
         self.error = error

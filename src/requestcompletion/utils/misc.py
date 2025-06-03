@@ -2,7 +2,7 @@ from ..execution.messages import (
     RequestCompletionMessage,
     RequestFinishedBase,
     RequestSuccess,
-    RequestFailure, FatalFailure,
+    RequestFailure, FatalFailure, RequestCreationFailure,
 )
 
 def output_mapping(result: RequestCompletionMessage):
@@ -16,4 +16,6 @@ def output_mapping(result: RequestCompletionMessage):
         raise result.error
     elif isinstance(result, FatalFailure):
         result: FatalFailure
+        raise result.error
+    elif isinstance(result, RequestCreationFailure):
         raise result.error

@@ -140,7 +140,7 @@ async def test_multiple_subs_with_blocking():
             await asyncio.sleep(0.1)
             _message_1.append((time.time(), message))
 
-        def callback2(message: str):
+        async def callback2(message: str):
             nonlocal _message_2
             _message_2.append((time.time(), message))
 
