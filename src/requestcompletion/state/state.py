@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 from ..exceptions import FatalError
 from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..exceptions import ExecutionException
+from ..exceptions import ExecutionError
 from ..utils.profiling import Stamp
 from ..utils.logging.create import get_rc_logger
 
@@ -267,9 +267,9 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(n in self._node_heap for n in children), (
-            "You cannot add a request for a node which has not yet been added"
-        )
+        assert all(
+            n in self._node_heap for n in children
+        ), "You cannot add a request for a node which has not yet been added"
 
         if request_ids is None:
             request_ids = [None] * len(children)
@@ -363,7 +363,7 @@ class RCState:
 
         if self.executor_config.end_on_error:
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionException(
+            ee = ExecutionError(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
                 final_exception=exception,
@@ -374,7 +374,7 @@ class RCState:
         # fatal exceptions should only be thrown if there is something seriously wrong.
         if isinstance(exception, FatalError):
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionException(
+            ee = ExecutionError(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
                 final_exception=exception,
