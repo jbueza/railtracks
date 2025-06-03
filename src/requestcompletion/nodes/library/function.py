@@ -6,37 +6,36 @@ from typing_extensions import Self
 import warnings
 
 from ...llm.tools import Tool
-from ...llm.tools.parameter_handlers import UnsupportedParameterException
 
 from typing import (
     Any,
     TypeVar,
     Callable,
     List,
-    Dict,
     Type,
     Dict,
-    Optional,
     Tuple,
     Union,
     get_origin,
     get_args,
     Coroutine,
-    Awaitable,
     ParamSpec,
     Generic,
 )
 
-from ..nodes import Node, Tool
+from ..nodes import Node
 import inspect
 from pydantic import BaseModel
 
+from ...llm.tools.parameter_handlers import UnsupportedParameterError
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput]):
+def from_function(  # noqa: C901
+    func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput],
+):
     """
     A function to create a node from a function
     """
@@ -75,7 +74,10 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
                 sig = inspect.signature(func)
 
             except ValueError:
-                raise RuntimeError("Cannot convert kwargs for builtin functions. " "Please use a custom function.")
+                raise RuntimeError(
+                    "Cannot convert kwargs for builtin functions. "
+                    "Please use a custom function."
+                )
 
             # Process all parameters from the function signature
             for param_name, param in sig.parameters.items():
@@ -87,7 +89,9 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
 
             return converted_kwargs
 
-        def _convert_value(self, value: Any, target_type: Any, param_name: str = "unknown") -> Any:
+        def _convert_value(
+            self, value: Any, target_type: Any, param_name: str = "unknown"
+        ) -> Any:
             """
             Convert a value to the target type based on type annotation.
 
@@ -114,7 +118,7 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
             # Handle dictionary types - raise UnsupportedParameterException
             if origin in (dict, Dict):
                 param_type = str(target_type)
-                raise UnsupportedParameterException(param_name, param_type)
+                raise UnsupportedParameterError(param_name, param_type)
 
             # Handle sequence types (lists and tuples) consistently
             if origin in (list, tuple):
@@ -123,7 +127,9 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
             # For primitive types, try direct conversion
             try:
                 # Only attempt conversion for basic types, not for complex types
-                if inspect.isclass(target_type) and not hasattr(target_type, "__origin__"):
+                if inspect.isclass(target_type) and not hasattr(
+                    target_type, "__origin__"
+                ):
                     return target_type(value)
             except (TypeError, ValueError):
                 return "Tool call parameter type conversion failed."
@@ -131,7 +137,9 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
             # If conversion fails or isn't applicable, return the original value
             return value
 
-        def _convert_to_pydantic_model(self, value: Any, model_class: Type[BaseModel]) -> Any:
+        def _convert_to_pydantic_model(
+            self, value: Any, model_class: Type[BaseModel]
+        ) -> Any:
             """Convert a value to a Pydantic model."""
             if isinstance(value, dict):
                 return model_class(**value)
@@ -156,7 +164,10 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
             # If it's any kind of sequence (list or tuple), process each element
             if isinstance(value, (list, tuple)):
                 # Convert each element to the appropriate type
-                result = [self._convert_element(item, type_args, i) for i, item in enumerate(value)]
+                result = [
+                    self._convert_element(item, type_args, i)
+                    for i, item in enumerate(value)
+                ]
                 # Return as the target type (list or tuple)
                 return tuple(result) if target_type is tuple else result
 
@@ -164,7 +175,9 @@ def from_function(func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutpu
             result = [self._convert_element(value, type_args, 0)]
             return tuple(result) if target_type is tuple else result
 
-        def _convert_element(self, value: Any, type_args: Tuple[Type, ...], index: int) -> Any:
+        def _convert_element(
+            self, value: Any, type_args: Tuple[Type, ...], index: int
+        ) -> Any:
             """
             Convert a sequence element to the expected type.
 
@@ -212,7 +225,10 @@ class FunctionNode(Node[_TOutput]):
     """
 
     def __init__(
-        self, func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput], *args: _P.args, **kwargs: _P.kwargs
+        self,
+        func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
     ):
         super().__init__()
         self.func = func

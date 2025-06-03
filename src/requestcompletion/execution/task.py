@@ -1,6 +1,6 @@
-from typing import Coroutine, TypeVar, Generic
+from typing import TypeVar, Generic
 
-from ..context import update_parent_id, get_globals
+from ..context import update_parent_id
 from ..nodes.nodes import Node
 
 _TOutput = TypeVar("_TOutput")

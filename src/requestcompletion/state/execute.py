@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import multiprocessing
 import queue
-import threading
-import warnings
 
-from typing import Any, Callable, ParamSpec, TypeVar, NamedTuple, Generic, TYPE_CHECKING
+from typing import Callable, ParamSpec, TypeVar, Generic, TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 if TYPE_CHECKING:
@@ -60,13 +58,17 @@ class RCWorkerManager:
         self._process_executor = ProcessPoolExecutor(max_workers=process_max_workers)
 
     @staticmethod
-    def wrap_function(runner_ref: Runner, request_id: str, node: Node[_TOutput], handler: Callable[[Result], None]):
+    def wrap_function(
+        runner_ref: Runner,
+        request_id: str,
+        node: Node[_TOutput],
+        handler: Callable[[Result], None],
+    ):
         """Wrap a function to be run in the executor."""
 
         def wrapped_func():
             # setting the context variables for the thread of interest.
-            set_parent_id(node.uuid)
-            set_runner(runner_ref)
+
             try:
                 result = node.invoke()
                 response = Result(request_id, node=node, result=result)
@@ -82,15 +84,19 @@ class RCWorkerManager:
 
         return wrapped_func
 
-    def thread_submit(self, request_id: str, node: Node[_TOutput], handler: Callable[[Result], None]):
+    def thread_submit(
+        self, request_id: str, node: Node[_TOutput], handler: Callable[[Result], None]
+    ):
         """Submit a function to the thread executor."""
-        runner_ref = get_runner()
+        runner_ref = None
         wrapped = self.wrap_function(runner_ref, request_id, node, handler)
         return self._thread_executor.submit(wrapped)
 
-    def process_submit(self, request_id: str, node: Node[_TOutput], handler: Callable[[Result], None]):
+    def process_submit(
+        self, request_id: str, node: Node[_TOutput], handler: Callable[[Result], None]
+    ):
         """Submit a function to the process executor."""
-        runner_ref = get_runner()
+        runner_ref = None
         wrapped = self.wrap_function(runner_ref, request_id, node, handler)
 
         return self._process_executor.submit(wrapped)

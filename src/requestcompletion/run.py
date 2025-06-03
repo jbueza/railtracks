@@ -1,20 +1,15 @@
 import asyncio
-import concurrent.futures
-import logging
-import threading
 import warnings
-from typing import TypeVar, ParamSpec, Callable, Coroutine, Any
+from typing import TypeVar, ParamSpec, Callable
 
-import deprecated
 
 from .config import ExecutorConfig
 from .execution.coordinator import Coordinator
-from .execution.execution_strategy import ThreadedExecutionStrategy, AsyncioExecutionStrategy
+from .execution.execution_strategy import AsyncioExecutionStrategy
 from .execution.messages import RequestCompletionMessage, RequestCreation, RequestFinishedBase, FatalFailure
 from .execution.publisher import RCPublisher
 from .execution.subscriber import stream_subscriber
 from .utils.misc import output_mapping
-from .utils.stream import DataStream, Subscriber
 from .nodes.nodes import Node
 from .utils.logging.config import prepare_logger, detach_logging_handlers
 

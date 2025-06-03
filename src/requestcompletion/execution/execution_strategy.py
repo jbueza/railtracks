@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from .messages import RequestSuccess, RequestFailure
 
-from ..context import get_globals, register_globals, ThreadContext, update_parent_id
+from ..context import get_globals, register_globals, ThreadContext
 from ..nodes.nodes import NodeState
 
 if TYPE_CHECKING:

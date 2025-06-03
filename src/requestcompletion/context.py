@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import contextvars
-import queue
-import threading
 import warnings
 from functools import wraps
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING
 
 from .execution.publisher import RCPublisher
 
 
 if TYPE_CHECKING:
-    from .run import Runner
+    pass
 
 config = contextvars.ContextVar("executor_config", default=None)
 streamer = contextvars.ContextVar("data_streamer", default=None)

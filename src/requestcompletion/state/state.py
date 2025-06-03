@@ -6,12 +6,12 @@ import warnings
 from collections import deque
 
 
-from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING, Any
+from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING
 
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
-from ..context import get_globals, register_globals, ThreadContext, update_parent_id
+from ..context import register_globals, ThreadContext
 from ..execution.coordinator import Coordinator
 from ..execution.publisher import RCPublisher
 from ..execution.task import Task
@@ -25,14 +25,18 @@ from ..execution.messages import (
     RequestCreationFailure,
 )
 
-from ..utils.logging.action import RequestCreationAction, RequestCompletionAction, NodeExceptionAction
+from ..utils.logging.action import (
+    RequestCreationAction,
+    RequestCompletionAction,
+    NodeExceptionAction,
+)
 
 if TYPE_CHECKING:
     from .. import ExecutorConfig
 from ..exceptions import FatalError
-from ..nodes.nodes import Node, NodeState
+from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..exceptions import ExecutionException, GlobalTimeOut
+from ..exceptions import ExecutionException
 from ..utils.profiling import Stamp
 from ..utils.logging.create import get_rc_logger
 
@@ -134,7 +138,9 @@ class RCState:
             assert False
 
         r_id = self._request_heap.get_request_from_child_id(node_id)
-        self._request_heap.update(r_id, Cancelled, self._stamper.create_stamp(f"Cancelled request {r_id}"))
+        self._request_heap.update(
+            r_id, Cancelled, self._stamper.create_stamp(f"Cancelled request {r_id}")
+        )
 
     def _create_node_and_request(
         self,
@@ -180,7 +186,9 @@ class RCState:
         )
 
         parent_node_type = self._node_heap.get_node_type(parent_node_id)
-        parent_node_name = parent_node_type.pretty_name() if parent_node_type else "START"
+        parent_node_name = (
+            parent_node_type.pretty_name() if parent_node_type else "START"
+        )
         request_creation_obj = RequestCreationAction(
             parent_node_name=parent_node_name,
             child_node_name=node.pretty_name(),
@@ -217,7 +225,11 @@ class RCState:
         """
         try:
             request_id = self._create_node_and_request(
-                parent_node_id=parent_node_id, request_id=request_id, node=node, args=args, kwargs=kwargs
+                parent_node_id=parent_node_id,
+                request_id=request_id,
+                node=node,
+                args=args,
+                kwargs=kwargs,
             )
         except Exception as e:
             # if there was an error creating the node we want to handle it here.
@@ -258,17 +270,23 @@ class RCState:
 
         # note it is assumed that all of the children id are valid and have already been created.
         assert all(
-            [n in self._node_heap for n in children]
+            n in self._node_heap for n in children
         ), "You cannot add a request for a node which has not yet been added"
 
         if request_ids is None:
             request_ids = [None] * len(children)
 
-        if parent_node is None and any([x is not None for x in request_ids]):
+        if parent_node is None and any(x is not None for x in request_ids):
             # TODO get rid of this logic. It should be injected instead of hardcoded
-            warnings.warn("This is an insertion request and you provided identifier this will be overwritten")
+            warnings.warn(
+                "This is an insertion request and you provided identifier this will be overwritten"
+            )
 
-        parent_node_name = self._node_heap.id_type_mapping[parent_node] if parent_node is not None else "START"
+        parent_node_name = (
+            self._node_heap.id_type_mapping[parent_node]
+            if parent_node is not None
+            else "START"
+        )
         # to simplify we are going to create a new request for each child node with the parent as its source.
         request_ids = list(
             map(
@@ -279,7 +297,9 @@ class RCState:
                 input_args,
                 input_kwargs,
                 [
-                    stamp_gen(f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n]}")
+                    stamp_gen(
+                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n]}"
+                    )
                     for n in children
                 ],
             )
@@ -312,7 +332,9 @@ class RCState:
             mode="async",
         )
 
-    async def _handle_failed_request(self, failed_node_name: str, request_id: str, exception: Exception):
+    async def _handle_failed_request(
+        self, failed_node_name: str, request_id: str, exception: Exception
+    ):
         """
         Handles the provided exception for the given request identifier.
 
@@ -379,7 +401,9 @@ class RCState:
     async def handle_result(self, result: RequestFinishedBase):
         if isinstance(result, RequestFailure):
             # if the node state is None, it means the node was never created so we don't need to handle it
-            output = await self._handle_failed_request(result.node.pretty_name(), result.request_id, result.error)
+            output = await self._handle_failed_request(
+                result.node.pretty_name(), result.request_id, result.error
+            )
             returnable_result = result.error
         elif isinstance(result, RequestSuccess):
             output = result.result
@@ -396,7 +420,9 @@ class RCState:
         else:
             raise TypeError(f"Unknown result type: {type(result)}")
 
-        stamp = self._stamper.create_stamp(f"Finished executing {result.node.pretty_name()}")
+        stamp = self._stamper.create_stamp(
+            f"Finished executing {result.node.pretty_name()}"
+        )
 
         self._request_heap.update(result.request_id, output, stamp)
         self._node_heap.update(result.node, stamp)

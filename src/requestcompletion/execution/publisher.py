@@ -1,19 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
-import contextvars
-import multiprocessing
-import threading
-import queue
 import uuid
-import warnings
-from logging.config import listen
 
 from .messages import RequestCompletionMessage
-from abc import ABC, abstractmethod
 
-from typing import List, Callable, Dict, Literal, TypeVar, Generator, Generic, Coroutine, Awaitable
+from typing import List, Callable, TypeVar, Generic, Coroutine
 
 
 from ..utils.logging.create import get_rc_logger
@@ -112,7 +104,7 @@ class RCPublisher(Generic[_T]):
 
                     await asyncio.gather(*contracts)
 
-                except Exception as e:
+                except Exception:
                     pass
 
                 # will only reach this section after all the messages have been handled
