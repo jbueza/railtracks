@@ -42,6 +42,7 @@ jobs:
           python scripts/check_dependencies_sorted.py
 
       - name: Run tests
+        shell: bash
         run: |
           export OPENAI_API_KEY=${{ secrets.INTEGRATION_TESTS_OPENAI_API_KEY }}
           pytest -s -v --junit-xml=test-results.xml
