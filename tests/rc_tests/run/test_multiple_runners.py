@@ -20,7 +20,7 @@ def test_sync_runners_w_executor():
     with concurrent.futures.ThreadPoolExecutor() as executor:
 
         def run_rng(timeout_len: float):
-            with rc.Runner() as run:
+            with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as run:
                 return run.run_sync(SlowRNG, timeout_len).answer
 
         mapped_results = executor.map(run_rng, [0.2] * 5)
@@ -31,7 +31,7 @@ def test_sync_runners_w_executor():
 
 async def test_async_runners_w_async():
     async def run_rng(timeout_len: float):
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as run:
             return await run.run(SlowRNG, timeout_len)
 
     contracts = [run_rng(0.2) for _ in range(5)]
@@ -48,7 +48,7 @@ async def test_async_runners_w_executor():
     with concurrent.futures.ThreadPoolExecutor() as executor:
 
         async def run_rng(timeout_len: float):
-            with rc.Runner() as run:
+            with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as run:
                 result = await run.run(SlowRNG, timeout_len)
                 return result
 
@@ -59,7 +59,7 @@ async def test_async_runners_w_executor():
 
 
 def nested_runner_call():
-    with rc.Runner() as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="QUIET")) as run:
         result = run.run_sync(SlowRNG, 0.2)
         return result.answer
 

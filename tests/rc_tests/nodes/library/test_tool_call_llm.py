@@ -215,8 +215,8 @@ async def test_tool_with_llm_tool_as_input_easy_tools():
 async def test_tool_with_llm_tool_as_input_class_easy():
     """Test a tool that uses another LLM tool as input."""
 
-    def print_hello(true_to_call: bool = True):
-        return "Hello!"
+    def secret_phrase(true_to_call: bool = True):
+        return "2 foxes and a dog"
 
     # Define the child tool
     class ChildTool(rc.library.ToolCallLLM):
@@ -238,7 +238,7 @@ async def test_tool_with_llm_tool_as_input_class_easy():
 
         @classmethod
         def connected_nodes(cls):
-            return {rc.library.from_function(print_hello)}
+            return {rc.library.from_function(secret_phrase)}
 
         @classmethod
         def tool_info(cls) -> rc.llm.Tool:
@@ -274,7 +274,7 @@ async def test_tool_with_llm_tool_as_input_class_easy():
         connected_nodes={ChildTool},
         pretty_name="Parent_Tool",
         system_message=rc.llm.SystemMessage(
-            "Provide a response using the tool when asked."
+            "Provide a response using the tool avaliable to you. Provide only the response, no additional text."
         ),
         model=rc.llm.OpenAILLM("gpt-4o"),
     )
@@ -289,19 +289,19 @@ async def test_tool_with_llm_tool_as_input_class_easy():
         response = await runner.run(parent_tool, message_history=message_history)
 
     assert response.answer is not None
-    assert response.answer.content == "Hello!"
+    assert response.answer.content == "2 foxes and a dog"
 
 
 @pytest.mark.asyncio
 async def test_tool_with_llm_tool_as_input_easy_class():
     """Test a tool that uses another LLM tool as input."""
 
-    def print_hello(true_to_call: bool = True):
-        return "Hello!"
+    def secret_phrase(true_to_call: bool = True):
+        return "2 foxes and a dog"
 
     # Define the child tool
     child_tool = rc.library.tool_call_llm(
-        connected_nodes={from_function(print_hello)},
+        connected_nodes={from_function(secret_phrase)},
         pretty_name="Child_Tool",
         system_message=rc.llm.SystemMessage(
             "When asked for a response, provide the output of the tool."
@@ -328,7 +328,7 @@ async def test_tool_with_llm_tool_as_input_easy_class():
         ):
             message_history_copy = deepcopy(message_history)
             message_history_copy.insert(
-                0, rc.llm.SystemMessage("Provide a response using the tool when asked.")
+                0, rc.llm.SystemMessage("Provide a response using the tool avaliable to you. Provide only the response, no additional text.")
             )
 
             super().__init__(
@@ -353,7 +353,7 @@ async def test_tool_with_llm_tool_as_input_easy_class():
         response = await runner.run(ParentTool, message_history=message_history)
 
     assert response.answer is not None
-    assert response.answer.content == "Hello!"
+    assert response.answer.content == "2 foxes and a dog"
 
 
 @pytest.mark.asyncio
@@ -485,7 +485,7 @@ async def test_tool_with_structured_output_child_tool():
         output_model=ParentResponse,
         connected_nodes={child_tool},
         pretty_name="Parent Tool",
-        system_message=rc.llm.SystemMessage("Use the child tool to generate a structured response. Provide only what you get from the child tool, no additional text."),
+        system_message=rc.llm.SystemMessage("Use the child tool to generate a structured response. Respond with the output from the child tool only. No additional text."),
         model=rc.llm.OpenAILLM("gpt-4o"),
     )
 
