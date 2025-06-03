@@ -176,4 +176,9 @@ def detach_logging_handlers():
     Shuts down the logging system and detaches all logging handlers.
     """
     # Get the root logger
-    pass
+    for handler in logging.getLogger(rc_logger_name).handlers[:]:
+        # Remove all handlers from the logger
+        logging.getLogger(rc_logger_name).removeHandler(handler)
+        handler.close()
+
+
