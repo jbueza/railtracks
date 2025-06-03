@@ -64,13 +64,11 @@ def _parameters_to_json_schema(
     """
     if isinstance(parameters, dict):
         return _handle_dict_parameters(parameters)
-    
     if isinstance(parameters, type) and issubclass(parameters, BaseModel):
         dump = getattr(parameters, "model_json_schema", None)
         if callable(dump):
             return dump()
         raise RuntimeError(f"Cannot get schema from Pydantic model {parameters!r}")
-    
     if isinstance(parameters, set):
         return _handle_set_of_parameters(parameters)
 
