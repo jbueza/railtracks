@@ -121,6 +121,8 @@ async def test_message_history_not_mutated_structured_llm(model, structured_node
         ), "Message history modified after runner run"
 
 
+
+@pytest.mark.timeout(34)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool_calling_nodes", NODE_INIT_METHODS, indirect=True)
 async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nodes):
