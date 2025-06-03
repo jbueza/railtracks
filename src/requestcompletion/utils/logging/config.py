@@ -158,18 +158,17 @@ def prepare_logger(
     # TODO: write logic to figure out how to check to make sure a logger has not already been created.
 
     # now for each of our predefined settings we will set up the logger.
-    setup_none_logger_config()
-    # if setting == "VERBOSE":
-    #     setup_verbose_logger_config()
-    # elif setting == "REGULAR":
-    #     setup_regular_logger_config()
-    # elif setting == "QUIET":
-    #     setup_quiet_logger_config()
-    # elif setting == "NONE":
-    #     setup_none_logger_config()
-    # else:
-    #     raise ValueError("Invalid log level setting")
-    # # setup_none_logger_config()
+    if setting == "VERBOSE":
+        setup_verbose_logger_config()
+    elif setting == "REGULAR":
+        setup_regular_logger_config()
+    elif setting == "QUIET":
+        setup_quiet_logger_config()
+    elif setting == "NONE":
+        setup_none_logger_config()
+    else:
+        raise ValueError("Invalid log level setting")
+    # setup_none_logger_config()
 
 
 def detach_logging_handlers():
@@ -177,5 +176,4 @@ def detach_logging_handlers():
     Shuts down the logging system and detaches all logging handlers.
     """
     # Get the root logger
-    root_logger = logging.getLogger(rc_logger_name)
-    root_logger.handlers = []
+    pass
