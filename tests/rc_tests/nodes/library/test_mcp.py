@@ -1,9 +1,9 @@
 import asyncio
 import pytest
 from unittest.mock import patch
-import requestcompletion as rc
-from requestcompletion.nodes.library.mcp_tool import from_mcp_server
-from requestcompletion.nodes.nodes import Node
+import src.requestcompletion as rc
+from src.requestcompletion.nodes.library.mcp_tool import from_mcp_server
+from src.requestcompletion.nodes.nodes import Node
 
 import pytest
 import subprocess
