@@ -164,6 +164,7 @@ class Runner:
         result = await fut
 
         await self.publisher.shutdown()
+        return result
 
     def run_sync(self, start_node: Callable[_P, Node] | None = None, *args: _P.args, **kwargs: _P.kwargs):
         """Runs the provided node synchronously."""
