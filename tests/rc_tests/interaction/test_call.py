@@ -43,8 +43,12 @@ async def test_message_history_not_mutated_terminal_llm(model, terminal_nodes):
             orig.content == new.content for orig, new in zip(original_message_history, message_history)
         ), "Message history modified after rc.call 2"
 
-        message_history.append(rc.llm.AssistantMessage("The result int (x) = " + str(operation_response)))
-        original_message_history.append(rc.llm.AssistantMessage("The result int (x) = " + str(operation_response)))
+        message_history.append(
+            rc.llm.AssistantMessage("The result int (x) = " + str(operation_response))
+        )
+        original_message_history.append(
+            rc.llm.AssistantMessage("The result int (x) = " + str(operation_response))
+        )
 
         # Third node call
         response = await rc.call(math_detective_node, **call_params)
@@ -57,7 +61,9 @@ async def test_message_history_not_mutated_terminal_llm(model, terminal_nodes):
     MathGameNode = rc.library.from_function(make_math_game_node)
 
     with rc.Runner() as runner:
-        message_history = rc.llm.MessageHistory([rc.llm.UserMessage("You can start the game")])
+        message_history = rc.llm.MessageHistory(
+            [rc.llm.UserMessage("You can start the game")]
+        )
         original_message_history = deepcopy(message_history)
         _ = await runner.run(MathGameNode, message_history=message_history)
         assert all(
@@ -92,8 +98,12 @@ async def test_message_history_not_mutated_structured_llm(model, structured_node
             orig.content == new.content for orig, new in zip(original_message_history, message_history)
         ), "Message history modified after rc.call 1"
 
-        message_history.append(rc.llm.AssistantMessage("The proof: " + student_proof.proof))
-        original_message_history.append(rc.llm.AssistantMessage("The proof: " + student_proof.proof))
+        message_history.append(
+            rc.llm.AssistantMessage("The proof: " + student_proof.proof)
+        )
+        original_message_history.append(
+            rc.llm.AssistantMessage("The proof: " + student_proof.proof)
+        )
 
         # Second node call (math professor node)
         prof_grade = await rc.call(math_professor_node, **call_params)
@@ -101,10 +111,18 @@ async def test_message_history_not_mutated_structured_llm(model, structured_node
             orig.content == new.content for orig, new in zip(original_message_history, message_history)
         ), "Message history modified after rc.call 2"
 
-        message_history.append(rc.llm.AssistantMessage("The grade: " + str(prof_grade.overall_score)))
-        message_history.append(rc.llm.AssistantMessage("The feedback: " + prof_grade.feedback))
-        original_message_history.append(rc.llm.AssistantMessage("The grade: " + str(prof_grade.overall_score)))
-        original_message_history.append(rc.llm.AssistantMessage("The feedback: " + prof_grade.feedback))
+        message_history.append(
+            rc.llm.AssistantMessage("The grade: " + str(prof_grade.overall_score))
+        )
+        message_history.append(
+            rc.llm.AssistantMessage("The feedback: " + prof_grade.feedback)
+        )
+        original_message_history.append(
+            rc.llm.AssistantMessage("The grade: " + str(prof_grade.overall_score))
+        )
+        original_message_history.append(
+            rc.llm.AssistantMessage("The feedback: " + prof_grade.feedback)
+        )
 
         return prof_grade
 
@@ -150,8 +168,12 @@ async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nod
             orig.content == new.content for orig, new in zip(original_message_history, message_history)
         ), "Message history modified after rc.call 1"
 
-        message_history.append(rc.llm.AssistantMessage("The travel plan: " + str(travel_planner_response)))
-        original_message_history.append(rc.llm.AssistantMessage("The travel plan: " + str(travel_planner_response)))
+        message_history.append(
+            rc.llm.AssistantMessage("The travel plan: " + str(travel_planner_response))
+        )
+        original_message_history.append(
+            rc.llm.AssistantMessage("The travel plan: " + str(travel_planner_response))
+        )
 
         # Second node call
         response = await rc.call(currrency_converter_node, **call_params)

@@ -1,7 +1,6 @@
 import random
 import asyncio
 
-import pytest
 import requestcompletion as rc
 import re
 
@@ -19,7 +18,6 @@ def strip_ansi_colors(message: str) -> str:
 
 
 async def top_level(number_of_calls: int):
-
     contracts = [rc.call(RNGNode) for _ in range(number_of_calls)]
 
     random_numbers = await asyncio.gather(*contracts)
