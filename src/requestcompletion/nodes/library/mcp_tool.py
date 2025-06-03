@@ -9,7 +9,7 @@ def from_mcp_server(
     command: str,
     args: list,
     transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None
+    transport_options: Optional[dict] = None,
 ) -> [Type[Node]]:
     """
     Discover all tools from an MCP server and wrap them as Node classes.
@@ -28,6 +28,6 @@ def from_mcp_server(
             command,
             args,
             transport_type=transport_type,
-            transport_options=transport_options
+            transport_options=transport_options,
         )
     )

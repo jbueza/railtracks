@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from typing import Generic, TypeVar, Union, List, Any, Dict, AnyStr
+from typing import Union, List, Any, Dict, AnyStr
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +18,9 @@ class ToolCall(BaseModel):
 
     identifier: str = Field(description="The identifier attatched to this tool call.")
     name: str = Field(description="The name of the tool being called.")
-    arguments: Dict[str, Any] = Field(description="The arguments provided as input to the tool.")
+    arguments: Dict[str, Any] = Field(
+        description="The arguments provided as input to the tool."
+    )
 
     def __str__(self):
         return f"{self.name}({self.arguments})"

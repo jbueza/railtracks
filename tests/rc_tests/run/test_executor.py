@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import random
-import time
-from typing import Dict, Any
 
 import pytest
 import src.requestcompletion as rc
 from typing_extensions import Self
 
-from src.requestcompletion.state.request import RequestTemplate
 
 RNGNode = rc.library.from_function(random.random)
 
@@ -66,7 +63,6 @@ def test_simple_rng():
 
 
 class NestedManyCalls(rc.Node):
-
     def __init__(self, num_calls: int, parallel_calls: int, depth: int):
         self.num_calls = num_calls
         self.parallel_calls = parallel_calls
@@ -84,7 +80,12 @@ class NestedManyCalls(rc.Node):
 
             else:
                 contracts = [
-                    rc.call(NestedManyCalls, self.num_calls, self.parallel_calls, self.depth - 1)
+                    rc.call(
+                        NestedManyCalls,
+                        self.num_calls,
+                        self.parallel_calls,
+                        self.depth - 1,
+                    )
                     for _ in range(self.parallel_calls)
                 ]
 
@@ -101,7 +102,9 @@ class NestedManyCalls(rc.Node):
 
 def nested_many_calls_tester(num_calls: int, parallel_calls: int, depth: int):
     with rc.Runner() as run:
-        finished_result = run.run_sync(NestedManyCalls, num_calls, parallel_calls, depth)
+        finished_result = run.run_sync(
+            NestedManyCalls, num_calls, parallel_calls, depth
+        )
 
     ans = finished_result.answer
 
