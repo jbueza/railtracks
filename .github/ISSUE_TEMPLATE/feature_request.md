@@ -7,11 +7,8 @@ assignees: soulFood5632
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-Tell me what you want made. Is the current system functionality insufficient, or is this a completely new idea?
+## Tell me what you would like to see
+Tell me clearly what you want developed or added. Make sure to tell me why you want it and how it will be helpful.
 
-**Describe the solution you'd like**
-Tell me clearly what you want to see
-
-**Additional context**
-Anything else relevant
+## Additional context
+Anything else you think is relevant.
