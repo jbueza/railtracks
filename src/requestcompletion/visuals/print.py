@@ -2,20 +2,20 @@ from itertools import chain
 from typing import List, Dict, Type, Set
 
 
-from src.requestcompletion.state.node import (
+from ..state.node import (
     NodeForest,
 )
-from src.requestcompletion.state.request import (
+from ..state.request import (
     RequestTemplate,
     RequestForest,
 )
-from src.requestcompletion.tools import Stamp
+from ..utils.profiling import Stamp
 
 
 from .markdown_utils import (
     format_multiline_for_markdown,
 )
-from ...nodes.nodes import Node
+from ..nodes.nodes import Node
 
 
 # TODO migrate this logic into agent-viewer

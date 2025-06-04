@@ -240,19 +240,10 @@ def travel_planner_tools():
 
 # ============ Nodes ===========
 @pytest.fixture
-def simple_node(request, model, simple_output_model, empty_output_model):
-    system_simple = rc.llm.SystemMessage(
-        "Return a simple text and number. Don't use any tools."
-    )
-    fixture_name, output_model_name = request.param
+def simple_node(request, model, simple_output_model):
 
-    match output_model_name:
-        case "simple_model":
-            output_model = simple_output_model
-        case "empty_model":
-            output_model = empty_output_model
-        case _:
-            raise ValueError(f"Unknown output model: {output_model_name}")
+    system_simple = rc.llm.SystemMessage("Return a simple text and number. Don't use any tools.")
+    fixture_name = request.param
 
     if fixture_name == "easy_wrapper":
         simple_node = rc.library.tool_call_llm(
@@ -262,7 +253,7 @@ def simple_node(request, model, simple_output_model, empty_output_model):
             pretty_name="Simple Node",
             system_message=system_simple,
             model=model,
-            output_model=output_model,
+            output_model=simple_output_model,
         )
         return simple_node
     elif fixture_name == "class_based":
@@ -271,7 +262,7 @@ def simple_node(request, model, simple_output_model, empty_output_model):
             def __init__(
                 self,
                 message_history: rc.llm.MessageHistory,
-                output_model: BaseModel = output_model,
+                output_model: BaseModel = simple_output_model,
                 llm_model: rc.llm.ModelBase = model,
             ):
                 message_history = [x for x in message_history if x.role != "system"]

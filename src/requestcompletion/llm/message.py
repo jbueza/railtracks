@@ -116,5 +116,8 @@ class ToolMessage(Message[ToolResponse]):
     """
 
     def __init__(self, content: ToolResponse):
-        super().__init__(content=str(content.result), role="tool")
-        self.identifier = content.identifier
+        if not isinstance(content, ToolResponse):
+            raise TypeError(
+                f"A {self.__class__.__name__} needs a ToolResponse but got {type(content)}"
+            )
+        super().__init__(content=content, role="tool")

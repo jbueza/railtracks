@@ -51,7 +51,7 @@ TopLevel = rc.library.from_function(top_level)
 
 @pytest.mark.timeout(4)
 def test_async_style_parallel():
-    with rc.Runner() as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(TopLevelAsync)
         assert result.answer == [1, 2, 3, 2, 1]
 

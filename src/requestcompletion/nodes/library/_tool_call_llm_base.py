@@ -93,13 +93,20 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                         )
                         for x in tool_responses
                     ]
+                    tool_ids = [x.identifier for x in returned_mess.message.content]
+                    tool_names = [x.name for x in returned_mess.message.content]
 
-                    for r_id, resp in zip(
-                        [x.identifier for x in returned_mess.message.content],
+                    for r_id, r_name, resp in zip(
+                        tool_ids,
+                        tool_names,
                         tool_responses,
                     ):
                         self.message_hist.append(
-                            ToolMessage(ToolResponse(identifier=r_id, result=str(resp)))
+                            ToolMessage(
+                                ToolResponse(
+                                    identifier=r_id, result=str(resp), name=r_name
+                                )
+                            )
                         )
 
                 elif returned_mess.message.content is not None:

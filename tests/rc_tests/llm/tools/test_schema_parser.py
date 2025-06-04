@@ -7,12 +7,12 @@ requestcompletion.llm.tools.schema_parser module.
 
 import re
 
-from src.requestcompletion.llm.tools.schema_parser import (
+from requestcompletion.llm.tools.schema_parser import (
     parse_json_schema_to_parameter,
     parse_model_properties,
     convert_params_to_model_recursive,
 )
-from src.requestcompletion.llm.tools.parameter import Parameter, PydanticParameter
+from requestcompletion.llm.tools.parameter import Parameter, PydanticParameter
 
 
 class TestParseJsonSchemaToParameter:
