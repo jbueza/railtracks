@@ -6,7 +6,7 @@ from typing import TypeVar, ParamSpec, Callable
 from .config import ExecutorConfig
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
-from src.requestcompletion.pubsub.messages import (
+from .pubsub.messages import (
     RequestCompletionMessage,
     RequestCreation,
     RequestFinishedBase,

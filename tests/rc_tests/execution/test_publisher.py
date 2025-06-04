@@ -3,7 +3,7 @@ import time
 import pytest
 import asyncio
 
-from requestcompletion.execution.publisher import Subscriber, RCPublisher
+from requestcompletion.pubsub.publisher import Subscriber, RCPublisher
 
 
 @pytest.mark.asyncio

@@ -197,7 +197,7 @@ class RCPublisher(Generic[_T]):
                 except asyncio.TimeoutError:
                     pass
 
-                if self._killed:
+                if not self._running:
                     raise ValueError(
                         "Listener has been killed before receiving the correct message."
                     )
