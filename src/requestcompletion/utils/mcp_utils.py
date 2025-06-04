@@ -1,17 +1,26 @@
-import asyncio
-import logging
 import threading
 import time
+import webbrowser
 from contextlib import AsyncExitStack
-from typing import Any, Dict, Optional, Literal
+from datetime import timedelta
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from typing import Any, Dict
+from urllib.parse import urlparse, parse_qs
 
 import httpx
+from typing_extensions import Self
+
 from mcp import ClientSession, StdioServerParameters
+from mcp.client.auth import OAuthClientProvider, TokenStorage
+from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
 from mcp.client.stdio import stdio_client
-from mcp.client.streamable_http import create_mcp_http_client
+from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.sse import sse_client
+
+from pydantic import BaseModel
 from ..llm import Tool
 from ..nodes.nodes import Node
-from typing_extensions import Self, Type
+
 
 try:
     from sseclient import SSEClient
@@ -19,294 +28,170 @@ except ImportError:
     SSEClient = None
 
 
+class MCPHttpParams(BaseModel):
+    url: str
+    headers: dict[str, Any] | None = None
+    timeout: timedelta = timedelta(seconds=30)
+    sse_read_timeout: timedelta = timedelta(seconds=60 * 5)
+    terminate_on_close: bool = True
+
+
 class MCPAsyncClient:
     """
     Async client for communicating with an MCP server via stdio or HTTP Stream, with streaming support.
-    """
 
+    If a client session is provided, it will be used; otherwise, a new session will be created.
+    """
     def __init__(
         self,
-        command: str,
-        args: list,
-        env: Optional[Dict[str, str]] = None,
-        transport_type: Literal["stdio", "http-stream"] = "stdio",
-        transport_options: Optional[dict] = None,
+        config: StdioServerParameters | MCPHttpParams,
+        client_session: ClientSession | None = None,
     ):
-        self.command = command
-        self.args = args
-        self.env = env
-        self.transport_type = transport_type
-        self.transport_options = transport_options or {}
-        self.session = None
+        self.config = config
+        self.session = client_session
         self.exit_stack = AsyncExitStack()
         self._tools_cache = None
-        self.session_id = None
-        self.http_session = None
-        self.sse_thread = None
-        self.sse_stop_event = threading.Event()
-        self.sse_messages = asyncio.Queue()
-        self._main_loop = None
 
     async def __aenter__(self):
-        self._main_loop = asyncio.get_running_loop()
-        if self.transport_type == "stdio":
-            server_params = StdioServerParameters(
-                command=self.command, args=self.args, env=self.env
-            )
-            stdio_transport = await self.exit_stack.enter_async_context(
-                stdio_client(server_params)
-            )
-            self.session = await self.exit_stack.enter_async_context(
-                ClientSession(*stdio_transport)
-            )
+        if isinstance(self.config, StdioServerParameters):
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(self.config))
+            self.session = await self.exit_stack.enter_async_context(ClientSession(*stdio_transport))
             await self.session.initialize()
-        elif self.transport_type == "http-stream":
-            self.http_headers = self.transport_options.get("headers", {})
-            self.endpoint = self.transport_options.get("endpoint", "/mcp")
-            self.base_url = (
-                self.transport_options.get("base_url", "http://localhost:8080")
-                + self.endpoint
-            )
-            self.response_mode = self.transport_options.get("responseMode", "batch")
-            self.session_id = None
+        elif isinstance(self.config, MCPHttpParams):
+            await self._init_http()
 
-            self.http_session = await self.exit_stack.enter_async_context(
-                create_mcp_http_client(
-                    headers=self.http_headers,
-                    timeout=self.transport_options.get("batchTimeout"),
-                )
-            )
-            # Initialize session
-            init_req = {
-                "jsonrpc": "2.0",
-                "id": "init-" + str(int(time.time() * 1000)),
-                "method": "initialize",
-                "params": {},
-            }
-            resp = await self.http_session.post(
-                self.base_url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json, text/event-stream",
-                    **self.http_headers,
-                },
-                json=init_req,
-            )
-            self.session_id = resp.headers.get("Mcp-Session-Id")
-            await resp.aread()
-            # Start SSE stream for server-to-client messages
-            await self._start_sse_stream()
-        else:
-            raise ValueError(f"Unsupported transport_type: {self.transport_type}")
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
-        await self.terminate()
         await self.exit_stack.aclose()
-
-    async def _start_sse_stream(self):
-        if not SSEClient or not self.session_id:
-            return
-        url = self.base_url
-        if "?" in url:
-            url += f"&session={self.session_id}"
-        else:
-            url += f"?session={self.session_id}"
-
-        def sse_worker():
-            try:
-                with httpx.Client() as client:
-                    with client.stream(
-                        "GET", url, headers=self.http_headers
-                    ) as response:
-                        sse = SSEClient(response)
-                        for event in sse:
-                            if self.sse_stop_event.is_set():
-                                break
-                            try:
-                                data = event.data
-                                asyncio.run_coroutine_threadsafe(
-                                    self.sse_messages.put(data), self._main_loop
-                                )
-                            except Exception as e:
-                                logging.exception("Error putting SSE message: %s", e)
-            except Exception as e:
-                logging.exception("SSE worker error: %s", e)
-
-        self.sse_stop_event.clear()
-        self.sse_thread = threading.Thread(target=sse_worker, daemon=True)
-        self.sse_thread.start()
-
-    async def terminate(self):
-        # Stop SSE thread
-        if self.sse_thread and self.sse_thread.is_alive():
-            self.sse_stop_event.set()
-            self.sse_thread.join(timeout=2)
-            self.sse_thread = None
-        # Terminate session if HTTP
-        if self.transport_type == "http-stream" and self.session_id:
-            try:
-                await self.http_session.request(
-                    "DELETE",
-                    self.base_url,
-                    headers={"Mcp-Session-Id": self.session_id, **self.http_headers},
-                )
-            except Exception as e:
-                logging.exception("Error terminating HTTP session: %s", e)
-            self.session_id = None
-
-    async def get_sse_message(self, timeout: float = 0.1):
-        try:
-            return await asyncio.wait_for(self.sse_messages.get(), timeout)
-        except asyncio.TimeoutError:
-            return None
 
     async def list_tools(self):
         if self._tools_cache is not None:
             return self._tools_cache
-        if self.transport_type == "stdio":
+        else:
             resp = await self.session.list_tools()
             self._tools_cache = resp.tools
-        elif self.transport_type == "http-stream":
-            req = {
-                "jsonrpc": "2.0",
-                "id": "list_tools-" + str(int(time.time() * 1000)),
-                "method": "list_tools",
-                "params": {},
-            }
-            headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                **self.http_headers,
-            }
-            if self.session_id:
-                headers["Mcp-Session-Id"] = self.session_id
-            resp = await self.http_session.post(
-                self.base_url, headers=headers, json=req
-            )
-            data = resp.json()
-            if asyncio.iscoroutine(data):
-                data = await data
-            self._tools_cache = data.get("result", {}).get("tools", [])
-            await resp.aread()
         return self._tools_cache
 
     async def call_tool(self, tool_name: str, tool_args: dict):
-        if self.transport_type == "stdio":
-            return await self.session.call_tool(tool_name, tool_args)
-        elif self.transport_type == "http-stream":
-            req = {
-                "jsonrpc": "2.0",
-                "id": tool_name + "-" + str(int(time.time() * 1000)),
-                "method": tool_name,
-                "params": tool_args,
+        return await self.session.call_tool(tool_name, tool_args)
+
+    async def _init_http(self):
+        # Set transport type based on URL ending
+        if self.config.url.rstrip("/").endswith("/sse"):
+            self.transport_type = "sse"
+        else:
+            self.transport_type = "streamable_http"
+
+        async def get_oauth_metadata(server_url: str):
+            from urllib.parse import urlparse, urlunparse, urljoin
+            parsed = urlparse(server_url)
+            base_url = urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
+            metadata_url = urljoin(base_url, "/.well-known/oauth-authorization-server")
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(metadata_url)
+                if resp.status_code == 200:
+                    return resp.json()
+                return None
+
+        oauth_metadata = await get_oauth_metadata(self.config.url)
+
+        if oauth_metadata:
+            callback_server = CallbackServer(port=3000)
+            callback_server.start()
+
+            async def callback_handler() -> tuple[str, str | None]:
+                print("⏳ Waiting for authorization callback...")
+                try:
+                    auth_code = callback_server.wait_for_callback(timeout=300)
+                    return auth_code, callback_server.get_state()
+                finally:
+                    callback_server.stop()
+
+            client_metadata_dict = {
+                "client_name": "Simple Auth Client",
+                "redirect_uris": ["http://localhost:3000/callback"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "response_types": ["code"],
+                "token_endpoint_auth_method": "client_secret_post",
             }
-            headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json, text/event-stream",
-                **self.http_headers,
-            }
-            if self.session_id:
-                headers["Mcp-Session-Id"] = self.session_id
-            resp = await self.http_session.post(
-                self.base_url, headers=headers, json=req
+
+            async def _default_redirect_handler(authorization_url: str) -> None:
+                print(f"Opening browser for authorization: {authorization_url}")
+                webbrowser.open(authorization_url)
+
+            oauth_auth = OAuthClientProvider(
+                server_url=self.config.url,
+                client_metadata=OAuthClientMetadata.model_validate(client_metadata_dict),
+                storage=InMemoryTokenStorage(),
+                redirect_handler=_default_redirect_handler,
+                callback_handler=callback_handler,
             )
-            content_type = resp.headers.get("Content-Type", "")
-            if content_type.startswith("application/json"):
-                data = resp.json()
-                if asyncio.iscoroutine(data):
-                    data = await data
-                await resp.aread()
-                return data.get("result")
-            elif "text/event-stream" in content_type:
-                await resp.aread()
-                raise NotImplementedError(
-                    "Use stream_tool_call for streaming responses."
+
+            if self.transport_type == "sse":
+                client = sse_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout.total_seconds(),
+                    sse_read_timeout=self.config.sse_read_timeout.total_seconds(),
+                    auth=oauth_auth,
                 )
             else:
-                await resp.aread()
-                raise NotImplementedError("Unknown response type.")
+                client = streamablehttp_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout.total_seconds(),
+                    sse_read_timeout=self.config.sse_read_timeout.total_seconds(),
+                    terminate_on_close=self.config.terminate_on_close,
+                    auth=oauth_auth,
+                )
         else:
-            raise ValueError(f"Unsupported transport_type: {self.transport_type}")
+            if self.transport_type == "sse":
+                client = sse_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout.total_seconds(),
+                    sse_read_timeout=self.config.sse_read_timeout.total_seconds(),
+                    auth=self.config.auth if hasattr(self.config, 'auth') else None,
+                )
+            else:
+                client = streamablehttp_client(
+                    url=self.config.url,
+                    headers=self.config.headers,
+                    timeout=self.config.timeout,
+                    sse_read_timeout=self.config.sse_read_timeout,
+                    terminate_on_close=self.config.terminate_on_close,
+                    auth=self.config.auth if hasattr(self.config, 'auth') else None,
+                )
 
-    async def stream_tool_call(self, tool_name: str, tool_args: dict):
-        if self.transport_type != "http-stream":
-            raise NotImplementedError(
-                "Streaming only supported for http-stream transport."
-            )
-        req = {
-            "jsonrpc": "2.0",
-            "id": tool_name + "-" + str(int(time.time() * 1000)),
-            "method": tool_name,
-            "params": tool_args,
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json, text/event-stream",
-            **self.http_headers,
-        }
-        if self.session_id:
-            headers["Mcp-Session-Id"] = self.session_id
-        resp = await self.http_session.post(self.base_url, headers=headers, json=req)
-        content_type = resp.headers.get("Content-Type", "")
-        if "text/event-stream" in content_type:
-            async for chunk in resp.aiter_text():
-                yield chunk
-        else:
-            await resp.aread()
-            raise NotImplementedError(
-                "Non-streaming response received in stream_tool_call."
-            )
+        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(client)
+        self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+        await self.session.initialize()
 
 
-def from_mcp(  # noqa: C901
+def from_mcp(
     tool,
-    command: str,
-    args: list,
-    transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None,
+    config: StdioServerParameters | MCPHttpParams,
 ):
     """
     Wrap an MCP tool as a Node class for use in the requestcompletion framework.
 
     Args:
         tool: The MCP tool object.
-        command: Command to launch the MCP server.
-        args: Arguments for the command.
-        transport_type: 'stdio' or 'http-stream'.
-        transport_options: Optional dict for HTTP Stream configuration.
+        config: Configuration parameters for the MCP client, either Stdio or HTTP.
 
     Returns:
         A Node subclass that invokes the MCP tool.
     """
-
     class MCPToolNode(Node):
         def __init__(self, **kwargs):
             super().__init__()
             self.kwargs = kwargs
-            if transport_type not in ["stdio"]:
-                raise NotImplementedError(
-                    "Only 'stdio' transport type is currently supported for MCP tools, contact Levi."
-                )
-            if self.kwargs.get("stream"):
-                raise NotImplementedError(
-                    "Streaming is not supported yet, contact Levi."
-                )
+            self.client = MCPAsyncClient(config)
 
         async def invoke(self):
-            async with MCPAsyncClient(
-                command,
-                args,
-                transport_type=transport_type,
-                transport_options=transport_options,
-            ) as client:
-                if self.kwargs.get("stream", False):
-                    result = []
-                    async for chunk in client.stream_tool_call(tool.name, self.kwargs):
-                        result.append(chunk)
-                    return result
-                else:
-                    result = await client.call_tool(tool.name, self.kwargs)
+            async with self.client:
+                result = await self.client.call_tool(tool.name, self.kwargs)
             if hasattr(result, "content"):
                 return result.content
             return result
@@ -325,39 +210,128 @@ def from_mcp(  # noqa: C901
 
     return MCPToolNode
 
+#############
 
-async def from_mcp_server_async(
-    command: str,
-    args: list,
-    transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None,
-) -> [Type[Node]]:
-    """
-    Discover all tools from an MCP server and wrap them as Node classes.
 
-    Args:
-        command: Command to launch the MCP server.
-        args: Arguments for the command.
-        transport_type: 'stdio' or 'http-stream'.
-        transport_options: Optional dict for HTTP Stream configuration.
+class InMemoryTokenStorage(TokenStorage):
+    """Simple in-memory token storage implementation."""
 
-    Returns:
-        List of Nodes, one for each discovered tool.
-    """
-    async with MCPAsyncClient(
-        command,
-        args,
-        transport_type=transport_type,
-        transport_options=transport_options,
-    ) as client:
-        tools = await client.list_tools()
-        return [
-            from_mcp(
-                tool,
-                command,
-                args,
-                transport_type=transport_type,
-                transport_options=transport_options,
+    def __init__(self):
+        self._tokens: OAuthToken | None = None
+        self._client_info: OAuthClientInformationFull | None = None
+
+    async def get_tokens(self) -> OAuthToken | None:
+        return self._tokens
+
+    async def set_tokens(self, tokens: OAuthToken) -> None:
+        self._tokens = tokens
+
+    async def get_client_info(self) -> OAuthClientInformationFull | None:
+        return self._client_info
+
+    async def set_client_info(self, client_info: OAuthClientInformationFull) -> None:
+        self._client_info = client_info
+
+
+class CallbackHandler(BaseHTTPRequestHandler):
+    """Simple HTTP handler to capture OAuth callback."""
+
+    def __init__(self, request, client_address, server, callback_data):
+        """Initialize with callback data storage."""
+        self.callback_data = callback_data
+        super().__init__(request, client_address, server)
+
+    def do_GET(self):  # noqa: N802 Need to use do_GET for GET requests
+        """Handle GET request from OAuth redirect."""
+        parsed = urlparse(self.path)
+        query_params = parse_qs(parsed.query)
+
+        if "code" in query_params:
+            self.callback_data["authorization_code"] = query_params["code"][0]
+            self.callback_data["state"] = query_params.get("state", [None])[0]
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"""
+            <html>
+            <body>
+                <h1>Authorization Successful!</h1>
+                <p>You can close this window and return to the terminal.</p>
+                <script>setTimeout(() => window.close(), 2000);</script>
+            </body>
+            </html>
+            """)
+        elif "error" in query_params:
+            self.callback_data["error"] = query_params["error"][0]
+            self.send_response(400)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(
+                f"""
+            <html>
+            <body>
+                <h1>Authorization Failed</h1>
+                <p>Error: {query_params['error'][0]}</p>
+                <p>You can close this window and return to the terminal.</p>
+            </body>
+            </html>
+            """.encode()
             )
-            for tool in tools
-        ]
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        """Suppress default logging."""
+        pass
+
+
+class CallbackServer:
+    """Simple server to handle OAuth callbacks."""
+
+    def __init__(self, port=3000):
+        self.port = port
+        self.server = None
+        self.thread = None
+        self.callback_data = {"authorization_code": None, "state": None, "error": None}
+
+    def _create_handler_with_data(self):
+        """Create a handler class with access to callback data."""
+        callback_data = self.callback_data
+
+        class DataCallbackHandler(CallbackHandler):
+            def __init__(self, request, client_address, server):
+                super().__init__(request, client_address, server, callback_data)
+
+        return DataCallbackHandler
+
+    def start(self):
+        """Start the callback server in a background thread."""
+        handler_class = self._create_handler_with_data()
+        self.server = HTTPServer(("localhost", self.port), handler_class)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        print(f"🖥️  Started callback server on http://localhost:{self.port}")
+
+    def stop(self):
+        """Stop the callback server."""
+        if self.server:
+            self.server.shutdown()
+            self.server.server_close()
+        if self.thread:
+            self.thread.join(timeout=1)
+
+    def wait_for_callback(self, timeout=300):
+        """Wait for OAuth callback with timeout."""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if self.callback_data["authorization_code"]:
+                return self.callback_data["authorization_code"]
+            elif self.callback_data["error"]:
+                raise Exception(f"OAuth error: {self.callback_data['error']}")
+            time.sleep(0.1)
+        raise Exception("Timeout waiting for OAuth callback")
+
+    def get_state(self):
+        """Get the received state parameter."""
+        return self.callback_data["state"]

@@ -1,33 +1,47 @@
-from typing import Type, Optional, Literal
-from ..nodes import Node
+from typing import Type
+
+from mcp import StdioServerParameters
 import asyncio
 
-from ...utils.mcp_utils import from_mcp_server_async
+from ...utils.mcp_utils import MCPAsyncClient, MCPHttpParams, from_mcp
+from ...nodes.nodes import Node
 
 
 def from_mcp_server(
-    command: str,
-    args: list,
-    transport_type: Literal["stdio", "http-stream"] = "stdio",
-    transport_options: Optional[dict] = None,
+    config: StdioServerParameters | MCPHttpParams,
 ) -> [Type[Node]]:
     """
     Discover all tools from an MCP server and wrap them as Node classes.
 
     Args:
-        command: Command to launch the MCP server.
-        args: Arguments for the command.
-        transport_type: 'stdio' or 'http-stream'.
-        transport_options: Optional dict for HTTP Stream configuration.
+        config: Configuration for the MCP server, either as StdioServerParameters or MCPHttpParams.
 
     Returns:
         List of Nodes, one for each discovered tool.
     """
     return asyncio.run(
-        from_mcp_server_async(
-            command,
-            args,
-            transport_type=transport_type,
-            transport_options=transport_options,
-        )
+        async_from_mcp_server(config)
     )
+
+
+async def async_from_mcp_server(
+    config: StdioServerParameters | MCPHttpParams,
+) -> [Type[Node]]:
+    """
+    Asynchronously discover all tools from an MCP server and wrap them as Node classes.
+
+    Args:
+        config
+
+    Returns:
+        List of Nodes, one for each discovered tool.
+    """
+    async with MCPAsyncClient(config) as client:
+        tools = await client.list_tools()
+        return [
+            from_mcp(
+                tool,
+                config
+            )
+            for tool in tools
+        ]

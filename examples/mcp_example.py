@@ -2,42 +2,43 @@ import asyncio
 import os
 
 import requestcompletion as rc
-from requestcompletion.nodes.library.mcp_tool import from_mcp_server
+from mcp import StdioServerParameters
 
-# %%
+from requestcompletion.nodes.library.mcp_tool import async_from_mcp_server
+from requestcompletion.utils.mcp_utils import MCPHttpParams
+
+#%%
 # Install mcp_server_time for time tools:
-TIME_MCP_COMMAND = os.environ.get("TIME_MCP_COMMAND", "python.exe")
-TIME_MCP_ARGS = ["-m", "mcp_server_time", "--local-timezone=America/Vancouver"]
-
-AIRBNB_MCP_COMMAND = r"npx"
-AIRBNB_MCP_ARGS = ["-y", "@openbnb/mcp-server-airbnb", "--ignore-robots-txt"]
+MCP_COMMAND = "npx"
+MCP_ARGS = ["mcp-remote", "https://mcp.paypal.com/sse"]
 # Airbnb MCP server requires Node.js and the `npx` command to run.
 
 
+#%%
 # Discover all tools
-time_tools = from_mcp_server(TIME_MCP_COMMAND, TIME_MCP_ARGS)
-airbnb_tools = from_mcp_server(AIRBNB_MCP_COMMAND, AIRBNB_MCP_ARGS)
+fetch_tools = asyncio.run(async_from_mcp_server(MCPHttpParams(url="https://remote.mcpservers.org/fetch/mcp")))
+paypal_tools = asyncio.run(async_from_mcp_server(MCPHttpParams(url="https://mcp.paypal.com/sse")))
 
+#%%
 parent_tool = rc.library.tool_call_llm(
-    connected_nodes={*time_tools, *airbnb_tools},
+    connected_nodes={*paypal_tools},
     pretty_name="Parent Tool",
-    system_message=rc.llm.SystemMessage(
-        "Provide a response using the tool when asked."
-    ),
+    system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
     model=rc.llm.OpenAILLM("gpt-4o"),
 )
 
-# %%
-user_message = (
-    "What is the current time in Vancouver, BC, Canada? "
-    "Also, show me a listing for an Airbnb in Vancouver, BC, Canada."
-)
+#%%
+user_message = ("What tools can you use?")
 
-# %%
-with rc.Runner(
-    executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
-) as runner:
-    message_history = rc.llm.MessageHistory([rc.llm.UserMessage(user_message)])
+#%%
+with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+    message_history = rc.llm.MessageHistory(
+        [
+            rc.llm.UserMessage(
+                user_message
+            )
+        ]
+    )
     response = asyncio.run(runner.run(parent_tool, message_history=message_history))
 
     print("Response:", response.answer)
