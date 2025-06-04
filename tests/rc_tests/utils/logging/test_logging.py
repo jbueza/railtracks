@@ -4,7 +4,6 @@ import asyncio
 import requestcompletion as rc
 import re
 
-from src.requestcompletion import ExecutorConfig
 
 RNGNode = rc.library.from_function(random.random)
 
