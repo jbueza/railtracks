@@ -57,10 +57,12 @@ class NodeState(Generic[_TNode]):
         self.node = node
 
     def instantiate(self) -> _TNode:
+        """
+        Creates a pass by reference copy of the node in the state.
+        """
         return self.node
 
 
-# TODO add generic for required context object
 class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
     """An abstract base class which defines some the functionality of a node"""
 
