@@ -12,6 +12,7 @@ from requestcompletion.state.request import Failure
 RNGNode = rc.library.from_function(random.random)
 
 
+@pytest.mark.timeout(1)
 def test_simple_request():
     with rc.Runner() as run:
         result = run.run_sync(RNGNode)
@@ -40,13 +41,14 @@ def test_error():
 async def error_handler():
     try:
         answer = await rc.call(ErrorThrower)
-    except TestError:
+    except TestError as e:
         return "Caught the error"
 
 
 ErrorHandler = rc.library.from_function(error_handler)
 
 
+@pytest.mark.timeout(1)
 def test_error_handler():
     with rc.Runner() as run:
         result = run.run_sync(ErrorHandler)
@@ -54,8 +56,12 @@ def test_error_handler():
 
 
 def test_error_handler_wo_retry():
-    with pytest.raises(rc.state.execute.ExecutionError):
-        with rc.Runner(executor_config=rc.ExecutorConfig(end_on_error=True)) as run:
+    with pytest.raises(rc.state.state.ExecutionError):
+        with rc.Runner(
+            executor_config=rc.ExecutorConfig(
+                end_on_error=True, logging_setting="NONE"
+            ),
+        ) as run:
             result = run.run_sync(ErrorHandler)
 
 
@@ -63,7 +69,7 @@ async def error_handler_with_retry(retries: int):
     for _ in range(retries):
         try:
             return await rc.call(ErrorThrower)
-        except TestError:
+        except TestError as e:
             continue
 
     return "Caught the error"
@@ -72,9 +78,12 @@ async def error_handler_with_retry(retries: int):
 ErrorHandlerWithRetry = rc.library.from_function(error_handler_with_retry)
 
 
+@pytest.mark.timeout(5)
 def test_error_handler_with_retry():
     for num_retries in range(5, 15):
-        with rc.Runner() as run:
+        with rc.Runner(
+            executor_config=rc.ExecutorConfig(logging_setting="NONE")
+        ) as run:
             result = run.run_sync(ErrorHandlerWithRetry, num_retries)
 
         assert result.answer == "Caught the error"
@@ -107,8 +116,11 @@ ParallelErrorHandler = rc.library.from_function(parallel_error_handler)
 
 
 def test_parallel_error_tester():
+
     for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
-        with rc.Runner() as run:
+        with rc.Runner(
+            executor_config=rc.ExecutorConfig(logging_setting="NONE")
+        ) as run:
             result = run.run_sync(ParallelErrorHandler, n_c, p_c)
 
         assert isinstance(result.answer, list)
@@ -120,7 +132,7 @@ def test_parallel_error_tester():
 async def error_handler_wrapper(num_calls: int, parallel_calls: int):
     try:
         return await rc.call(ParallelErrorHandler, num_calls, parallel_calls)
-    except TestError:
+    except TestError as e:
         return "Caught the error"
 
 
@@ -129,7 +141,9 @@ ErrorHandlerWrapper = rc.library.from_function(error_handler_wrapper)
 
 def test_parallel_error_wrapper():
     for n_c, p_c in [(10, 10), (3, 20), (1, 10), (60, 10)]:
-        with rc.Runner() as run:
+        with rc.Runner(
+            executor_config=rc.ExecutorConfig(logging_setting="NONE")
+        ) as run:
             result = run.run_sync(ErrorHandlerWrapper, n_c, p_c)
 
         assert len(result.answer) == n_c * p_c

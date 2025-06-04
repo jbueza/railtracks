@@ -23,7 +23,7 @@ ManyCalls = rc.library.from_function(many_calls)
 
 
 def many_calls_tester(num_calls: int, parallel_calls: int):
-    with rc.Runner() as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         finished_result = run.run_sync(ManyCalls, num_calls, parallel_calls)
 
     ans = finished_result.answer
@@ -33,6 +33,7 @@ def many_calls_tester(num_calls: int, parallel_calls: int):
     assert all([0 < x < 1 for x in ans])
 
 
+@pytest.mark.timeout(5)
 def test_no_deadlock():
     num_calls = 4
     parallel_calls = 55
@@ -100,7 +101,7 @@ class NestedManyCalls(rc.Node):
 
 
 def nested_many_calls_tester(num_calls: int, parallel_calls: int, depth: int):
-    with rc.Runner() as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         finished_result = run.run_sync(
             NestedManyCalls, num_calls, parallel_calls, depth
         )
@@ -121,6 +122,7 @@ def nested_many_calls_tester(num_calls: int, parallel_calls: int, depth: int):
         assert 0 < r.input[0][2] < depth
 
 
+@pytest.mark.timeout(4)
 def test_nested_no_deadlock():
     num_calls = 2
     parallel_calls = 2
@@ -146,7 +148,7 @@ def test_nested_no_deadlock_harder_2():
 
 
 def test_multiple_runs():
-    with rc.Runner() as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(RNGNode)
         assert 0 < result.answer < 1
         with pytest.raises(RuntimeError):

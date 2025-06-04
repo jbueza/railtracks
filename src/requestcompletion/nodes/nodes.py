@@ -7,7 +7,6 @@ from copy import deepcopy
 from ..llm import Tool
 
 from abc import ABC, abstractmethod, ABCMeta
-import inspect
 
 from typing import (
     TypeVar,
@@ -15,7 +14,6 @@ from typing import (
     Dict,
     ParamSpec,
     Any,
-    Coroutine,
 )
 
 from typing_extensions import Self
@@ -36,15 +34,35 @@ class EnsureInvokeCoroutineMeta(ABCMeta):
         method_name = "invoke"
         if method_name in dct and callable(dct[method_name]):
             method = dct[method_name]
-            if not inspect.iscoroutinefunction(method):
-                # a simple async wrapper of the sequential method.
-                async def async_wrapper(self, *args, **kwargs):
-                    return await asyncio.to_thread(method(self, *args, **kwargs))
 
-                setattr(cls, method_name, async_wrapper)
+            # a simple wrapper to convert any async function to a non async one.
+            async def async_wrapper(self, *args, **kwargs):
+                if asyncio.iscoroutinefunction(method):
+                    return await method(self, *args, **kwargs)
+
+            setattr(cls, method_name, async_wrapper)
 
 
-# TODO add generic for required context object
+class NodeState(Generic[_TNode]):
+    """
+    A stripped down representation of a Node which can be passed along the process barrier.
+    """
+
+    # This object should json serializable such that it can be passed across the process barrier
+    # TODO come up with a more intelligent way to recreate the node
+    def __init__(
+        self,
+        node: _TNode,
+    ):
+        self.node = node
+
+    def instantiate(self) -> _TNode:
+        """
+        Creates a pass by reference copy of the node in the state.
+        """
+        return self.node
+
+
 class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
     """An abstract base class which defines some the functionality of a node"""
 
@@ -60,9 +78,10 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         """
         Returns a pretty name for the node. This name is used to identify the node type of the system.
         """
+        pass
 
     @abstractmethod
-    async def invoke(self) -> Coroutine[Any, Any, _TOutput]:
+    async def invoke(self) -> _TOutput:
         """
         The main method that runs when this node is called
         """
@@ -125,3 +144,6 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         for k, v in self.__dict__.items():
             setattr(result, k, deepcopy(v))
         return result
+
+    def __repr__(self):
+        return f"{self.pretty_name()}: {self.state_details()}"

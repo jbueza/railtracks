@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Literal
 import re
 from colorama import Fore, init
@@ -113,13 +114,11 @@ def setup_none_logger_config():
 def setup_file_handler(
     file_name: str,
     file_logging_config: dict | None,
-    file_logging_level: (
-        logging.DEBUG
-        | logging.INFO
-        | logging.WARNING
-        | logging.ERROR
-        | logging.CRITICAL
-    ),
+    file_logging_level: logging.DEBUG
+    | logging.INFO
+    | logging.WARNING
+    | logging.ERROR
+    | logging.CRITICAL,
 ):
     file_handler = logging.FileHandler(file_name)
     logging_level = logging.DEBUG if file_logging_level else file_logging_level
@@ -144,21 +143,25 @@ def setup_file_handler(
 # TODO fill out the rest of the logic
 def prepare_logger(
     setting: allowable_log_levels,
-    # file_name: str | None = None,
-    # file_logging_config: dict | None = None,
-    # file_logging_level: (
-    #     logging.DEBUG | logging.INFO | logging.WARNING | logging.ERROR | logging.CRITICAL
-    # ) = logging.DEBUG,
+    file_name: str | None = None,
+    file_logging_config: dict | None = None,
+    file_logging_level: (
+        logging.DEBUG
+        | logging.INFO
+        | logging.WARNING
+        | logging.ERROR
+        | logging.CRITICAL
+    ) = logging.DEBUG,
 ):
-    # # the file injection will happen no matter what.
-    # if file_name is not None:
-    #     setup_file_handler(file_name, file_logging_config, file_logging_level)
-    # # We should raise a warning if the file logging config was provided
-    # else:
-    #     if file_logging_config is not None:
-    #         warnings.warn(
-    #             "File logging config provided but no file was provided. The file logging config will be ignored"
-    #
+    # the file injection will happen no matter what.
+    if file_name is not None:
+        setup_file_handler(file_name, file_logging_config, file_logging_level)
+    # We should raise a warning if the file logging config was provided
+    else:
+        if file_logging_config is not None:
+            warnings.warn(
+                "File logging config provided but no file was provided. The file logging config will be ignored"
+            )
 
     # TODO: write logic to figure out how to check to make sure a logger has not already been created.
 
@@ -173,7 +176,15 @@ def prepare_logger(
         setup_none_logger_config()
     else:
         raise ValueError("Invalid log level setting")
+    # setup_none_logger_config()
 
 
-def delete_loggers():
-    pass
+def detach_logging_handlers():
+    """
+    Shuts down the logging system and detaches all logging handlers.
+    """
+    # Get the root logger
+    for handler in logging.getLogger(rc_logger_name).handlers[:]:
+        # Remove all handlers from the logger
+        logging.getLogger(rc_logger_name).removeHandler(handler)
+        handler.close()
