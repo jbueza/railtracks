@@ -26,10 +26,22 @@ class TaskExecutionStrategy(ABC):
 
 
 class AsyncioExecutionStrategy(TaskExecutionStrategy):
+    """
+    An async-await style execution approach for tasks.
+
+    """
+
     def shutdown(self):
+        # there is no need for any shutdown approach for asyncio.
         pass
 
     async def execute(self, task: Task):
+        """
+        Executes the task using asyncio.
+
+        Args:
+            task (Task): The task to be executed.
+        """
         invoke_func = task.invoke
 
         publisher = get_globals().publisher
@@ -52,10 +64,13 @@ class AsyncioExecutionStrategy(TaskExecutionStrategy):
 
 
 class ConcurrentFuturesExecutor(TaskExecutionStrategy):
+
     def __init__(self, executor: concurrent.futures.Executor):
+        raise NotImplementedError(
+            "We currently do not support concurrent futures executor. See issue #140"
+        )
         self.executor: concurrent.futures.Executor | None = executor
 
-    # TODO addd config here as required
     def shutdown(self):
         if self.executor is not None:
             self.executor.shutdown(wait=True)
@@ -63,7 +78,7 @@ class ConcurrentFuturesExecutor(TaskExecutionStrategy):
 
     def execute(self, task: Task):
         if inspect.iscoroutine(task.invoke):
-            # TODO: make sure this doesn't brick things As long as the globals pass we should be fine.
+
             def non_async_wrapper():
                 return asyncio.run(task.invoke())
 
