@@ -11,7 +11,7 @@ from ..pubsub.messages import (
     ExecutionConfigurations,
     RequestCreationFailure,
 )
-from src.requestcompletion.pubsub.publisher import RCPublisher
+from ..pubsub.publisher import RCPublisher
 from .task import Task
 
 
