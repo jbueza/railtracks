@@ -43,7 +43,6 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
 
     publisher = context.publisher
 
-
     # generate a unique request ID for this request. We need to hold this reference here because we will use it to
     # filter for its completion
     request_id = RequestTemplate.generate_id()
