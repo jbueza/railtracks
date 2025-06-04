@@ -86,10 +86,10 @@ class Job:
 class CoordinatorState:
     """
     A simple object that stores the state of the coordinator in terms of the jobs it has and is currently processing.
+
+    The API supports simple operations that will allow you to interact with the jobs.
     """
 
-    # simple objects that stores the history of the coordinator
-    # TODO implement accordingly
     def __init__(self, job_list: List[Job] = None):
         if job_list is None:
             job_list = []
@@ -133,16 +133,19 @@ class CoordinatorState:
 
 # Note the coordinator will be the concrete invoker of the commands
 class Coordinator:
-    """ """
+    """
+    The coordinator object is the concrete invoker of tasks that are passed into any of the configured execution strategies.
+    """
 
+    # we have a fairly hard dependency on the execution modes. This is a bit of a dependency hack for catching errors early.
     def __init__(
         self,
         execution_modes: Dict[ExecutionConfigurations, TaskExecutionStrategy] = None,
     ):
         self.state = CoordinatorState.empty()
-        assert set(execution_modes.keys()) == set(get_args(ExecutionConfigurations)), (
-            "You must provide all execution modes."
-        )
+        assert set(execution_modes.keys()) == set(
+            get_args(ExecutionConfigurations)
+        ), "You must provide all execution modes."
         self.execution_strategy = execution_modes
 
     def start(self, publisher: RCPublisher[RequestCompletionMessage]):
@@ -158,21 +161,25 @@ class Coordinator:
                 "success" if isinstance(item, RequestSuccess) else "failure",
             )
 
-    # TODO write up required params here
     async def submit(
         self,
         task: Task,
         mode: ExecutionConfigurations,
     ):
+        """
+        Submits a task to the coordinator for execution.
+
+        Args:
+            task (Task): The task to be executed.
+            mode (ExecutionConfigurations): The execution mode to use for the task.
+        """
         self.state.add_job(task)
 
         return await self.execution_strategy[mode].execute(task)
 
-    # TODO come up with logic here
     def system_detail(self) -> CoordinatorState:
         return self.state
 
-    # TODO add params here
     def shutdown(self):
         for strategy in self.execution_strategy.values():
             strategy.shutdown()
