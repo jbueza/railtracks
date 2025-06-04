@@ -6,7 +6,6 @@ from ..pubsub.messages import (
     RequestCreation,
     RequestCompletionMessage,
     RequestFinishedBase,
-    Streaming,
 )
 
 from ..pubsub.utils import output_mapping
@@ -72,19 +71,3 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
     )
 
     return await f
-
-
-async def stream(item: str):
-    """
-    Streams the given message
-
-    It will trigger the callback provided in the runner_config.
-
-    Args:
-        item (str): The item you want to stream.
-    """
-    publisher = get_globals().publisher
-
-    await publisher.publish(
-        Streaming(node_id=get_globals().parent_id, streamed_object=item)
-    )
