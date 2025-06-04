@@ -2,7 +2,7 @@ from itertools import chain
 from typing import List, Dict, Type, Set
 
 
-from src.requestcompletion.state.node import (
+from ..state.node import (
     NodeForest,
 )
 from ..state.request import (

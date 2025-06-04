@@ -61,7 +61,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     ) -> _T:
         while True:
             # collect the response from the model
-            returned_mess = self.model.chat_with_tools(
+            returned_mess = await self.model.chat_with_tools(
                 self.message_hist, tools=self.tools()
             )
             self.message_hist.append(returned_mess.message)
@@ -93,10 +93,12 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                         )
                         for x in tool_responses
                     ]
+                    tool_ids = [x.identifier for x in returned_mess.message.content]
+                    tool_names = [x.name for x in returned_mess.message.content]
 
                     for r_id, r_name, resp in zip(
-                        [x.identifier for x in returned_mess.message.content],
-                        [x.name for x in returned_mess.message.content],
+                        tool_ids,
+                        tool_names,
                         tool_responses,
                     ):
                         self.message_hist.append(
