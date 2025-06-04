@@ -16,6 +16,12 @@ thread_context: contextvars.ContextVar[ThreadContext | None] = contextvars.Conte
 
 
 class ThreadContext:
+    """
+    The ThreadContext class is used to store global variables designed to be used in the RC system.
+
+    The tooling in the class is very tightly dependent on the requirements of the RC system.
+    """
+
     def __init__(
         self,
         publisher: RCPublisher,
@@ -42,6 +48,12 @@ class ThreadContext:
         self._publisher = value
 
     def prepare_new(self, new_parent_id: str) -> ThreadContext:
+        """
+        Prepares a new ThreadContext with a new parent ID.
+
+        Note: the previous publisher will copied by reference into the next object.
+        """
+
         return ThreadContext(
             publisher=self._publisher,
             parent_id=new_parent_id,
@@ -49,6 +61,9 @@ class ThreadContext:
 
 
 def register_global_wrapper(parent_id: str | None = None):
+    """
+    A decorator designed to wrap a function registering the global variables before executing it.
+    """
     parent_global_variables = get_globals()
 
     def decorator(func):
