@@ -8,9 +8,6 @@ from typing import TYPE_CHECKING
 from .execution.publisher import RCPublisher
 
 
-if TYPE_CHECKING:
-    pass
-
 config = contextvars.ContextVar("executor_config", default=None)
 streamer = contextvars.ContextVar("data_streamer", default=None)
 thread_context: contextvars.ContextVar[ThreadContext | None] = contextvars.ContextVar(
