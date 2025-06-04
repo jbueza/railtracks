@@ -1,20 +1,37 @@
 import asyncio
-import threading
 import warnings
 from typing import TypeVar, ParamSpec, Callable
 
+
 from .config import ExecutorConfig
-from .utils.stream import DataStream, Subscriber
+from .execution.coordinator import Coordinator
+from .execution.execution_strategy import AsyncioExecutionStrategy
+from .pubsub.messages import (
+    RequestCompletionMessage,
+    RequestCreation,
+    RequestFinishedBase,
+    FatalFailure,
+)
+from .pubsub.publisher import RCPublisher
+from .pubsub.subscriber import stream_subscriber
+from .pubsub.utils import output_mapping
 from .nodes.nodes import Node
-from .utils.logging.config import prepare_logger, delete_loggers
+from .utils.logging.config import prepare_logger, detach_logging_handlers
 
 
 from .info import (
     ExecutionInfo,
 )
-from .state.execute import RCState
+from .state.state import RCState
 
-from .context import active_runner, streamer, config, parent_id
+from .context import (
+    streamer,
+    config,
+    register_globals,
+    ThreadContext,
+    get_globals,
+    delete_globals,
+)
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -42,10 +59,10 @@ class Runner:
 
     Example Usage:
     ```python
-           import requestcompletion as rc
+    import requestcompletion as rc
 
-           with rc.Runner() as run:
-               result = run.run_sync(RNGNode)
+    with rc.Runner() as run:
+        result = run.run_sync(RNGNode)
     ```
     """
 
@@ -63,6 +80,7 @@ class Runner:
             if saved_config is None:
                 executor_config = ExecutorConfig()
             else:
+                print(f"Using saved executor config {saved_config.end_on_error}")
                 executor_config = saved_config
 
         if subscriber is None:
@@ -76,31 +94,86 @@ class Runner:
         prepare_logger(
             setting=executor_config.logging_setting,
         )
+        self.publisher: RCPublisher[RequestCompletionMessage] = RCPublisher()
+
+        register_globals(ThreadContext(publisher=self.publisher, parent_id=None))
 
         executor_info = ExecutionInfo.create_new()
-
-        self.rc_state = RCState(executor_info, executor_config)
-
-        if subscriber is None:
-            self._data_streamer = DataStream()
-        else:
-
-            class DynamicSubscriber(Subscriber[str]):
-                def handle(self, item: str) -> None:
-                    subscriber(item)
-
-            self._data_streamer = DataStream(subscribers=[DynamicSubscriber()])
+        self.coordinator = Coordinator(
+            execution_modes={"async": AsyncioExecutionStrategy()}
+        )
+        self.rc_state = RCState(
+            executor_info, executor_config, self.coordinator, self.publisher
+        )
+        self.subscriber = subscriber
 
     def __enter__(self):
-        # if active_runner.get() is not None:
-        #     raise RunnerCreationError(
-        #         "A runner already exists, you cannot create nested Runners. Replace this runner with the simpler `rc.call` to call the node."
-        #     )
-        active_runner.set(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._close()
+
+    async def prepare(self):
+        """
+        Prepares the publisher and attaches
+        """
+
+        await self.publisher.start()
+        self.coordinator.start(self.publisher)
+        self.setup_subscriber()
+
+    def setup_subscriber(self):
+        """
+        Prepares and attaches the saved subscriber to the publisher attached to this runner.
+        """
+
+        if self.subscriber is not None:
+            self.publisher.subscribe(
+                stream_subscriber(self.subscriber), name="Streaming Subscriber"
+            )
+
+    async def _run_base(
+        self,
+        start_node: Callable[_P, Node] | None = None,
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ):
+        await self.prepare()
+
+        if not self.rc_state.is_empty:
+            raise RuntimeError(
+                "The run function can only be used to start not in the middle of a run."
+            )
+
+        start_request_id = "START"
+
+        def message_filter(item: RequestCompletionMessage) -> bool:
+            # we want to filter and collect the message that matches this request_id
+            matches_request_id = (
+                isinstance(item, RequestFinishedBase)
+                and item.request_id == start_request_id
+            )
+            fatal_failure = isinstance(item, FatalFailure)
+
+            return matches_request_id or fatal_failure
+
+        fut = self.publisher.listener(message_filter, output_mapping)
+
+        await self.publisher.publish(
+            RequestCreation(
+                current_node_id=None,
+                new_request_id=start_request_id,
+                running_mode="async",
+                new_node_type=start_node,
+                args=args,
+                kwargs=kwargs,
+            )
+        )
+
+        result = await fut
+
+        await self.publisher.shutdown()
+        return result
 
     def run_sync(
         self,
@@ -109,19 +182,15 @@ class Runner:
         **kwargs: _P.kwargs,
     ):
         """Runs the provided node synchronously."""
-        # If no loop is running, create one and run the coroutine.
-        result = asyncio.run(self.run(start_node, *args, **kwargs))
-        return result
+        asyncio.run(self._run_base(start_node, *args, **kwargs))
+
+        return self.rc_state.info
 
     def _close(self):
-        threading.Thread(
-            self._data_streamer.stop(self.rc_state.executor_config.force_close_streams)
-        ).start()
-
-        delete_loggers()
+        self.rc_state.shutdown()
+        detach_logging_handlers()
+        delete_globals()
         # by deleting all of the state variables we are ensuring that the next time we create a runner it is fresh
-        active_runner.set(None)
-        parent_id.set(None)
 
     @property
     def info(self) -> ExecutionInfo:
@@ -141,13 +210,9 @@ class Runner:
         """Runs the rc framework with the given start node and provided arguments."""
 
         # relevant if we ever want to have future support for optional start nodes
-        if not self.rc_state.is_empty:
-            raise RuntimeError(
-                "The run function can only be used to start not in the middle of a run."
-            )
+        fut = self._run_base(start_node, *args, **kwargs)
 
-        await self.call(None, start_node, *args, **kwargs)
-
+        await fut
         return self.rc_state.info
 
     async def cancel(self, node_id: str):
@@ -164,53 +229,14 @@ class Runner:
         )
         # self.rc_state = RCState(executor_info)
 
-    async def call(
-        self,
-        parent_node_id: str | None,
-        node: Callable[_P, Node[_TOutput]],
-        *args: _P.args,
-        **kwargs: _P.kwargs,
-    ):
-        # TODO refactor this to handle keyword arugments
-        """
-        An internal method used to call a node using the state object tied to this runner.
-
-        The method will create a coroutine that you can interact with in whatever way using the `asyncio` framework.
-
-        Args:
-            parent_node_id: The parent node id of the node you are calling.
-            node: The node you would like to calling.
-        """
-        return await self.rc_state.call_nodes(parent_node_id, node, *args, **kwargs)
-
-    # TODO add support for any general user defined streaming object
-    def stream(self, item: str):
-        """
-        Streams the provided message using the data streamer tied to this runner.
-
-        Args:
-            item: The message you would like to stream.
-
-        """
-        self._data_streamer.publish(item)
-
-
-def get_runner() -> Runner | None:
-    """
-    Collects the current instance of the runner. If none exists it will return none.
-    """
-
-    curr_runner = active_runner.get()
-    if curr_runner is None:
-        return None
-    return curr_runner
-
 
 def set_config(executor_config: ExecutorConfig):
     """
     Sets the executor config for the current runner.
     """
-    if get_runner() is not None:
+    try:
+        get_globals()
+    except KeyError:
         warnings.warn(
             "The executor config is being set after the runner has been created, changes will not be propagated to the current runner"
         )
@@ -222,7 +248,9 @@ def set_streamer(subscriber: Callable[[str], None]):
     """
     Sets the data streamer for the current runner.
     """
-    if get_runner() is not None:
+    try:
+        get_globals()
+    except KeyError:
         warnings.warn(
             "The data streamer is being set after the runner has been created, changes will not be propagated to the current runner"
         )

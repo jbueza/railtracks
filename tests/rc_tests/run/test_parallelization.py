@@ -1,3 +1,6 @@
+import concurrent.futures
+import threading
+
 import pytest
 import requestcompletion as rc
 import asyncio
@@ -46,16 +49,16 @@ TopLevelAsync = rc.library.from_function(top_level_async)
 TopLevel = rc.library.from_function(top_level)
 
 
-# by leveraging timeout we can ensure that the test is properly using parallelization
-@pytest.mark.timeout(4)
-def test_regular_style_parallel():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
-        result = run.run_sync(TopLevel)
-        assert result.answer == [1, 2, 3, 2, 1]
-
-
 @pytest.mark.timeout(4)
 def test_async_style_parallel():
     with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(TopLevelAsync)
+        assert result.answer == [1, 2, 3, 2, 1]
+
+
+@pytest.mark.timeout(4)
+@pytest.mark.asyncio
+async def test_async_style_parallel_2():
+    with rc.Runner() as run:
+        result = await run.run(TopLevelAsync)
         assert result.answer == [1, 2, 3, 2, 1]

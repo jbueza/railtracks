@@ -29,7 +29,7 @@ TopLevelNode = rc.library.from_function(top_level)
 
 
 def test_simple_request(caplog):
-    with rc.Runner() as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="REGULAR")) as run:
         result = run.run_sync(RNGNode)
 
     stripped_messages = [strip_ansi_colors(msg) for msg in caplog.messages]
@@ -44,7 +44,7 @@ def test_simple_request(caplog):
 
 def test_more_complex_request(caplog):
     subcalls = 10
-    with rc.Runner() as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="REGULAR")) as run:
         result = run.run_sync(TopLevelNode, subcalls)
 
     stripped_messages = [strip_ansi_colors(msg) for msg in caplog.messages]

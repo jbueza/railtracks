@@ -1,11 +1,19 @@
-import asyncio
-import warnings
-
 from typing import ParamSpec, Callable, TypeVar
 
-from ..run import get_runner, Runner
-from ..context import parent_id
+from ..run import Runner
+from ..context import get_globals
+from ..pubsub.messages import (
+    RequestCreation,
+    RequestCompletionMessage,
+    RequestFinishedBase,
+    Streaming,
+)
+
+from ..pubsub.utils import output_mapping
+
+
 from ..nodes.nodes import Node
+from ..state.request import RequestTemplate
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -20,50 +28,63 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
         node: The node type you would like to create
         *args: The arguments to pass to the node
         **kwargs: The keyword arguments to pass to the node
-
-
     """
-    # there are 4 cases that we need to handle in this function.
-    # 1. The runner exists and the parent node id is set
-    #  - in this case we can just call the node and return the result.
-    # 2. The runner exists and the parent node id is not set
-    #  - This is the case where this is actually the first node is called, however this is no different from case 1
-    # 3. The runner does not exist and the parent node id is set.
-    #  - This makes no sense and means a system invariant has been broken.
-    # 4. The runner does not exist and the parent node id is not set.
-    #  - In this case we have to start the system from scratch and create a new runner.
-
-    runner: Runner = get_runner()
-    if runner is None:
-        # in the case that a runner doesn't exists we will need to wrap it.
-        # we will use the default values in the system (see config.py)
-        with Runner():
-            return await call(node, *args, **kwargs)
-
-    # the reference to current node running must be collected and passed into the state object
-    p_n_id = parent_id.get()
-    # but we also must update the variable so if the child node makes its own calls it is operating on the correct ID.
-
     try:
-        # note the call function should be able to handle when the parent node id is none.
-        return await runner.call(p_n_id, node, *args, **kwargs)
-    except (asyncio.TimeoutError, asyncio.CancelledError):
-        child_id = parent_id.get()
-        if child_id == p_n_id:
-            warnings.warn(
-                "The child node was not created before the call was cancelled."
-            )
-            return
+        context = get_globals()
+    except KeyError:
+        with Runner() as runner:
+            await runner.run(node, *args, **kwargs)
+            return runner.info.answer
 
-        await runner.cancel(child_id)
-    finally:
-        # reset the parent id to the original value
-        parent_id.set(p_n_id)
+    if not context.publisher.is_running():
+        raise NotImplementedError(
+            "We do not support running rc.call after the runner has been created. Use `Runner.run` instead."
+        )
+
+    publisher = context.publisher
+
+    # generate a unique request ID for this request. We need to hold this reference here because we will use it to
+    # filter for its completion
+    request_id = RequestTemplate.generate_id()
+
+    def message_filter(message: RequestCompletionMessage) -> bool:
+        """
+        Filters out the message waiting for any messages which match the request_id of the current request.
+        """
+        # we want to filter and collect the message that matches this request_id
+        if isinstance(message, RequestFinishedBase):
+            return message.request_id == request_id
+        return False
+
+    # note we set the listener before we publish the messages ensure that we do not miss any messages
+    # I am actually a bit worried about this logic and I think there is a chance of a bug popping up here.
+    f = publisher.listener(message_filter, output_mapping)
+
+    await publisher.publish(
+        RequestCreation(
+            current_node_id=context.parent_id,
+            new_request_id=request_id,
+            running_mode="async",
+            new_node_type=node,
+            args=args,
+            kwargs=kwargs,
+        )
+    )
+
+    return await f
 
 
-# TODO add support for any general user defined streaming object
-def stream(item: str):
-    runner: Runner = get_runner()
-    if runner is None:
-        raise RuntimeError("You cannot stream if there is no runner set.")
-    return runner.stream(item)
+async def stream(item: str):
+    """
+    Streams the given message
+
+    It will trigger the callback provided in the runner_config.
+
+    Args:
+        item (str): The item you want to stream.
+    """
+    publisher = get_globals().publisher
+
+    await publisher.publish(
+        Streaming(node_id=get_globals().parent_id, streamed_object=item)
+    )

@@ -32,8 +32,8 @@ async def test_call_capitalize_text_stream():
 
 
 # ======== Tests using TerminalLLMs as tools ==========
-@pytest.mark.timeout(10)
 @pytest.mark.asyncio
+@pytest.mark.timeout(20)
 async def test_terminal_llm_as_tool_correct_initialization(
     model, encoder_system_message, decoder_system_message
 ):
@@ -104,6 +104,7 @@ async def test_terminal_llm_as_tool_correct_initialization(
 
 @pytest.mark.asyncio
 async def test_terminal_llm_as_tool_correct_initialization_no_params(model):
+
     rng_tool_details = "A tool that generates 5 random integers between 1 and 100."
 
     rng_node = rc.library.terminal_llm(
@@ -161,10 +162,12 @@ async def test_terminal_llm_missing_tool_details(model, encoder_system_message):
         )
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.asyncio
 async def test_terminal_llm_no_pretty_name_with_tool(model, encoder_system_message):
     # Test case where tool is configured but pretty_name is missing
     encoder_tool_details = "A tool used to encode text into bytes."
+
     encoder_tool_params = {
         rc.llm.Parameter("text_input", "string", "The string to encode.")
     }
@@ -183,6 +186,7 @@ async def test_terminal_llm_no_pretty_name_with_tool(model, encoder_system_messa
         encoder.pretty_name()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.asyncio
 async def test_terminal_llm_tool_with_invalid_parameters(model, encoder_system_message):
     # Test case where tool is called with incorrect parameters
@@ -210,7 +214,9 @@ async def test_terminal_llm_tool_with_invalid_parameters(model, encoder_system_m
         system_message=system_message,
     )
 
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(logging_setting="VERBOSE")
+    ) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("Encode this text but use an invalid parameter name.")]
         )

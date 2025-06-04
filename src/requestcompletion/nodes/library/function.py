@@ -6,7 +6,6 @@ from typing_extensions import Self
 import warnings
 
 from ...llm.tools import Tool
-from ...llm.tools.parameter_handlers import UnsupportedParameterError
 
 from typing import (
     Any,
@@ -19,7 +18,7 @@ from typing import (
     Union,
     get_origin,
     get_args,
-    Awaitable,
+    Coroutine,
     ParamSpec,
     Generic,
 )
@@ -28,12 +27,15 @@ from ..nodes import Node
 import inspect
 from pydantic import BaseModel
 
+from ...llm.tools.parameter_handlers import UnsupportedParameterError
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):  # noqa: C901
+def from_function(  # noqa: C901
+    func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput],
+):
     """
     A function to create a node from a function
     """
@@ -52,12 +54,10 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):  # noqa
                 converted_kwargs = self._convert_kwargs_to_appropriate_types()
 
                 # we want to have different behavior if the function is a coroutine or not
-                if inspect.iscoroutinefunction(func):
-                    result = await func(*self.args, **converted_kwargs)
-                else:
-                    result = await asyncio.to_thread(
-                        func, *self.args, **converted_kwargs
-                    )
+                result = func(*self.args, **converted_kwargs)
+                if inspect.iscoroutine(result):
+                    result = await result
+
                 return result
 
             except Exception as e:
@@ -115,7 +115,7 @@ def from_function(func: Callable[[_P], Awaitable[_TOutput] | _TOutput]):  # noqa
             origin = get_origin(target_type)
             args = get_args(target_type)
 
-            # Handle dictionary types - raise UnsupportedParameterError
+            # Handle dictionary types - raise UnsupportedParameterException
             if origin in (dict, Dict):
                 param_type = str(target_type)
                 raise UnsupportedParameterError(param_name, param_type)
@@ -226,7 +226,7 @@ class FunctionNode(Node[_TOutput]):
 
     def __init__(
         self,
-        func: Callable[[_P], Awaitable[_TOutput] | _TOutput],
+        func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput],
         *args: _P.args,
         **kwargs: _P.kwargs,
     ):
@@ -236,15 +236,15 @@ class FunctionNode(Node[_TOutput]):
         self.kwargs = kwargs
 
     async def invoke(self) -> _TOutput:
-        if asyncio.iscoroutinefunction(self.func):
-            result = await self.func(*self.args, **self.kwargs)
-        else:
-            result = asyncio.to_thread(self.func(*self.args, **self.kwargs))
+        result = self.func(*self.args, **self.kwargs)
+        if asyncio.iscoroutine(self.func):
+            await result
 
         return result
 
-    def pretty_name(self) -> str:
-        return f"Function Node - {self.__class__.__name__}({self.func.__name__})"
+    @classmethod
+    def pretty_name(cls) -> str:
+        return f"Function Node - {cls.__class__.__name__}"
 
     def tool_info(self) -> Tool:
         return Tool.from_function(self.func)

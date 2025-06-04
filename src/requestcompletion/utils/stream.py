@@ -7,8 +7,7 @@ import warnings
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import TypeVar, Generic, List, Optional, Dict
-
+from typing import TypeVar, Generic, List, Optional, Dict, Callable
 
 T = TypeVar("T")
 
@@ -25,6 +24,16 @@ class Subscriber(ABC, Generic[T]):
         will do nothing."""
 
         return NullConcreteSub
+
+
+def create_subscriber(handler: Callable[[T], None]) -> Subscriber[T]:
+    """A simple factory method that creates a concrete subscriber that will call the given handler with the item."""
+
+    class ConcreteSubscriber(Subscriber[T]):
+        def handle(self, item: T) -> None:
+            handler(item)
+
+    return ConcreteSubscriber()
 
 
 class DataStream(Generic[T]):
