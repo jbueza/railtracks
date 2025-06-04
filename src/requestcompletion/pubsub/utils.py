@@ -1,4 +1,4 @@
-from src.requestcompletion.pubsub.messages import (
+from ..pubsub.messages import (
     RequestCompletionMessage,
     RequestFinishedBase,
     RequestSuccess,
@@ -9,6 +9,7 @@ from src.requestcompletion.pubsub.messages import (
 
 
 def output_mapping(result: RequestCompletionMessage):
+    """ Maps the result of a RequestCompletionMessage to its final output."""
     assert isinstance(result, (RequestFinishedBase, FatalFailure)), (
         "Expected a RequestFinishedBase message type"
     )

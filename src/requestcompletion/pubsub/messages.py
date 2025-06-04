@@ -4,7 +4,7 @@ from abc import ABC
 
 from typing import Type, ParamSpec, Literal, TypeVar, Any
 
-from src.requestcompletion.nodes.nodes import Node, NodeState
+from ..nodes.nodes import Node, NodeState
 
 
 # RC specific imports

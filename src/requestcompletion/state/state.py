@@ -13,9 +13,9 @@ from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKIN
 from .request import Cancelled, Failure
 from ..context import register_globals, ThreadContext
 from ..execution.coordinator import Coordinator
-from src.requestcompletion.pubsub.publisher import RCPublisher
+from ..pubsub.publisher import RCPublisher
 from ..execution.task import Task
-from src.requestcompletion.pubsub.messages import (
+from ..pubsub.messages import (
     RequestCreation,
     RequestSuccess,
     RequestFinishedBase,

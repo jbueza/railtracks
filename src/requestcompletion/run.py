@@ -12,9 +12,9 @@ from src.requestcompletion.pubsub.messages import (
     RequestFinishedBase,
     FatalFailure,
 )
-from src.requestcompletion.pubsub.publisher import RCPublisher
-from src.requestcompletion.pubsub.subscriber import stream_subscriber
-from .utils.misc import output_mapping
+from .pubsub.publisher import RCPublisher
+from .pubsub.subscriber import stream_subscriber
+from .pubsub.utils import output_mapping
 from .nodes.nodes import Node
 from .utils.logging.config import prepare_logger, detach_logging_handlers
 

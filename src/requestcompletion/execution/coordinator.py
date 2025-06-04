@@ -4,7 +4,7 @@ import time
 from typing import Literal, Dict, get_args, List
 
 from .execution_strategy import TaskExecutionStrategy
-from src.requestcompletion.pubsub.messages import (
+from ..pubsub.messages import (
     RequestCompletionMessage,
     RequestFinishedBase,
     RequestSuccess,

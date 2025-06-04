@@ -8,7 +8,7 @@ from .messages import RequestCompletionMessage
 from typing import List, Callable, TypeVar, Generic, Coroutine
 
 
-from src.requestcompletion.utils.logging.create import get_rc_logger
+from ..utils.logging.create import get_rc_logger
 
 _T = TypeVar("_T")
 _TOutput = TypeVar("_TOutput")
