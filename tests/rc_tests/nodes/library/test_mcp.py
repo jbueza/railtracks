@@ -48,7 +48,7 @@ def test_from_mcp_server_with_llm():
         response = asyncio.run(runner.run(parent_tool, message_history=message_history))
 
     assert response.answer is not None
-    assert response.answer.content is not "It didn't work!"
+    assert response.answer.content != "It didn't work!"
 
 
 def test_from_mcp_server_with_http():
