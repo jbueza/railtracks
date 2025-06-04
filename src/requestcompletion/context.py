@@ -3,9 +3,8 @@ from __future__ import annotations
 import contextvars
 import warnings
 from functools import wraps
-from typing import TYPE_CHECKING
 
-from .execution.publisher import RCPublisher
+from src.requestcompletion.pubsub.publisher import RCPublisher
 
 
 config = contextvars.ContextVar("executor_config", default=None)

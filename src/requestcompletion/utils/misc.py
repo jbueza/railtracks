@@ -1,4 +1,4 @@
-from ..execution.messages import (
+from src.requestcompletion.pubsub.messages import (
     RequestCompletionMessage,
     RequestFinishedBase,
     RequestSuccess,

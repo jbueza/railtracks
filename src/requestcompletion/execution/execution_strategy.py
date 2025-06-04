@@ -7,7 +7,7 @@ import inspect
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from .messages import RequestSuccess, RequestFailure
+from src.requestcompletion.pubsub.messages import RequestSuccess, RequestFailure
 
 from ..context import get_globals, register_globals, ThreadContext
 from ..nodes.nodes import NodeState

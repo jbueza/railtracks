@@ -8,7 +8,7 @@ from .messages import RequestCompletionMessage
 from typing import List, Callable, TypeVar, Generic, Coroutine
 
 
-from ..utils.logging.create import get_rc_logger
+from src.requestcompletion.utils.logging.create import get_rc_logger
 
 _T = TypeVar("_T")
 _TOutput = TypeVar("_TOutput")
@@ -50,7 +50,6 @@ class RCPublisher(Generic[_T]):
     - Calling the shutdown method will kill the publisher forever. You will have to make a new one after.
     """
 
-    # TODO check thread safety.
     timeout = 0.001
 
     def __init__(
@@ -59,7 +58,7 @@ class RCPublisher(Generic[_T]):
         self._queue: asyncio.Queue[_T] = asyncio.Queue()
         self._subscribers: List[Subscriber[_T]] = []
 
-        self._killed = True
+        self._running = False
 
         self.pub_loop = None
 
@@ -70,7 +69,7 @@ class RCPublisher(Generic[_T]):
 
     async def start(self):
         # you must set the kill variables first or the publisher loop will early exit.
-        self._killed = False
+        self._running = True
         self.pub_loop = asyncio.create_task(
             self._published_data_loop(), name="Publisher Loop"
         )
@@ -87,7 +86,7 @@ class RCPublisher(Generic[_T]):
 
         """
         # logger.debug(f"Publishing message: {message}")
-        if self._killed:
+        if not self._running:
             raise RuntimeError("Publisher is not currently running.")
 
         await self._queue.put(message)
@@ -97,7 +96,7 @@ class RCPublisher(Generic[_T]):
         A loop designed to be run in a thread that will continuously check for new messages in the queue and trigger
         subscribers as they are received
         """
-        while not self._killed:
+        while self._running:
             try:
                 message = await asyncio.wait_for(
                     self._queue.get(), timeout=self.timeout
@@ -161,6 +160,18 @@ class RCPublisher(Generic[_T]):
         result_mapping: Callable[[_T], _TOutput] = lambda x: x,
         listener_name: str | None = None,
     ):
+        """
+        Creates a special listener object that will wait for the first message that matches the given filter.
+
+        After receiving the message it will run the result_mapping function on the message and return the result, and
+        kill the subscriber.
+
+        Args:
+            message_filter: A function that takes a message and returns True if the message should be returned.
+            result_mapping: A function that maps the message into a final result.
+            listener_name: Optional name for the listener, mainly used for debugging.
+        """
+
         async def single_listener():
             returnable_result: RequestCompletionMessage | None = None
             # we are gonna use the asyncio.event system instead of threading
@@ -191,20 +202,32 @@ class RCPublisher(Generic[_T]):
                         "Listener has been killed before receiving the correct message."
                     )
 
-            assert returnable_result is not None, (
-                "Listener should have received a message before returning."
-            )
+            assert (
+                returnable_result is not None
+            ), "Listener should have received a message before returning."
             self.unsubscribe(sub_id)
             return result_mapping(returnable_result)
 
         return await single_listener()
 
     async def shutdown(self):
-        self._killed = True
+        """
+        Shutdowns the publisher and halts the listener loop.
+
+        Note that this will work slowly, as it will wait for the current messages in the queue to be processed before
+        shutting down.
+        """
+
+        self._running = False
         await self.pub_loop
 
         return
 
+    def is_running(self) -> bool:
+        """
+        Check if the publisher is currently running.
 
-def create_publisher() -> RCPublisher:
-    return RCPublisher()
+        Returns:
+            bool: True if the publisher is running, False otherwise.
+        """
+        return self._running

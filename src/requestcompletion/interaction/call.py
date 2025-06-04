@@ -2,7 +2,7 @@ from typing import ParamSpec, Callable, TypeVar
 
 from ..run import Runner
 from ..context import get_globals
-from ..execution.messages import (
+from src.requestcompletion.pubsub.messages import (
     RequestCreation,
     RequestCompletionMessage,
     RequestFinishedBase,
