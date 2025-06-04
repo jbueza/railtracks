@@ -165,6 +165,7 @@ async def test_terminal_llm_missing_tool_details(model, encoder_system_message):
 async def test_terminal_llm_no_pretty_name_with_tool(model, encoder_system_message):
     # Test case where tool is configured but pretty_name is missing
     encoder_tool_details = "A tool used to encode text into bytes."
+
     encoder_tool_params = {
         rc.llm.Parameter("text_input", "string", "The string to encode.")
     }
