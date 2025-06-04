@@ -36,26 +36,29 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
             await runner.run(node, *args, **kwargs)
             return runner.info.answer
 
-    if context.publisher._killed:
+    if not context.publisher.is_running():
         raise NotImplementedError(
             "We do not support running rc.call after the runner has been created. Use `Runner.run` instead."
         )
 
     publisher = context.publisher
 
-    # TODO will need to create a reference here to await for that to finish
-    # first create the reference identifier
 
-    # figure out a way to wait for the completion of this request and attach the subscriber
+    # generate a unique request ID for this request. We need to hold this reference here because we will use it to
+    # filter for its completion
     request_id = RequestTemplate.generate_id()
 
     def message_filter(message: RequestCompletionMessage) -> bool:
+        """
+        Filters out the message waiting for any messages which match the request_id of the current request.
+        """
         # we want to filter and collect the message that matches this request_id
         if isinstance(message, RequestFinishedBase):
             return message.request_id == request_id
         return False
 
-    # TODO ensure we don't miss any messages here (e.g. what if the request returns really fast)
+    # note we set the listener before we publish the messages ensure that we do not miss any messages
+    # I am actually a bit worried about this logic and I think there is a chance of a bug popping up here.
     f = publisher.listener(message_filter, output_mapping)
 
     await publisher.publish(
@@ -73,6 +76,14 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
 
 
 async def stream(item: str):
+    """
+    Streams the given message
+
+    It will trigger the callback provided in the runner_config.
+
+    Args:
+        item (str): The item you want to stream.
+    """
     publisher = get_globals().publisher
 
     await publisher.publish(
