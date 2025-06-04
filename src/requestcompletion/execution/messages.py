@@ -15,13 +15,22 @@ _P = ParamSpec("_P")
 _TOutput = TypeVar("_TOutput")
 _TNode = TypeVar("_TNode", bound=Node)
 
+############### Request Completion Messages ###############
 
 class RequestCompletionMessage(ABC):
+    """
+    The base class for all messages on the request completion system.
+    """
     pass
 
 
+### Request Finished Messages ########
 # TODO add generic typing for all these types
+
 class RequestFinishedBase(RequestCompletionMessage, ABC):
+    """
+    A simple base class for all messages that pertain to a request finishing.
+    """
     def __init__(
         self,
         *,
@@ -33,6 +42,11 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
 
     @property
     def node(self) -> Node[_TOutput] | None:
+        """
+        Gets a node instance from the provided node state.
+
+        Note: this function uses the functionality of `NodeState.instantiate()`
+        """
         if self.node_state is None:
             return None
 
@@ -43,6 +57,9 @@ class RequestFinishedBase(RequestCompletionMessage, ABC):
 
 
 class RequestSuccess(RequestFinishedBase):
+    """
+    A message that indicates the succseful completion of a request.
+    """
     def __init__(
         self,
         *,
@@ -57,7 +74,45 @@ class RequestSuccess(RequestFinishedBase):
         return f"{self.__class__.__name__}(request_id={self.request_id}, node_state={self.node_state}, result={self.result})"
 
 
+
+class RequestFailure(RequestFinishedBase):
+    """
+    A message that indicates a failure in the request execution.
+    """
+    def __init__(
+        self,
+        *,
+        request_id: str,
+        node_state: NodeState[_TNode[_TOutput]] | None,
+        error: Exception,
+    ):
+        super().__init__(request_id=request_id, node_state=node_state)
+        self.error = error
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(request_id={self.request_id}, "
+            f"node_state={self.node_state}, error={self.error})"
+        )
+
+
+class RequestCreationFailure(RequestFinishedBase):
+    """
+    A special class for situations where the creation of a new request fails before it was ever able to run.
+    """
+    def __init__(self, *, request_id: str, error: Exception):
+        super().__init__(request_id=request_id, node_state=None)
+        self.error = error
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(request_id={self.request_id}, error={self.error})"
+
+####### Request Creation Messages ########
+
 class RequestCreation(RequestCompletionMessage):
+    """
+    A message that describes the creation of a new request in the system.
+    """
     def __init__(
         self,
         *,
@@ -82,35 +137,12 @@ class RequestCreation(RequestCompletionMessage):
             f"new_node_type={self.new_node_type.__name__}, args={self.args}, kwargs={self.kwargs})"
         )
 
-
-class RequestFailure(RequestFinishedBase):
-    def __init__(
-        self,
-        *,
-        request_id: str,
-        node_state: NodeState[_TNode[_TOutput]] | None,
-        error: Exception,
-    ):
-        super().__init__(request_id=request_id, node_state=node_state)
-        self.error = error
-
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}(request_id={self.request_id}, "
-            f"node_state={self.node_state}, error={self.error})"
-        )
-
-
-class RequestCreationFailure(RequestFinishedBase):
-    def __init__(self, *, request_id: str, error: Exception):
-        super().__init__(request_id=request_id, node_state=None)
-        self.error = error
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(request_id={self.request_id}, error={self.error})"
-
+##### OTHER MESSAGES #####
 
 class FatalFailure(RequestCompletionMessage):
+    """
+    A message that indicates an irrecoverable failure in the request completion system.
+    """
     def __init__(self, *, error: Exception):
         self.error = error
 
@@ -119,6 +151,9 @@ class FatalFailure(RequestCompletionMessage):
 
 
 class Streaming(RequestCompletionMessage):
+    """
+    A message that indicates a streaming operation in the request completion system.
+    """
     def __init__(self, *, streamed_object: Any, node_id: str):
         self.streamed_object = streamed_object
         self.node_id = node_id
