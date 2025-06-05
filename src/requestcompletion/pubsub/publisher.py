@@ -36,7 +36,7 @@ class Subscriber(Generic[_T]):
             if asyncio.iscoroutine(result):
                 await result
         except Exception as e:
-            logger.exception(msg=f"Error in {self.name}", exc_info=e)
+            pass
 
 
 class RCPublisher(Generic[_T]):
