@@ -33,10 +33,10 @@ from ..utils.logging.action import (
 
 if TYPE_CHECKING:
     from .. import ExecutorConfig
-from ..exceptions import FatalError
+from ..exceptions import RCFatalException
 from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..exceptions import ExecutionError
+from ..exceptions import RCNodeInvocationException
 from ..utils.profiling import Stamp
 from ..utils.logging.create import get_rc_logger
 
@@ -363,7 +363,7 @@ class RCState:
 
         if self.executor_config.end_on_error:
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionError(
+            ee = RCNodeInvocationException(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
                 final_exception=exception,
@@ -372,9 +372,9 @@ class RCState:
             return Failure(exception)
 
         # fatal exceptions should only be thrown if there is something seriously wrong.
-        if isinstance(exception, FatalError):
+        if isinstance(exception, RCFatalException):
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionError(
+            ee = RCNodeInvocationException(
                 failed_request=self._request_heap[request_id],
                 execution_info=self.info,
                 final_exception=exception,
