@@ -1,4 +1,4 @@
-from . import RCException
+from .base import RCException
 
 from ..state.request import RequestTemplate
 from ..info import ExecutionInfo

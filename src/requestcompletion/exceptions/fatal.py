@@ -1,4 +1,4 @@
-from . import RCException
+from .base import RCException
 
 
 class RCFatalException(RCException):
