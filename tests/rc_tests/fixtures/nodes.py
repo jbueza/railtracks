@@ -6,7 +6,6 @@ import random
 from enum import Enum
 from typing import List, Callable
 import requestcompletion as rc
-import requestcompletion.interaction.stream
 
 EMPHATIC_ERROR = "The Node has failed emphatically"
 
@@ -112,7 +111,7 @@ class StreamingRNGNode(RNGNode):
         self,
     ) -> float:
         response = super().invoke()
-        requestcompletion.interaction.stream.stream(self.rng_template.format(response))
+        await rc.stream(self.rng_template.format(response))
         # this sleep is important for testing
         # if the thing returns too fast, the streamer will kill before it is able to finish its process.
         # time.sleep(0.01)
@@ -128,7 +127,8 @@ class StreamingCallNode(CallNode):
                 rc.call(self.node_creator) for _ in range(self.parallel_call_num)
             ]
             response = asyncio.gather(*contracts)
-            [requestcompletion.interaction.stream.stream(r) for r in response]
+            for r in response:
+                rc.stream(r)
 
             self.data.extend([d for d in response])
 
