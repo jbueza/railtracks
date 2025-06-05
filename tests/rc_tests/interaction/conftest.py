@@ -406,7 +406,6 @@ def parallel_node(timeout_config: List[float]):
     TimeoutNode = rc.library.from_function(sleep)
 
     async def parallel_function():
-
         return await rc.batch(TimeoutNode, timeout_config)
 
     return rc.library.from_function(parallel_function)

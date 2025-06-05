@@ -49,3 +49,32 @@ def test_parallel_calls_sync(parallel_node, timeout_config, expected, buffer):
         results = runner.run_sync(parallel_node, expected=expected, buffer=buffer)
         assert abs(time.time() - start_time - expected) < buffer
         assert results.answer == timeout_config
+
+
+exc = Exception("This is a test exception")
+
+
+async def error_thrower(exception: Exception):
+    raise exception
+
+
+ErrorThrower = rc.library.from_function(error_thrower)
+
+
+async def error_thrower_top_level(num_times: int):
+    return await rc.batch(ErrorThrower, [exc] * num_times)
+
+
+@pytest.mark.asyncio
+async def test_batch_error_handling():
+    """
+    Test that batch execution handles errors correctly.
+    """
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(
+            logging_setting="NONE",
+            end_on_error=True,
+        )
+    ) as runner:
+        with pytest.raises(Exception):
+            await runner.run(ErrorThrower)
