@@ -5,7 +5,6 @@ import uuid
 from copy import deepcopy
 
 from ..llm import Tool
-
 from abc import ABC, abstractmethod, ABCMeta
 
 from typing import (
@@ -15,9 +14,7 @@ from typing import (
     ParamSpec,
     Any,
 )
-
 from typing_extensions import Self
-
 
 _TOutput = TypeVar("_TOutput")
 
@@ -26,7 +23,7 @@ _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
 
-class EnsureInvokeCoroutineMeta(ABCMeta):
+class NodeCreationMeta(ABCMeta):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
@@ -41,6 +38,21 @@ class EnsureInvokeCoroutineMeta(ABCMeta):
                     return await method(self, *args, **kwargs)
 
             setattr(cls, method_name, async_wrapper)
+
+        # Check if the class methods are all classmethods, else raise an exception
+        class_method_checklist = ["tool_info", "prepare_tool", "pretty_name"]
+        for method_name in class_method_checklist:
+            if method_name in dct and callable(dct[method_name]):
+                method = dct[method_name]
+                if not isinstance(method, classmethod):
+                    from ..exceptions import RCNodeCreationException
+                    raise RCNodeCreationException(
+                        message=f"The '{method_name}' method must be a @classmethod.",
+                        notes=[
+                            f"Add @classmethod decorator to '{method_name}'.",
+                            f"Signature should be: \n@classmethod\ndef {method_name}(cls): ..."
+                        ]
+                    )
 
 
 class NodeState(Generic[_TNode]):
@@ -63,7 +75,7 @@ class NodeState(Generic[_TNode]):
         return self.node
 
 
-class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
+class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
     """An abstract base class which defines some the functionality of a node"""
 
     def __init__(

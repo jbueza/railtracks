@@ -279,58 +279,47 @@ async def test_no_pretty_name_class_based(model, encoder_system_message):
                 )
 
     with pytest.raises(
-        RCNodeCreationException, match="elaborate error message"
+        TypeError, match="Can't instantiate abstract class Encoder_wo_pretty_name with abstract method pretty_name"
     ):
         _ = await rc.call(Encoder_wo_pretty_name, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("encoder 'hello world!'")]))
         
 
 @pytest.mark.asyncio
 async def test_tool_info_not_classmethod(model, encoder_system_message):
-    class Encoder(rc.library.TerminalLLM): 
-        def __init__(
-                self,
-                message_history: rc.llm.MessageHistory,
-                model: rc.llm.ModelBase = model,
-            ):
-                message_history = [x for x in message_history if x.role != "system"]
-                message_history.insert(0, encoder_system_message)
-                super().__init__(
-                    message_history=message_history,
-                    model=model,
+    with pytest.raises(
+        RCNodeCreationException, match="The 'tool_info' method must be a @classmethod."
+    ):
+        class Encoder(rc.library.TerminalLLM): 
+            def __init__(
+                    self,
+                    message_history: rc.llm.MessageHistory,
+                    model: rc.llm.ModelBase = model,
+                ):
+                    message_history = [x for x in message_history if x.role != "system"]
+                    message_history.insert(0, encoder_system_message)
+                    super().__init__(
+                        message_history=message_history,
+                        model=model,
+                    )
+            
+            @classmethod
+            def pretty_name(self) -> str:
+                return "Encoder Node"
+            
+            def tool_info(self) -> rc.llm.Tool:
+                return rc.llm.Tool(
+                    name="Encoder",
+                    detail="A tool used to encode text into bytes.",
+                    parameters={
+                        rc.llm.Parameter(
+                            name="text_input",
+                            param_type="string",
+                            description="The string to encode.",
+                        )
+                    },
                 )
         
-        @classmethod
-        def pretty_name(self) -> str:
-            return "Encoder Node"
-        
-        @classmethod
-        def tool_info(self) -> rc.llm.Tool:
-            return rc.llm.Tool(
-                name="Encoder",
-                detail="A tool used to encode text into bytes.",
-                parameters={
-                    rc.llm.Parameter(
-                        name="text_input",
-                        param_type="string",
-                        description="The string to encode.",
-                    )
-                },
-            )
-        
-    system_message = rc.llm.SystemMessage(
-        "You are a helful assitant. Use the encoder tool when asked to."
-    )
-    tool_call_llm = rc.library.tool_call_llm(
-        connected_nodes={Encoder},
-        model=model,
-        pretty_name="Encoder Parent",
-        system_message=system_message,
-    )
-    with pytest.raises(
-        RCNodeCreationException, match="elaborate error message"
-    ):
-        _ = await rc.call(tool_call_llm, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("encoder 'hello world!'")]))
-        
+
 
 @pytest.mark.asyncio
 async def test_duplicate_parameter_names_class_based(
@@ -358,6 +347,7 @@ async def test_duplicate_parameter_names_class_based(
         def pretty_name(self) -> str:
             return "Encoder Node"
         
+        @classmethod
         def tool_info(self) -> rc.llm.Tool:
             return rc.llm.Tool(
                 name="Encoder",

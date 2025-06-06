@@ -7,8 +7,8 @@ from .execution import RCNodeInvocationException, RCGlobalTimeOutException, RCLL
 __all__ = [
     "RCException",
     "RCFatalException",
+    "RCNodeCreationException",
     "RCNodeInvocationException",
     "RCGlobalTimeOutException",
     "RCLLMException",
-    "RCNodeCreationException",
 ]
