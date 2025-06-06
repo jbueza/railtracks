@@ -26,7 +26,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
         message_history: MessageHistory,
         model: ModelBase,
-        max_tool_calls: int = 10,
+        max_tool_calls: int = 20,
     ):
         super().__init__()
         self.model = model
