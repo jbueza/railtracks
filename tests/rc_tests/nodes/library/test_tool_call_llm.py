@@ -93,6 +93,7 @@ async def test_structured_with_tool_calls(
                 )
             ]
         )
+
         response = await runner.run(
             travel_planner_node, message_history=message_history
         )
