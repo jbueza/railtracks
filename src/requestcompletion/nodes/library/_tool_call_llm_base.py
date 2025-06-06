@@ -41,6 +41,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
         This function may be overwritten to fit the needs of the given node as needed.
         """
+        print(f"Creating node for tool: {tool_name} with arguments: {arguments}")
         node = [x for x in self.connected_nodes() if x.tool_info().name == tool_name]
         if node == []:
             raise RuntimeError(f"Tool {tool_name} cannot be create a node")
@@ -72,15 +73,15 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     assert all(
                         isinstance(x, ToolCall) for x in returned_mess.message.content
                     )
-                    contracts = [
-                        call(
-                            lambda arguments: self.create_node(
-                                tool_name=t_c.name, arguments=arguments
-                            ),
+
+                    contracts = []
+                    for t_c in returned_mess.message.content:
+                        contract = call(
+                            self.create_node,
+                            t_c.name,
                             t_c.arguments,
                         )
-                        for t_c in returned_mess.message.content
-                    ]
+                        contracts.append(contract)
 
                     tool_responses = await asyncio.gather(
                         *contracts, return_exceptions=True
@@ -108,8 +109,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                                 )
                             )
                         )
-
-                elif returned_mess.message.content is not None:
+                else:
                     # this means the tool call is finished
                     break
             else:
