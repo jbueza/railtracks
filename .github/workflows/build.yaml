@@ -46,4 +46,4 @@ jobs:
         run: |
           export OPENAI_API_KEY=${{ secrets.INTEGRATION_TESTS_OPENAI_API_KEY }}
           pip install pytest-timeout
-          pytest -s -v --junit-xml=test-results.xml --timeout==200
+          pytest -s -v --junit-xml=test-results.xml --timeout=200
