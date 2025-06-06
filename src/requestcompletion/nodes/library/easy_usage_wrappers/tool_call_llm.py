@@ -45,7 +45,7 @@ def tool_call_llm(  # noqa: C901
         raise NotImplementedError(
             "MessageHistory output type is not supported with output_model at the moment."
         )
-    
+
     # If a function is passed in, we will convert it to a node
     for elem in connected_nodes:
         if isclass(elem):
