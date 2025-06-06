@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     name: Build and Test
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,4 +45,4 @@ jobs:
         shell: bash
         run: |
           export OPENAI_API_KEY=${{ secrets.INTEGRATION_TESTS_OPENAI_API_KEY }}
-          pytest -s -v --junit-xml=test-results.xml
+          pytest -s -v --junit-xml=test-results.xml --timeout==200
