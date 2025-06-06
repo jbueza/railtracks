@@ -121,14 +121,14 @@ class StreamingRNGNode(RNGNode):
 class StreamingCallNode(CallNode):
     call_template_call = "Creating Call with type {0}"
 
-    def invoke(self):
+    async def invoke(self):
         for _ in range(self.number_of_calls):
             contracts = [
                 rc.call(self.node_creator) for _ in range(self.parallel_call_num)
             ]
-            response = asyncio.gather(*contracts)
+            response = await asyncio.gather(*contracts)
             for r in response:
-                rc.stream(r)
+                await rc.stream(r)
 
             self.data.extend([d for d in response])
 
