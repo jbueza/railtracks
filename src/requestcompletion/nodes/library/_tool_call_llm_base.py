@@ -26,7 +26,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
         message_history: MessageHistory,
         model: ModelBase,
-        max_tool_calls: int = 20,
+        max_tool_calls: int = 10,
     ):
         super().__init__()
         self.model = model
@@ -64,7 +64,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         while True:
             # special check for maximum tool calls
             if (
-                len([isinstance(m, ToolResponse) for m in self.message_hist])
+                len([m for m in self.message_hist if isinstance(m, ToolMessage)])
                 >= self.max_tool_calls
             ):
                 raise RuntimeError(
