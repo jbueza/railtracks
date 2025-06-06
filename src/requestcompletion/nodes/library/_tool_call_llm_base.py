@@ -26,11 +26,13 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
         message_history: MessageHistory,
         model: ModelBase,
+        max_tool_calls: int = 10,
     ):
         super().__init__()
         self.model = model
         self.message_hist = deepcopy(message_history)
         self.structured_resp_node = None  # The structured LLM node
+        self.max_tool_calls = max_tool_calls
 
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
@@ -61,6 +63,15 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
     ) -> _T:
         while True:
+            # special check for maximum tool calls
+            if (
+                len([isinstance(m, ToolResponse) for m in self.message_hist])
+                >= self.max_tool_calls
+            ):
+                raise RuntimeError(
+                    f"Maximum number of tool calls ({self.max_tool_calls}) exceeded."
+                )
+
             # collect the response from the model
             returned_mess = self.model.chat_with_tools(
                 self.message_hist, tools=self.tools()
