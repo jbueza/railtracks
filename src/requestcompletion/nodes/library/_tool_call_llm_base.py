@@ -43,7 +43,6 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
         This function may be overwritten to fit the needs of the given node as needed.
         """
-        print(f"Creating node for tool: {tool_name} with arguments: {arguments}")
         node = [x for x in self.connected_nodes() if x.tool_info().name == tool_name]
         if node == []:
             raise RuntimeError(f"Tool {tool_name} cannot be create a node")
