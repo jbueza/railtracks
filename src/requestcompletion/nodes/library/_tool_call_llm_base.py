@@ -68,7 +68,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 >= self.max_tool_calls
             ):
                 raise RuntimeError(
-                    f"Maximum number of tool calls ({self.max_tool_calls}) exceeded."
+                    f"Maximum number of tool calls ({self.max_tool_calls}) exceeded.\nMessage History:\n{self.message_hist}"
                 )
 
             # collect the response from the model
