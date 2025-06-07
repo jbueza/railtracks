@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 import threading
 import time
 import webbrowser
@@ -8,7 +10,8 @@ from typing import Any, Dict
 from urllib.parse import urlparse, parse_qs
 
 import httpx
-from typing_extensions import Self
+from mcp.server import FastMCP
+from typing_extensions import Self, List
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.auth import OAuthClientProvider, TokenStorage
@@ -20,6 +23,7 @@ from mcp.client.sse import sse_client
 from pydantic import BaseModel
 from ..llm import Tool
 from ..nodes.nodes import Node
+import requestcompletion as rc
 
 
 try:
@@ -335,3 +339,56 @@ class CallbackServer:
     def get_state(self):
         """Get the received state parameter."""
         return self.callback_data["state"]
+
+
+def create_mcp_server(nodes: List[Node], server_name: str = "MCP Server") -> Any:
+    """
+    Create an MCP server that can be used to run MCP tools.
+
+    Args:
+        nodes: List of Node instances to be registered with the MCP server.
+
+    Returns:
+        An MCP server instance.
+    """
+
+    mcp = FastMCP(server_name)
+
+    def create_tool_function(node_cls: Node, node_info):
+        params = []
+        args_doc = []
+        for p in node_info.parameters:
+            if p.required:
+                params.append(inspect.Parameter(p.name, inspect.Parameter.POSITIONAL_OR_KEYWORD))
+            else:
+                params.append(inspect.Parameter(p.name, inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None))
+
+            args_doc.append(f"    {p.name} ({p.param_type}): {p.description}")
+
+        docstring = f"""
+            Auto-generated tool function.
+
+            Args:
+        {chr(10).join(args_doc)}
+            """
+
+        def tool_function(**kwargs):
+            with rc.Runner(
+                    executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
+            ) as runner:
+                response = asyncio.run(runner.run(node_cls, **kwargs))
+                return response.answer
+
+        tool_function.__signature__ = inspect.Signature(params)
+        tool_function.__doc__ = docstring
+        return tool_function
+
+    for node in nodes:
+        node_info = node.tool_info()
+        func = create_tool_function(node, node_info)
+        mcp.tool(
+            name=node_info.name,
+            description=node_info.detail,
+        )(func)
+
+    return mcp

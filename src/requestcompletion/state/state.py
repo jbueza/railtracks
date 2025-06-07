@@ -281,7 +281,7 @@ class RCState:
             )
 
         parent_node_name = (
-            self._node_heap.id_type_mapping[parent_node]
+            self._node_heap.id_type_mapping[parent_node].pretty_name()
             if parent_node is not None
             else "START"
         )
@@ -296,7 +296,7 @@ class RCState:
                 input_kwargs,
                 [
                     stamp_gen(
-                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n]}"
+                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n].pretty_name()}"
                     )
                     for n in children
                 ],
