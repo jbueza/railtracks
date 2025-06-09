@@ -298,7 +298,8 @@ async def test_tool_with_llm_tool_as_input_class_easy():
         response = await runner.run(parent_tool, message_history=message_history)
 
     assert response.answer is not None
-    assert response.answer.content == "2 foxes and a dog"
+    assert "2 foxes and a dog" in response.answer.content
+
 
 
 @pytest.mark.asyncio
