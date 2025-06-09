@@ -154,3 +154,22 @@ def test_multiple_runs():
         assert 0 < result.answer < 1
         with pytest.raises(RuntimeError):
             run.run_sync(RNGNode)
+
+
+async def timeout_node(timeout_len: float):
+    """
+    A node that sleeps for the given timeout length.
+    """
+    await asyncio.sleep(timeout_len)
+    return timeout_len
+
+
+TimeoutNode = rc.library.from_function(timeout_node)
+
+
+def test_timeout():
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=0.1)
+    ) as run:
+        with pytest.raises(rc.exceptions.execution.GlobalTimeOutError):
+            run.run_sync(TimeoutNode, 0.3)
