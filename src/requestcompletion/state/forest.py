@@ -128,16 +128,16 @@ class Forest(Generic[T]):
         """
         with self._lock:
             if item.identifier in self._heap:
-                assert (
-                    item.parent == self._heap[item.identifier]
-                ), "The parent of the inserted item must be currently pointed to"
-                assert (
-                    item.stamp.step > self._heap[item.identifier].stamp.step
-                ), "The step must be greater than the current"
+                assert item.parent == self._heap[item.identifier], (
+                    "The parent of the inserted item must be currently pointed to"
+                )
+                assert item.stamp.step > self._heap[item.identifier].stamp.step, (
+                    "The step must be greater than the current"
+                )
             else:
-                assert (
-                    item.parent is None
-                ), "The parent of an item not present in the heap must be None"
+                assert item.parent is None, (
+                    "The parent of an item not present in the heap must be None"
+                )
 
             self._heap[item.identifier] = item
             self._full_data.append(item)

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextvars
 import warnings
-from functools import wraps
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

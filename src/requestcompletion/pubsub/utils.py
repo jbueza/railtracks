@@ -10,9 +10,9 @@ from ..pubsub.messages import (
 
 def output_mapping(result: RequestCompletionMessage):
     """Maps the result of a RequestCompletionMessage to its final output."""
-    assert isinstance(
-        result, (RequestFinishedBase, FatalFailure)
-    ), "Expected a RequestFinishedBase message type"
+    assert isinstance(result, (RequestFinishedBase, FatalFailure)), (
+        "Expected a RequestFinishedBase message type"
+    )
     result: RequestFinishedBase
     if isinstance(result, RequestSuccess):
         result: RequestSuccess
