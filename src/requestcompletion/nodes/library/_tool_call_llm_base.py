@@ -75,6 +75,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
             returned_mess = self.model.chat_with_tools(
                 self.message_hist, tools=self.tools()
             )
+
             self.message_hist.append(returned_mess.message)
 
             if returned_mess.message.role == "assistant":
