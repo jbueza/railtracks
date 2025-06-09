@@ -30,6 +30,7 @@ def tool_call_llm(  # noqa: C901
     output_model: BaseModel | None = None,
     tool_details: str | None = None,
     tool_params: dict | None = None,
+    max_tool_calls: int | None = None,
 ) -> Type[OutputLessToolCallLLM[Union[MessageHistory, AssistantMessage, BaseModel]]]:
     if output_model:
         OutputType = output_model  # noqa: N806
@@ -98,6 +99,12 @@ def tool_call_llm(  # noqa: C901
 
         def connected_nodes(self) -> Set[Type[Node]]:
             return connected_nodes
+
+        @classmethod
+        def default_max_tool_calls(cls) -> int:
+            if max_tool_calls is None:
+                return super().default_max_tool_calls()
+            return max_tool_calls
 
         @classmethod
         def pretty_name(cls) -> str:
