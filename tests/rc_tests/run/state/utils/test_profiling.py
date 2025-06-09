@@ -1,6 +1,6 @@
 import time
 
-from requestcompletion.utils.profiling import StampManager
+from requestcompletion.utils.profiling import StampManager, Stamp
 
 
 def test_single_stamper():
@@ -12,6 +12,11 @@ def test_single_stamper():
     assert stamp.step == 0
     assert stamp.identifier == message
     assert t <= stamp.time <= time.time()
+
+    logs = sm.step_logs
+    assert len(logs) == 1
+    assert logs[0] == [message]
+    assert sm.all_stamps[0].identifier == message
 
 
 def test_multi_stamp():
@@ -117,3 +122,21 @@ def test_combo():
     assert uno.time <= dos.time
     assert dos.time <= singleton.time
     assert singleton.time <= tres.time
+
+
+def test_save_state():
+    sm = StampManager()
+
+    stamp_gen_1 = sm.stamp_creator()
+
+    uno = stamp_gen_1("1")
+
+    state = sm.__getstate__()
+    assert "_stamp_lock" not in state
+    sm2 = StampManager()
+    sm2.__setstate__(state)
+
+    duo = sm2.create_stamp("2")
+
+    assert duo.step == 1
+    assert uno.step == 0

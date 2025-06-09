@@ -44,3 +44,14 @@ class ToolResponse(BaseModel):
 
 
 Content = Union[str, List[ToolCall], ToolResponse, BaseModel]
+
+
+def stringify_content(content: Content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return ", ".join([str(x) for x in content])
+    if isinstance(content, ToolResponse):
+        return str(content)
+    if isinstance(content, BaseModel):
+        return content.model_dump_json()

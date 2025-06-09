@@ -109,7 +109,7 @@ class Forest(Generic[T]):
             raise TypeError(f"Expected a string but got {type(identifier)}")
         return self._heap[identifier]
 
-    def __contains__(self, item):
+    def __contains__(self, item: str):
         return item in self._heap
 
     def _update_heap(self, item: T):
@@ -131,6 +131,9 @@ class Forest(Generic[T]):
                 assert (
                     item.parent == self._heap[item.identifier]
                 ), "The parent of the inserted item must be currently pointed to"
+                assert (
+                    item.stamp.step > self._heap[item.identifier].stamp.step
+                ), "The step must be greater than the current"
             else:
                 assert (
                     item.parent is None

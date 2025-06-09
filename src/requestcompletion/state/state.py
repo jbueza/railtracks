@@ -296,7 +296,7 @@ class RCState:
                 input_kwargs,
                 [
                     stamp_gen(
-                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n]}"
+                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n].pretty_name()}"
                     )
                     for n in children
                 ],
