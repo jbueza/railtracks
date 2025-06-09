@@ -3,13 +3,14 @@ import time
 import asyncio
 
 import requestcompletion as rc
+import requestcompletion.interaction.stream
 
 from requestcompletion import ExecutorConfig
 
 
 async def streaming_rng():
     number = random.random()
-    await rc.stream(str(number))
+    await requestcompletion.interaction.stream.stream(str(number))
 
     return number
 
@@ -66,7 +67,7 @@ async def rng_tree_streamer(num_calls: int, parallel_call_nums: int, multiplier:
         responses = await asyncio.gather(*contracts)
         responses = [r * multiplier for r in responses]
         for r in responses:
-            await rc.stream(str(r))
+            await requestcompletion.interaction.stream.stream(str(r))
 
         data.extend(responses)
 
