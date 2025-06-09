@@ -71,7 +71,6 @@ class Runner:
 
     def __init__(
         self,
-        subscriber: Callable[[str], None] = None,
         executor_config: ExecutorConfig = None,
     ):
         # first lets read from defaults if nessecary for the provided input config
@@ -80,15 +79,10 @@ class Runner:
             if saved_config is None:
                 executor_config = ExecutorConfig()
             else:
-                print(f"Using saved executor config {saved_config.end_on_error}")
                 executor_config = saved_config
 
-        if subscriber is None:
-            saved_subscriber = streamer.get()
-            if saved_subscriber is None:
-                subscriber = None
-            else:
-                subscriber = saved_subscriber
+        self.executor_config = executor_config
+
 
         # TODO see issue about logger
         prepare_logger(
@@ -105,7 +99,6 @@ class Runner:
         self.rc_state = RCState(
             executor_info, executor_config, self.coordinator, self.publisher
         )
-        self.subscriber = subscriber
 
     def __enter__(self):
         return self
@@ -127,9 +120,9 @@ class Runner:
         Prepares and attaches the saved subscriber to the publisher attached to this runner.
         """
 
-        if self.subscriber is not None:
+        if self.executor_config.subscriber is not None:
             self.publisher.subscribe(
-                stream_subscriber(self.subscriber), name="Streaming Subscriber"
+                stream_subscriber(self.executor_config.subscriber), name="Streaming Subscriber"
             )
 
     async def _run_base(
