@@ -4,6 +4,7 @@ from typing import TypeVar, ParamSpec, Callable
 
 
 from .config import ExecutorConfig
+from .exceptions import GlobalTimeOutError
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
 from .pubsub.messages import (
@@ -161,10 +162,13 @@ class Runner:
                 kwargs=kwargs,
             )
         )
+        try:
+            result = await asyncio.wait_for(fut, timeout=self.executor_config.timeout)
+        except:
+            raise GlobalTimeOutError(timeout=self.executor_config.timeout)
+        finally:
+            await self.publisher.shutdown()
 
-        result = await fut
-
-        await self.publisher.shutdown()
         return result
 
     def run_sync(
