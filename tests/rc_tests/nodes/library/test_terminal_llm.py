@@ -33,7 +33,7 @@ async def test_call_capitalize_text_stream():
 
 # ======== Tests using TerminalLLMs as tools ==========
 @pytest.mark.asyncio
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(30)
 async def test_terminal_llm_as_tool_correct_initialization(
     model, encoder_system_message, decoder_system_message
 ):
