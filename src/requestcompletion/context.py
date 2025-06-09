@@ -5,12 +5,15 @@ import warnings
 from functools import wraps
 from typing import TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     from .pubsub.publisher import RCPublisher
+    from .config import ExecutorConfig
 
 
-config = contextvars.ContextVar("executor_config", default=None)
-streamer = contextvars.ContextVar("data_streamer", default=None)
+config: contextvars.ContextVar[ExecutorConfig | None] = contextvars.ContextVar(
+    "executor_config", default=None
+)
 thread_context: contextvars.ContextVar[ThreadContext | None] = contextvars.ContextVar(
     "thread_context", default=None
 )

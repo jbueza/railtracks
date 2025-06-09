@@ -34,4 +34,3 @@ class ExecutorConfig:
         self.end_on_error = end_on_error
         self.logging_setting = logging_setting
         self.subscriber = subscriber
-

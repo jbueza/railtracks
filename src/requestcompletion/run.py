@@ -25,7 +25,6 @@ from .info import (
 from .state.state import RCState
 
 from .context import (
-    streamer,
     config,
     register_globals,
     ThreadContext,
@@ -83,7 +82,6 @@ class Runner:
 
         self.executor_config = executor_config
 
-
         # TODO see issue about logger
         prepare_logger(
             setting=executor_config.logging_setting,
@@ -122,7 +120,8 @@ class Runner:
 
         if self.executor_config.subscriber is not None:
             self.publisher.subscribe(
-                stream_subscriber(self.executor_config.subscriber), name="Streaming Subscriber"
+                stream_subscriber(self.executor_config.subscriber),
+                name="Streaming Subscriber",
             )
 
     async def _run_base(
@@ -249,4 +248,6 @@ def set_streamer(subscriber: Callable[[str], None]):
             "The data streamer is being set after the runner has been created, changes will not be propagated to the current runner"
         )
 
-    streamer.set(subscriber)
+    executor_config = config.get()
+    executor_config.subscriber = subscriber
+    config.set(executor_config)
