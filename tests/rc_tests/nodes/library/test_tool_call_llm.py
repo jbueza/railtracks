@@ -301,7 +301,6 @@ async def test_tool_with_llm_tool_as_input_class_easy():
     assert "2 foxes and a dog" in response.answer.content
 
 
-
 @pytest.mark.asyncio
 @pytest.mark.skip("Skipping test due to stochastic LLM failures.")
 async def test_tool_with_llm_tool_as_input_easy_class():
