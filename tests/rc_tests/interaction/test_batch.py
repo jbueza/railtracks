@@ -21,7 +21,6 @@ async def test_parallel_calls(parallel_node, timeout_config, expected, buffer):
     with rc.Runner(
         executor_config=rc.ExecutorConfig(
             logging_setting="NONE",
-            timeout=10,
         ),
     ) as runner:
         start_time = time.time()

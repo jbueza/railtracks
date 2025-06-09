@@ -164,7 +164,7 @@ class Runner:
         )
         try:
             result = await asyncio.wait_for(fut, timeout=self.executor_config.timeout)
-        except:
+        except asyncio.TimeoutError:
             raise GlobalTimeOutError(timeout=self.executor_config.timeout)
         finally:
             await self.publisher.shutdown()
