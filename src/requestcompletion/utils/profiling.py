@@ -7,16 +7,6 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List
 
 
-def time_diff(st1: Stamp, st2: Stamp):
-    """
-    Finds the time difference between a pair of stamps.
-
-    Returns:
-        float: The time difference between the pair of stamps in seconds.
-    """
-    return st2.time - st1.time
-
-
 @dataclass
 class Stamp:
     """
@@ -111,10 +101,8 @@ class StampManager:
         return deepcopy(self._step_logs)
 
     @property
-    def all_stamps(self, ordered=True):
+    def all_stamps(self):
         """Returns a list of the all the stamps that have been created in the system."""
-        if ordered:
-            return deepcopy(sorted(self._stamps))
         return deepcopy(self._stamps)
 
     def __getstate__(self):

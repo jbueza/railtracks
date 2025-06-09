@@ -128,13 +128,13 @@ class Forest(Generic[T]):
         """
         with self._lock:
             if item.identifier in self._heap:
-                assert item.parent == self._heap[item.identifier], (
-                    "The parent of the inserted item must be currently pointed to"
-                )
+                assert (
+                    item.parent == self._heap[item.identifier]
+                ), "The parent of the inserted item must be currently pointed to"
             else:
-                assert item.parent is None, (
-                    "The parent of an item not present in the heap must be None"
-                )
+                assert (
+                    item.parent is None
+                ), "The parent of an item not present in the heap must be None"
 
             self._heap[item.identifier] = item
             self._full_data.append(item)
@@ -176,16 +176,3 @@ class Forest(Generic[T]):
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lock = threading.RLock()
-
-
-if __name__ == "__main__":
-    import time
-    import pickle
-
-    h = Forest()
-    h._update_heap(
-        AbstractLinkedObject(
-            "1", Stamp(time=time.time(), step=1, identifier="hello world"), None
-        )
-    )
-    print(pickle.dumps(h))

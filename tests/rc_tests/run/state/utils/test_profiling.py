@@ -90,6 +90,9 @@ def test_two_parallel_stamps():
     assert dos_2.time <= tres_1.time
     assert tres_1.time <= tres_2.time
 
+    assert uno_1 < uno_2
+    assert dos_1 < dos_2
+
 
 def test_combo():
     sm = StampManager()
