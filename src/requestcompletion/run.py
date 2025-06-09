@@ -1,7 +1,7 @@
 import asyncio
 import warnings
-from typing import TypeVar, ParamSpec, Callable
-
+from collections import namedtuple
+from typing import TypeVar, ParamSpec, Callable, Coroutine
 
 from .config import ExecutorConfig
 from .exceptions import GlobalTimeOutError
@@ -162,9 +162,29 @@ class Runner:
                 kwargs=kwargs,
             )
         )
+
+        # there is a really funny edge case that we need to handle here to prevent if the user itself throws an timeout
+        #  exception. It should be handled differently then the global timeout exception.
+        #  Yes I am aware that is a bit of a hack but this is the best way to handle this specific case.
+        timeout_exception_flag = {"value": False}
+
+        async def wrapped_fut(f: Coroutine):
+            try:
+                return await f
+            except asyncio.TimeoutError as error:
+                timeout_exception_flag["value"] = True
+                raise error
+
         try:
-            result = await asyncio.wait_for(fut, timeout=self.executor_config.timeout)
-        except asyncio.TimeoutError:
+            result = await asyncio.wait_for(
+                wrapped_fut(fut), timeout=self.executor_config.timeout
+            )
+        except asyncio.TimeoutError as e:
+            # if the internal flag is set then the coroutine itself raised a timeout error and it was not the wait
+            #  for function.
+            if timeout_exception_flag["value"]:
+                raise e
+
             raise GlobalTimeOutError(timeout=self.executor_config.timeout)
         finally:
             await self.publisher.shutdown()

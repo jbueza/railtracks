@@ -173,3 +173,18 @@ def test_timeout():
     ) as run:
         with pytest.raises(rc.exceptions.execution.GlobalTimeOutError):
             run.run_sync(TimeoutNode, 0.3)
+
+
+async def timeout_thrower():
+    raise asyncio.TimeoutError("Test timeout error")
+
+
+TimeoutThrower = rc.library.from_function(timeout_thrower)
+
+
+def test_timeout_thrower():
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
+        try:
+            result = run.run_sync(TimeoutThrower)
+        except Exception as e:
+            assert isinstance(e, asyncio.TimeoutError)
