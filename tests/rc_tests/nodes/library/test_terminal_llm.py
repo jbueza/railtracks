@@ -88,9 +88,7 @@ async def test_terminal_llm_as_tool_correct_initialization(
         system_message=system_randomizer,
     )
 
-    with rc.Runner(
-        executor_config=rc.ExecutorConfig(logging_setting="NONE")
-    ) as runner:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
         message_history = rc.llm.MessageHistory(
             [rc.llm.UserMessage("The input string is 'hello world'")]
         )
@@ -223,7 +221,8 @@ async def test_terminal_llm_tool_with_invalid_parameters(model, encoder_system_m
         response = await runner.run(tool_call_llm, message_history=message_history)
         # Check that there was an error running the tool
         assert any(
-            message.role == "tool" and "There was an error running the tool" in message.content.result
+            message.role == "tool"
+            and "There was an error running the tool" in message.content.result
             for message in response.answer
         )
 
