@@ -91,60 +91,38 @@ async def test_terminal_llm_missing_tool_details_easy_usage(model, encoder_syste
         rc.llm.Parameter("text_input", "string", "The string to encode.")
     }
 
-    
-    encoder_wo_tool_details = rc.library.terminal_llm(
-        pretty_name="Encoder",
-        system_message=encoder_system_message,
-        model=model,
-        tool_params=encoder_tool_params,  # Intentionally omitting tool_details
-    )
-    system_message = rc.llm.SystemMessage(
-        "You are a helful assitant. Use the encoder tool when asked to."
-    )
-    tool_call_llm = rc.library.tool_call_llm(
-        connected_nodes={encoder_wo_tool_details},
-        model=model,
-        pretty_name="Encoder Parent",
-        system_message=system_message,
-    )
-
     with pytest.raises(
-        RCNodeCreationException, match="elaborate error message"
+        RCNodeCreationException, match="Tool parameters provided but no tool details provided."
     ):
-        _ = await rc.call(tool_call_llm, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("encoder 'hello world!'")]))
+        encoder_wo_tool_details = rc.library.terminal_llm(
+            pretty_name="Encoder",
+            system_message=encoder_system_message,
+            model=model,
+            tool_params=encoder_tool_params,  # Intentionally omitting tool_details
+        )
         
 
 
 @pytest.mark.asyncio
 async def test_terminal_llm_no_pretty_name_with_tool_easy_usage(model, encoder_system_message):
     # Test case where tool is configured but pretty_name is missing
-    encoder_tool_details = "A tool used to encode text into bytes."
-
-    encoder_tool_params = {
-        rc.llm.Parameter("text_input", "string", "The string to encode.")
-    }
-    encoder_wo_pretty_name = rc.library.terminal_llm(
-            # Intentionally omitting pretty_name
-            system_message=encoder_system_message,
-            model=model,
-            tool_details=encoder_tool_details,
-            tool_params=encoder_tool_params,
-        )
-    system_message = rc.llm.SystemMessage(
-        "You are a helful assitant. Use the encoder tool when asked to."
-    )
-    tool_call_llm = rc.library.tool_call_llm(
-        connected_nodes={encoder_wo_pretty_name},
-        model=model,
-        pretty_name="Encoder Parent",
-        system_message=system_message,
-    )
-
+    
     with pytest.raises(
-        RCNodeCreationException, match="elaborate error message"
+        RCNodeCreationException, match="You must provide a pretty_name when using TerminalLLM as a tool"
     ):
-        _ = await rc.call(tool_call_llm, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("encoder 'hello world!'")]))
-        
+        encoder_tool_details = "A tool used to encode text into bytes."
+
+        encoder_tool_params = {
+            rc.llm.Parameter("text_input", "string", "The string to encode.")
+        }
+        encoder_wo_pretty_name = rc.library.terminal_llm(
+                # Intentionally omitting pretty_name
+                system_message=encoder_system_message,
+                model=model,
+                tool_details=encoder_tool_details,
+                tool_params=encoder_tool_params,
+            )
+
 
 
 @pytest.mark.timeout(30)
@@ -196,8 +174,8 @@ async def test_terminal_llm_tool_empty_parameters_easy_usage(model, encoder_syst
     encoder_tool_params = set()  # Empty set
 
     with pytest.raises(
-        RuntimeError,
-        match="elaborate error message",
+        RCNodeCreationException,
+        match="If you want no params for the tool, tool_params must be set to None.",
     ):
         encoder = rc.library.terminal_llm(
             pretty_name="EmptyParamEncoder",
@@ -219,26 +197,16 @@ async def test_terminal_llm_tool_duplicate_parameter_names_easy_usage(
         rc.llm.Parameter("text_input", "string", "Duplicate parameter name."),
     }
 
-    encoder_w_duplicate_param = rc.library.terminal_llm(
-        pretty_name="Encoder",
-        system_message=encoder_system_message,
-        model=model,
-        tool_details=encoder_tool_details,
-        tool_params=encoder_tool_params,
-    )
-    system_message = rc.llm.SystemMessage(
-        "You are a helful assitant. Use the encoder tool when asked to."
-    )
-    tool_call_llm = rc.library.tool_call_llm(
-        connected_nodes={encoder_w_duplicate_param},
-        model=model,
-        pretty_name="Encoder Parent",
-        system_message=system_message,
-    )
     with pytest.raises(
-        RCNodeCreationException, match="elaborate error message"
+        RCNodeCreationException, match="Duplicate parameter names are not allowed."
     ):
-        _ = await rc.call(tool_call_llm, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("encoder 'hello world!'")]))
+       encoder_w_duplicate_param = rc.library.terminal_llm(
+            pretty_name="Encoder",
+            system_message=encoder_system_message,
+            model=model,
+            tool_details=encoder_tool_details,
+            tool_params=encoder_tool_params,
+        )
 # =================== END Easy Usage Node Creation ===================
 # =================== START Class Based Node Creation ===================
 @pytest.mark.asyncio
@@ -319,54 +287,6 @@ async def test_tool_info_not_classmethod(model, encoder_system_message):
                     },
                 )
         
-
-
-@pytest.mark.asyncio
-async def test_duplicate_parameter_names_class_based(
-    model, encoder_system_message
-):
-    encoder_tool_params = {
-        rc.llm.Parameter("text_input", "string", "The string to encode."),
-        rc.llm.Parameter("text_input", "string", "Duplicate parameter name."),
-    }
-
-    class Encoder(rc.library.TerminalLLM): 
-        def __init__(
-                self,
-                message_history: rc.llm.MessageHistory,
-                model: rc.llm.ModelBase = model,
-            ):
-                message_history = [x for x in message_history if x.role != "system"]
-                message_history.insert(0, encoder_system_message)
-                super().__init__(
-                    message_history=message_history,
-                    model=model,
-                )
-        
-        @classmethod
-        def pretty_name(self) -> str:
-            return "Encoder Node"
-        
-        @classmethod
-        def tool_info(self) -> rc.llm.Tool:
-            return rc.llm.Tool(
-                name="Encoder",
-                detail="A tool used to encode text into bytes.",
-                parameters=encoder_tool_params,
-            )
-    system_message = rc.llm.SystemMessage(
-        "You are a helful assitant. Use the encoder tool when asked to."
-    )
-    tool_call_llm = rc.library.tool_call_llm(
-        connected_nodes={Encoder},
-        model=model,
-        pretty_name="Encoder Parent",
-        system_message=system_message,
-    )
-    with pytest.raises(
-        RCNodeCreationException, match="elaborate error message"
-    ):
-        _ = await rc.call(tool_call_llm, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("encoder 'hello world!'")]))
 # =================== END Class Based Node Creation ===================
 # ================================================ END terminal_llm Exception testing ===========================================================
 

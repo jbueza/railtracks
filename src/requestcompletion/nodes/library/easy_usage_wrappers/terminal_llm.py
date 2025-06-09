@@ -4,6 +4,7 @@ from ..terminal_llm import TerminalLLM
 from ....llm import MessageHistory, ModelBase, SystemMessage, UserMessage
 from ....llm.tools import Parameter, Tool
 from copy import deepcopy
+from ....exceptions import RCNodeCreationException, RCNodeInvocationException
 
 
 def terminal_llm(  # noqa: C901
@@ -40,7 +41,7 @@ def terminal_llm(  # noqa: C901
             else:
                 if model is None:
                     raise RuntimeError(
-                        "You Must provide a model to the TerminalLLM class"
+                        "You MUST provide an LLM model to the TerminalLLM class"
                     )
                 llm_model = model
 
@@ -49,10 +50,6 @@ def terminal_llm(  # noqa: C901
         @classmethod
         def pretty_name(cls) -> str:
             if pretty_name is None:
-                if tool_details:  # at this point if tool_details is not None, then terminal_llm is being used as a tool
-                    raise RuntimeError(
-                        "You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
-                    )
                 return "TerminalLLM"
             else:
                 return pretty_name
@@ -78,9 +75,12 @@ def terminal_llm(  # noqa: C901
                 return cls(message_hist)
 
     if tool_params and not tool_details:
-        raise RuntimeError("Tool parameters provided but no tool details provided.")
+        raise RCNodeCreationException(
+            "Tool parameters provided but no tool details provided.",
+            notes=["If you want to use TerminalLLM as a tool, you must provide tool details."],
+        )
     elif tool_details and tool_params is not None and len(tool_params) == 0:
-        raise RuntimeError(
+        raise RCNodeCreationException(
             "If you want no params for the tool, tool_params must be set to None."
         )
     elif (
@@ -88,6 +88,13 @@ def terminal_llm(  # noqa: C901
         and tool_params
         and len([x.name for x in tool_params]) != len({x.name for x in tool_params})
     ):
-        raise ValueError("Duplicate parameter names are not allowed")
+        raise RCNodeCreationException(
+            message="Duplicate parameter names are not allowed.",
+            notes=["Parameter names in tool_params must be unique."],
+        )
+    elif pretty_name is None and tool_details:
+        raise RCNodeCreationException(
+            "You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
+        )
 
     return TerminalLLMNode
