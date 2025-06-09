@@ -2,7 +2,7 @@ import concurrent.futures
 import random
 
 
-from src.requestcompletion.llm import (
+from requestcompletion.llm import (
     AssistantMessage,
     MessageHistory,
     UserMessage,
@@ -13,13 +13,12 @@ from src.requestcompletion.llm import (
 
 from typing import List
 
-from src.requestcompletion.llm.response import Response
-from tests.rc_tests.llm.fixtures import MockLLM
+from requestcompletion.llm.response import Response
 
-
-def test_simple_message():
+# ======================================================= START Mock LLM + Messages Testing ========================================================
+def test_simple_message(mock_llm):
     hello_world = "Hello world"
-    model = MockLLM(chat=lambda x: Response(AssistantMessage(hello_world)))
+    model = mock_llm(chat=lambda x: Response(AssistantMessage(hello_world)))
     mess_hist = MessageHistory(
         [
             UserMessage(
@@ -33,9 +32,9 @@ def test_simple_message():
     assert response.message.role == "assistant"
 
 
-def test_simple_message_2():
+def test_simple_message_2(mock_llm):
     hello_world = "Hello World"
-    model = MockLLM(chat=lambda x: Response(AssistantMessage(hello_world)))
+    model = mock_llm(chat=lambda x: Response(AssistantMessage(hello_world)))
     mess_hist = MessageHistory(
         [
             SystemMessage("You are a helpful assistant"),
@@ -51,9 +50,9 @@ def test_simple_message_2():
     assert response.message.role == "assistant"
 
 
-def test_conversation_message():
+def test_conversation_message(mock_llm):
     hello_world = "Hello World"
-    model = MockLLM(chat=lambda x: Response(AssistantMessage(hello_world)))
+    model = mock_llm(chat=lambda x: Response(AssistantMessage(hello_world)))
     mess_hist = MessageHistory(
         [
             SystemMessage("You are a helpful assistant"),
@@ -71,7 +70,7 @@ def test_conversation_message():
     assert response.message.role == "assistant"
 
 
-def test_tool_call():
+def test_tool_call(mock_llm):
     identifier = "9282hejeh"
 
     def tool_call(mess_hist: MessageHistory, tool_calls: List[Tool]):
@@ -83,7 +82,7 @@ def test_tool_call():
             )
         )
 
-    model = MockLLM(chat_with_tools=tool_call)
+    model = mock_llm(chat_with_tools=tool_call)
 
     tool_name = "tool1"
     tool_description = "Call this tool sometime"
@@ -101,7 +100,7 @@ def test_tool_call():
     assert response.message.content[0].arguments == {}
 
 
-def test_multiple_tool_calls():
+def test_multiple_tool_calls(mock_llm):
     identifier = "9282hejeh"
 
     def tool_call(mess_hist: MessageHistory, tool_calls: List[Tool]):
@@ -113,7 +112,7 @@ def test_multiple_tool_calls():
             )
         )
 
-    model = MockLLM(chat_with_tools=tool_call)
+    model = mock_llm(chat_with_tools=tool_call)
 
     tool_names = [f"tool{i}" for i in range(2)]
     tool_descriptions = ["Call this tool sometime"] * 2
@@ -132,7 +131,7 @@ def test_multiple_tool_calls():
         assert response.message.content[0].arguments == {}
 
 
-def test_many_calls_in_parallel():
+def test_many_calls_in_parallel(mock_llm):
     identifier = "9282hejeh"
 
     def tool_call(mess_hist: MessageHistory, tool_calls: List[Tool]):
@@ -144,7 +143,7 @@ def test_many_calls_in_parallel():
             )
         )
 
-    model = MockLLM(chat_with_tools=tool_call)
+    model = mock_llm(chat_with_tools=tool_call)
 
     tool_names = [f"tool{i}" for i in range(10)]
     tool_descriptions = ["Call this tool sometime"] * 10
@@ -172,3 +171,5 @@ def test_many_calls_in_parallel():
 
         for f in futures:
             f.result()
+
+# ======================================================= END Mock LLM + Messages Testing ========================================================

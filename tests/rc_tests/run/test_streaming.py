@@ -29,7 +29,7 @@ def test_simple_streamer():
     sub = SubObject()
     with rc.Runner(
         subscriber=sub.handle,
-        executor_config=rc.ExecutorConfig(force_close_streams=True),
+        executor_config=rc.ExecutorConfig(force_close_streams=True, logging_setting="NONE"),
     ) as runner:
         finished_result = runner.run_sync(StreamingRNGNode)
 
@@ -91,7 +91,7 @@ def rng_stream_tester(
 
     sub = Sub()
     with rc.Runner(
-        executor_config=ExecutorConfig(force_close_streams=False), subscriber=sub.handle
+        executor_config=ExecutorConfig(force_close_streams=False, logging_setting="NONE"), subscriber=sub.handle
     ) as run:
         finished_result = run.run_sync(
             RNGTreeStreamer, num_calls, parallel_call_nums, multiplier

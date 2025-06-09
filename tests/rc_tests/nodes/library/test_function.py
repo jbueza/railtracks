@@ -40,7 +40,7 @@ class TestPrimitiveInputTypes:
             secret_phrase,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -71,7 +71,7 @@ class TestPrimitiveInputTypes:
             magic_number,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -103,7 +103,7 @@ class TestPrimitiveInputTypes:
             magic_phrase,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -135,7 +135,7 @@ class TestPrimitiveInputTypes:
             magic_test,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -167,7 +167,7 @@ class TestPrimitiveInputTypes:
             magic_test,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -198,7 +198,7 @@ class TestPrimitiveInputTypes:
             error_function,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             output = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -221,7 +221,7 @@ class TestPrimitiveInputTypes:
 
         with pytest.raises(ValueError):
             agent = create_top_level_node(time.sleep, model_provider=model_provider)
-            with rc.Runner() as run:
+            with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
                 response = run.run_sync(
                     agent,
                     rc.llm.MessageHistory(
@@ -251,7 +251,7 @@ class TestSequenceInputTypes:
             magic_list,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -283,7 +283,7 @@ class TestSequenceInputTypes:
             model_provider=model_provider,
         )
 
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -317,7 +317,7 @@ class TestSequenceInputTypes:
             magic_result,
             model_provider=model_provider,
         )
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent,
                 rc.llm.MessageHistory(
@@ -351,7 +351,7 @@ class TestDictionaryInputTypes:
 
         with pytest.raises(Exception):
             agent = create_top_level_node(dict_func, model_provider=model_provider)
-            with rc.Runner() as run:
+            with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
                 response = run.run_sync(
                     agent,
                     rc.llm.MessageHistory(
@@ -395,7 +395,7 @@ class TestRealisticScenarios:
             update_staff_directory, model_provider=model_provider
         )
 
-        with rc.Runner() as run:
+        with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
             response = run.run_sync(
                 agent, rc.llm.MessageHistory([rc.llm.UserMessage(usr_prompt)])
             )

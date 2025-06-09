@@ -62,7 +62,9 @@ def test_from_mcp_server_with_http():
     )
 
     # Run the parent tool
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=1000)
+    ) as runner:
         message_history = rc.llm.MessageHistory(
             [
                 rc.llm.UserMessage(

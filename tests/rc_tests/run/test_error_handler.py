@@ -14,7 +14,7 @@ RNGNode = rc.library.from_function(random.random)
 
 @pytest.mark.timeout(1)
 def test_simple_request():
-    with rc.Runner() as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(RNGNode)
 
     assert isinstance(result.answer, float)
@@ -33,7 +33,7 @@ ErrorThrower = rc.library.from_function(error_thrower)
 
 
 def test_error():
-    with rc.Runner() as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         with pytest.raises(TestError):
             run.run_sync(ErrorThrower)
 
@@ -50,7 +50,7 @@ ErrorHandler = rc.library.from_function(error_handler)
 
 @pytest.mark.timeout(1)
 def test_error_handler():
-    with rc.Runner() as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(ErrorHandler)
     assert result.answer == "Caught the error"
 

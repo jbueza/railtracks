@@ -22,6 +22,10 @@ class Response:
             message: The message that was returned as part of this.
             streamer: A generator that streams the response as a collection of chunked strings.
         """
+        if message is not None and not isinstance(message, Message):
+            raise TypeError(f"message must be of type Message, got {type(message)}")
+        if streamer is not None and not isinstance(streamer, Generator):
+            raise TypeError(f"streamer must be of type Generator, got {type(streamer)}")
         self._message = message
         self._streamer = streamer
 

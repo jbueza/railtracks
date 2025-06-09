@@ -2,7 +2,7 @@ import warnings
 from typing import Type, Dict, Any
 from copy import deepcopy
 
-from requestcompletion.llm import (
+from ....llm import (
     UserMessage,
     MessageHistory,
     ModelBase,
@@ -11,7 +11,7 @@ from requestcompletion.llm import (
 )
 from typing_extensions import Self
 
-from requestcompletion.nodes.library.structured_llm import StructuredLLM
+from ....nodes.library.structured_llm import StructuredLLM
 from pydantic import BaseModel
 
 
@@ -101,5 +101,7 @@ def structured_llm(  # noqa: C901
         and len({param.name for param in tool_params}) != len(tool_params)
     ):
         raise ValueError("Duplicate parameter names are not allowed.")
+    if not output_model or len(output_model.model_fields) == 0:
+        raise ValueError("Output model cannot be empty")
 
     return StructuredLLMNode

@@ -5,6 +5,7 @@ import random
 
 import pytest
 import requestcompletion as rc
+from typing_extensions import Self
 
 
 RNGNode = rc.library.from_function(random.random)
@@ -56,7 +57,7 @@ def test_large_no_deadlock():
 
 
 def test_simple_rng():
-    with rc.Runner() as run:
+    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(RNGNode)
 
     assert 0 < result.answer < 1

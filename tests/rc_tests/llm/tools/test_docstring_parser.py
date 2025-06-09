@@ -5,7 +5,7 @@ This module contains tests for the docstring parsing utilities in the
 requestcompletion.llm.tools.docstring_parser module.
 """
 
-from src.requestcompletion.llm.tools.docstring_parser import (
+from requestcompletion.llm.tools.docstring_parser import (
     parse_docstring_args,
     extract_args_section,
     parse_args_section,
