@@ -61,7 +61,7 @@ def test_slow_streamer():
         finished_result = runner.run_sync(StreamingRNGNode)
 
     assert isinstance(finished_result.answer, float)
-    assert sub.finished_message is None
+    assert sub.finished_message is not None
 
 
 async def rng_tree_streamer(num_calls: int, parallel_call_nums: int, multiplier: int):
@@ -71,7 +71,7 @@ async def rng_tree_streamer(num_calls: int, parallel_call_nums: int, multiplier:
         responses = await asyncio.gather(*contracts)
         responses = [r * multiplier for r in responses]
         for r in responses:
-            await requestcompletion.interaction.stream.stream(str(r))
+            await rc.stream(str(r))
 
         data.extend(responses)
 
