@@ -91,7 +91,7 @@ async def test_terminal_llm_missing_tool_details_easy_usage(model, encoder_syste
     }
 
     with pytest.raises(
-        RCNodeCreationException, match="Tool parameters provided but no tool details provided."
+        RCNodeCreationException, match="Tool parameters are provided, but tool details are missing."
     ):
         encoder_wo_tool_details = rc.library.terminal_llm(
             pretty_name="Encoder",

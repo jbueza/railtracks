@@ -4,8 +4,8 @@ from typing import Dict, Any
 import pytest
 import requestcompletion as rc
 
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
+from requestcompletion.exceptions import RCNodeCreationException
 from requestcompletion.llm import MessageHistory, UserMessage
 
 from requestcompletion.nodes.library import from_function
@@ -29,52 +29,48 @@ async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
 
 
 @pytest.mark.asyncio
-async def test_empty_output_model_easy_wrapper(empty_output_model, model):
+async def test_empty_connected_nodes_easy_wrapper(model):
     """Test when the output model is empty while making a node with easy wrapper."""
-    with pytest.raises(ValueError, match="Output model cannot be empty"):
-        _ = rc.library.structured_llm(
-            output_model=empty_output_model,
+    with pytest.raises(RCNodeCreationException, match="connected_nodes must not return an empty set."):
+        _ = rc.library.tool_call_llm(
+            connected_nodes=set(),
             system_message=rc.llm.SystemMessage(
                 "You are a helpful assistant that can strucure the response into a structured output."
             ),
             model=model,
-            pretty_name="Structured ToolCallLLM",
+            pretty_name="ToolCallLLM",
         )
 
 
 @pytest.mark.asyncio
-async def test_empty_output_model_class_based(empty_output_model, model):
+async def test_empty_connected_nodes_class_based(model):
     """Test when the output model is empty while making a node with class based."""
 
-    system_simple = rc.llm.SystemMessage(
-        "Return a simple text and number. Don't use any tools."
-    )
+    with pytest.raises(RCNodeCreationException, match="connected_nodes must not return an empty set."):
 
-    class SimpleNode(rc.library.StructuredToolCallLLM):
-        def __init__(
-            self,
-            message_history: rc.llm.MessageHistory,
-            output_model: BaseModel = empty_output_model,
-            llm_model: rc.llm.ModelBase = model,
-        ):
-            message_history = [x for x in message_history if x.role != "system"]
-            message_history.insert(0, system_simple)
-            super().__init__(
-                message_history=message_history,
-                llm_model=llm_model,
-                output_model=output_model,
-            )
+        system_simple = rc.llm.SystemMessage(
+            "Return a simple text and number. Don't use any tools."
+        )
+        class SimpleNode(rc.library.ToolCallLLM):
+            def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+                llm_model: rc.llm.ModelBase = model,
+            ):
+                message_history = [x for x in message_history if x.role != "system"]
+                message_history.insert(0, system_simple)
+                super().__init__(
+                    message_history=message_history,
+                    model=llm_model,
+                )
 
-        @classmethod
-        def connected_nodes(cls):
-            return {}
+            @classmethod
+            def connected_nodes(cls):
+                return {}
 
-        @classmethod
-        def pretty_name(cls) -> str:
-            return "Simple Node"
-
-    with pytest.raises(ValueError, match="Output model cannot be empty"):
-        await rc.call(SimpleNode, message_history=MessageHistory([]))
+            @classmethod
+            def pretty_name(cls) -> str:
+                return "Simple Node"
 
 
 @pytest.mark.asyncio
@@ -531,6 +527,11 @@ async def test_tool_with_structured_output_child_tool():
     assert response.answer.success is True
 
 
+# Not using the ones in conftest.py because we will have to use lazy_fixtures for that. lazy_fixture is not very well supported in pytest (better to avaoid it)
+class SimpleOutput(BaseModel):
+    text: str = Field(description="The text to return")
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "llm_function, connected_nodes",
@@ -545,27 +546,19 @@ async def test_tool_with_structured_output_child_tool():
     [
         # Test: tool_params provided but tool_details is missing
         (
-            BaseModel,
+            SimpleOutput,
             None,
             [
                 rc.llm.Parameter(
                     name="param1", param_type="string", description="A test parameter."
                 )
             ],
-            RuntimeError,
+            RCNodeCreationException,
             "Tool parameters are provided, but tool details are missing.",
-        ),
-        # Test: tool_details provided but tool_params is empty
-        (
-            BaseModel,
-            "A test tool",
-            [],
-            RuntimeError,
-            "If no parameters are required for the tool, `tool_params` must be set to None.",
         ),
         # Test: Duplicate parameter names in tool_params
         (
-            BaseModel,
+            SimpleOutput,
             "A test tool",
             [
                 rc.llm.Parameter(
@@ -577,7 +570,7 @@ async def test_tool_with_structured_output_child_tool():
                     description="A duplicate parameter.",
                 ),
             ],
-            ValueError,
+            RCNodeCreationException,
             "Duplicate parameter names are not allowed.",
         ),
     ],

@@ -89,8 +89,8 @@ def structured_llm(  # noqa: C901
 
     if tool_params and not tool_details:
         raise RCNodeCreationException(
-            "Tool parameters provided but no tool details provided.",
-            notes=["If you want to use TerminalLLM as a tool, you must provide tool details."],
+            "Tool parameters are provided, but tool details are missing.",
+            notes=["If you want to use StructuredLLM as a tool, you must provide tool details."],
         )
     elif (
         tool_details
@@ -101,10 +101,6 @@ def structured_llm(  # noqa: C901
             message="Duplicate parameter names are not allowed.",
             notes=["Parameter names in tool_params must be unique."],
         )
-    elif not output_model or len(output_model.model_fields) == 0:
-        raise RCNodeCreationException("Output model cannot be empty")
-    elif not issubclass(output_model, BaseModel):
-        raise RCNodeCreationException(f"Output model must be a pydantic model, not {type(output_model)}")
     elif system_message is not None and not isinstance(system_message, SystemMessage):
         raise RCNodeCreationException(
             "system_message must be a SystemMessage object, not a string or any other type.",

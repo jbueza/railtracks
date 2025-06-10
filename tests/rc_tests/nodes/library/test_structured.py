@@ -38,7 +38,7 @@ async def test_easy_usage_empty_output_model(empty_output_model):
 async def test_easy_usage_tool_details_not_provided(simple_output_model):
     with pytest.raises(
         RCNodeCreationException,
-        match="Tool parameters provided but no tool details provided.",
+        match="Tool parameters are provided, but tool details are missing.",
     ):
         _ = rc.library.structured_llm(
             output_model=simple_output_model,
@@ -103,7 +103,7 @@ async def test_easy_usage_system_message_is_a_string(simple_output_model):
 # =================== START Class Based Node Creation ===================
 @pytest.mark.asyncio
 async def test_class_based_empty_output_model(empty_output_model):
-    with pytest.raises(RCNodeCreationException, match="Output model must not be empty."):
+    with pytest.raises(RCNodeCreationException, match="Output model cannot be empty."):
         class Structurer(rc.library.StructuredLLM):
             def __init__(
                 self,

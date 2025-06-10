@@ -213,6 +213,7 @@ def terminal_nodes(request, model, terminal_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
+                @classmethod
                 def pretty_name(self) -> str:
                     return pretty_name
 
@@ -286,6 +287,7 @@ def structured_nodes(request, model, structured_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
+                @classmethod
                 def output_model(self) -> BaseModel:
                     return output_model
 

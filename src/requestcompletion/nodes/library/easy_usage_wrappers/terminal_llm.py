@@ -76,7 +76,7 @@ def terminal_llm(  # noqa: C901
 
     if tool_params and not tool_details:
         raise RCNodeCreationException(
-            "Tool parameters provided but no tool details provided.",
+            "Tool parameters are provided, but tool details are missing.",
             notes=["If you want to use TerminalLLM as a tool, you must provide tool details."],
         )
     elif (

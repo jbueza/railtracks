@@ -14,8 +14,8 @@ from typing import (
     Any,
 )
 from typing_extensions import Self
-_TOutput = TypeVar("_TOutput")
 
+_TOutput = TypeVar("_TOutput")
 
 _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
@@ -37,7 +37,8 @@ class NodeCreationMeta(ABCMeta):
 
             setattr(cls, method_name, async_wrapper)
 
-        # Check if the class methods are all classmethods, else raise an exception
+        # ================= Checks for Creation ================
+        # 1. Check if the class methods are all classmethods, else raise an exception
         class_method_checklist = ["tool_info", "prepare_tool", "pretty_name"]
         for method_name in class_method_checklist:
             if method_name in dct and callable(dct[method_name]):
@@ -47,36 +48,72 @@ class NodeCreationMeta(ABCMeta):
                         message=f"The '{method_name}' method must be a @classmethod.",
                         notes=[
                             f"Add @classmethod decorator to '{method_name}'.",
-                            f"Signature should be: \n@classmethod\ndef {method_name}(cls): ..."
-                        ]
+                            f"Signature should be: \n@classmethod\ndef {method_name}(cls): ...",
+                        ],
                     )
-        # special case for output_model structured_output node
-        if 'output_model' in dct:
-            method = dct['output_model']
+        # 2. special case for output_model for structured_llm node
+        if "output_model" in dct and not getattr(cls, "__abstractmethods__", False):
+            method = dct["output_model"]
             if not isinstance(method, classmethod):
                 raise RCNodeCreationException(
                     message="\nThe 'output_model' method must be a @classmethod.",
                     notes=[
                         "Add @classmethod decorator to 'output_model'.",
-                        "Signature should be: \n@classmethod\ndef 'output_model'(cls): ..."
+                        "Signature should be: \n@classmethod\ndef 'output_model'(cls): ...",
+                    ],
+                )
+            output_model = method.__func__(cls)
+            if not output_model:
+                raise RCNodeCreationException(
+                    message="Output model is not provided.",
+                    notes=[
+                        "Check to see if the output_model is a pydantic model.",
+                        "Output model cannot be empty.",
+                        "The model fields must be defined in the output_model. Eg.-\n class MyModel(BaseModel): \n    field1: str = Field(description='field1 description')"
                     ]
                 )
-            if not getattr(cls, "__abstractmethods__", False):
-                output_model = method.__func__(cls)
-                if not issubclass(output_model, BaseModel):
-                    raise RCNodeCreationException(
-                        message=f"Output model must be a pydantic model not {type(output_model)}",
-                        notes=[
-                            "The output_model classmethod must return a pydantic BaseModel subclass."
-                        ]
-                    )
-                elif output_model is None or len(output_model.model_fields) == 0:
-                    raise RCNodeCreationException(
-                        message=f"Output model must not be empty",
-                        notes=[
-                            "The output_model classmethod must return a pydantic BaseModel subclass."
-                        ]
-                    )
+            elif not issubclass(output_model, BaseModel):
+                raise RCNodeCreationException(
+                    message=f"Output model must be a pydantic model, not {type(output_model)}.",
+                    notes=[
+                        "Check to see if the output_model is a pydantic model.",
+                        "The model fields must be defined in the output_model. Eg.-\n class MyModel(BaseModel): \n    field1: str = Field(description='field1 description')"
+                    ]
+                )
+            elif len(output_model.model_fields) == 0:
+                raise RCNodeCreationException(
+                    message="Output model has no fields defined.",
+                    notes=[
+                        "Check to see if the BaseModel has any fields defined.",
+                        "Output model cannot be empty.",
+                        "The model fields must be defined in the output_model. Eg.-\n class MyModel(BaseModel): \n    field1: str = Field(description='field1 description')"
+                    ]
+                )
+
+        # 3. Check if the connected_nodes is not empty, special case for ToolCallLLM
+        if "connected_nodes" in dct and not getattr(cls, "__abstractmethods__", False):
+            method = dct["connected_nodes"]
+            try:  # in case of class based init
+                node_set = method.__func__(cls)
+            except AttributeError:  # in case of easy_wrapper init
+                dummy = object.__new__(cls)
+                node_set = method(dummy)
+            if not node_set:
+                raise RCNodeCreationException(
+                    message="connected_nodes must not return an empty set.",
+                    notes=[
+                        "Please provide a set nodes that can be used as tools by the ToolCallLLM node."
+                    ],
+                )
+            elif not all(issubclass(x, Node) for x in node_set):
+                raise RCNodeCreationException(
+                    message="connected_nodes must return a set of Nodes.",
+                    notes=[
+                        "Ensure all the nodes provided as connected_nodes are of type Node.",
+                        "If you have functions that you want to use as tools, please use the from_function method to convert them to Nodes.",
+                    ],
+                )
+        # ================= End Creation Exceptions ================
 
 
 class NodeState(Generic[_TNode]):

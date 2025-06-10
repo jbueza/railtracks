@@ -132,8 +132,8 @@ def tool_call_llm(  # noqa: C901
 
     if tool_params and not tool_details:
         raise RCNodeCreationException(
-            "Tool parameters provided but no tool details provided.",
-            notes=["If you want to use TerminalLLM as a tool, you must provide tool details."],
+            "Tool parameters are provided, but tool details are missing.",
+            notes=["If you want to use ToolCallLLM as a tool, you must provide tool details."],
         )
     elif (
         tool_details
@@ -146,7 +146,7 @@ def tool_call_llm(  # noqa: C901
         )
     elif pretty_name is None and tool_details:
         raise RCNodeCreationException(
-            "You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
+            "You must provide a pretty_name when using ToolCallLLM as a tool, as this is used to identify the tool."
         )
     elif system_message is not None and not isinstance(system_message, SystemMessage):
         raise RCNodeCreationException(
