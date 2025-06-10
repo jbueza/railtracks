@@ -51,15 +51,13 @@ def tool_call_llm(  # noqa: C901
         if isclass(elem):
             if not issubclass(elem, Node):
                 raise TypeError(
-                    f"Tools must be of type Node, FunctionType, or NoneType but got {type(elem)}")
-        elif elem is None:
-            pass # NoneType is allowed, it will be ignored
+                    f"Tools must be of type Node or FunctionType but got {type(elem)}")
         elif isfunction(elem):
             connected_nodes.remove(elem)
             connected_nodes.add(from_function(elem))
         else:
             raise TypeError(
-                f"Tools must be of type Node, FunctionType, or NoneType but got {type(elem)}")
+                f"Tools must be of type Node or FunctionType but got {type(elem)}")
 
     class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
         def return_output(self):

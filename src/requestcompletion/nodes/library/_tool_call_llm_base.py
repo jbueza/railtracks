@@ -1,5 +1,5 @@
 import asyncio
-from typing import TypeVar, Generic, Set, Type, Dict, Any, Callable
+from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Callable
 from copy import deepcopy
 from ..nodes import Node
 from ...llm import (
@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from ...exceptions import FatalError
 
 _T = TypeVar("_T")
-_P = TypeVar("_P")
+_P = ParamSpec("_P")
 
 
 class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
@@ -38,7 +38,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
 
-    def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Callable[[_P],Node]:
+    def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
         """
         A function which creates a new instance of a node Class from a tool name and arguments.
 
