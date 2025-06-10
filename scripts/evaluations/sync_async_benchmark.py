@@ -1,4 +1,4 @@
-import src.requestcompletion as rc
+import requestcompletion as rc
 import time
 
 
