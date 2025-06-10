@@ -1,5 +1,5 @@
 import asyncio
-from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Callable
+from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any
 from copy import deepcopy
 from ..nodes import Node
 from ...llm import (
@@ -85,7 +85,6 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     assert all(
                         isinstance(x, ToolCall) for x in returned_mess.message.content
                     )
-
 
                     contracts = []
                     for t_c in returned_mess.message.content:
