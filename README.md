@@ -1,33 +1,41 @@
+from curses.textpad import Textbox
+
 # Request Completion Agentic Framework (RC)
 
 ## Overview
 
 The Request Completion framework is a system designed to allow you to build simple Agentic systems that can be used to
 accomplish complicated tasks. By building "agents" with specialized abilities you can accomplish much more complicated
-tasks that single module could accomplish. Although the system is designed from the standpoint of LLMs being those agents,
-it is flexible and the idea of an agent could be any peice of modular functionality.
+tasks that single module could accomplish. Although the system is designed from the standpoint of LLMs being those
+agents,
+it is flexible and the idea of an agent could be any piece of modular functionality.
 
 The framework is designed to support the building, testing, debugging, and deployment of
-such systems. It's core principle of the system follows from a Request and Completion model where the actions are single
-modular components. Each modular component has the ability to answer the upstream query or open a new downstream request
+such systems. It's core principle of the system your agentic system is made up of modular components.
+Each modular component has the ability to answer the upstream query or open a new downstream request
 to another modular component.
 
 ## Key Features
 
-- **Automatic Parallelism** - The system will automatically parallelize the execution of the modular components.
+- **Automatic Parallelism** - The backend of the RC system will automatically parallelize the execution of the modular
+  components. You don't need to worry about it.
 - **Streaming Capability** - By defining what you want to stream and attaching a handler you can stream updates to the
   system via a callback mechanism.
-- **Error Handling** - The system has a 3 tiered error handling approach that allows you to handle errors with grace to
-  keep your application up and running.
-- **Debugging** - The system has built in debugging tools that will allow you to inspect flows to understand what is
-  going on in your application.
-- **Control Flow Definition** - The system allows you to define the exact allowed flows between your modular components.
-- **Automatic Mapping of Linear Flows into RC** - The system will automatically map a simple linear flow to work within
-  the RC framework.
+- **Error Handling** - Our predefined agents will automatically handle errors and retry requests as needed.
+- **Debugging** - The system has built in logging tools that will allow high quality insights into the working of your
+  system.
+- **Visuals** - The system has built in visualization tools that will allow you to see the flow of your system and how
+  the
+  requests are being processed.
+- **Definitions of Complex Flows** - RCs natural programmatic definitions of flows makes the design of complicated flows
+  a breeze.
+- **Configurable** - The system is designed to be configurable and extensible. You maintain full control of a variety of
+  parameters that can be used to control the behavior of the system.
 
-## Getting Started
+## Quick Start
 
-In the below section, I will walk you through the steps on how to get started using the request completion framework.
+Let's get started with building your first Agentic system. The following steps will guide you through the process of
+creating a simple Agentic system using the Request Completion framework.
 
 ### Step 1: Install the Library
 
@@ -35,25 +43,72 @@ In the below section, I will walk you through the steps on how to get started us
 pip install requestcompletion
 ```
 
-Or add it to your requirements.txt.
-
 ### Step 2: Define your Modular Components
 
 ```python
+import requestcompletion as rc
 
+
+def number_of_chars(text: str) -> int:
+    """
+    Counts the number of characters in the text.
+    
+    Args:
+        text (str): The text to count characters in.
+    """
+    return len(text)
+
+
+def number_of_words(text: str) -> int:
+    """
+    Counts the number of words in the text.
+    
+    Args:
+        text (str): The text to count words in.
+    """
+    return len(text.split())
+
+
+def number_of_characters(text: str, character_of_interest) -> int:
+    """
+    Counts the number of characters in the text.
+    
+    Args:
+        text (str): The text to count characters in.
+        character_of_interest (str): The character to count.
+    """
+    return len(text)
+
+
+TotalNumberChars = rc.library.from_function(number_of_chars)
+TotalNumberWords = rc.library.from_function(number_of_words)
+CharacterCount = rc.library.from_function(number_of_characters)
+
+TextAnalyzer = rc.library.tool_call_llm(
+    connected_nodes={
+        TotalNumberChars,
+        TotalNumberWords,
+        CharacterCount,
+    },
+    model=rc.llm.OpenAILLM("gpt-4o"),
+    system_message=rc.llm.SystemMessage(
+        "You are a text analyzer. You will be given a text and you will return the number of characters, "
+        "the number of words, and the number of occurrences of a specific character in the text."
+    ),
+)
 ```
 
-### Step 3: Define your Control Flow
+### Step 3: Run your Application
 
 ```python
-
+result = await rc.call(
+    TextAnalyzer,
+    rc.llm.MessageHistory([rc.llm.UserMessage("Hello world! This is a test of the Request Completion framework.")])
+)
+print(result)
 ```
 
-### Step 4: Run your Application
-
-```python
-
-```
+Getting started with RC is as simple as that!. View the docs for more examples. The possibilities are truly endless.
 
 ## Contributing
 
