@@ -53,8 +53,8 @@ def test_slow_streamer():
             self.finished_message = item
 
     sub = Sub()
-    with rc.Runner(executor_config=ExecutorConfig(force_close_streams=True)) as runner:
-        finished_result = runner.run_sync(StreamingRNGNode, subscriber=sub.handle)
+    with rc.Runner(executor_config=ExecutorConfig(force_close_streams=True, subscriber=sub.handle)) as runner:
+        finished_result = runner.run_sync(StreamingRNGNode)
 
     assert isinstance(finished_result.answer, float)
     assert sub.finished_message is None
