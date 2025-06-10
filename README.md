@@ -89,7 +89,12 @@ TextAnalyzer = rc.library.tool_call_llm(
         TotalNumberChars,
         TotalNumberWords,
         CharacterCount,
-    }
+    },
+    model=rc.llm.OpenAILLM("gpt-4o"),
+    system_message=rc.llm.SystemMessage(
+        "You are a text analyzer. You will be given a text and you will return the number of characters, "
+        "the number of words, and the number of occurrences of a specific character in the text."
+    ),
 )
 ```
 
@@ -98,7 +103,7 @@ TextAnalyzer = rc.library.tool_call_llm(
 ```python
 result = await rc.call(
     TextAnalyzer,
-    rc.llm.SystemMessage([rc.llm.UserMessage("Hello world! This is a test of the Request Completion framework.")])
+    rc.llm.MessageHistory([rc.llm.UserMessage("Hello world! This is a test of the Request Completion framework.")])
 )
 print(result)
 ```
