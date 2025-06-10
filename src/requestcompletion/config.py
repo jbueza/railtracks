@@ -8,7 +8,6 @@ from typing import Callable, Coroutine
 from .utils.logging.config import allowable_log_levels
 
 
-# There may be moments when you are confused what should be in this config object vs. what should
 class ExecutorConfig:
 
     def __init__(
