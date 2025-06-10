@@ -217,8 +217,8 @@ def from_function(  # noqa: C901
 
         @classmethod
         def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
-            cls._convert_kwargs_to_appropriate_types(tool_parameters)
-            return cls(**tool_parameters)
+            converted_params = cls._convert_kwargs_to_appropriate_types(tool_parameters)
+            return cls(**converted_params)
 
     return DynamicFunctionNode
 
