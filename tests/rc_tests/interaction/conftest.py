@@ -213,7 +213,8 @@ def terminal_nodes(request, model, terminal_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
-                def pretty_name(self) -> str:
+                @classmethod
+                def pretty_name(cls) -> str:
                     return pretty_name
 
             return TerminalLLMNode

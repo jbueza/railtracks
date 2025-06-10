@@ -42,6 +42,7 @@ class MCPAsyncClient:
 
     If a client session is provided, it will be used; otherwise, a new session will be created.
     """
+
     def __init__(
         self,
         config: StdioServerParameters | MCPHttpParams,
@@ -54,8 +55,12 @@ class MCPAsyncClient:
 
     async def __aenter__(self):
         if isinstance(self.config, StdioServerParameters):
-            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(self.config))
-            self.session = await self.exit_stack.enter_async_context(ClientSession(*stdio_transport))
+            stdio_transport = await self.exit_stack.enter_async_context(
+                stdio_client(self.config)
+            )
+            self.session = await self.exit_stack.enter_async_context(
+                ClientSession(*stdio_transport)
+            )
             await self.session.initialize()
         elif isinstance(self.config, MCPHttpParams):
             await self._init_http()
@@ -85,6 +90,7 @@ class MCPAsyncClient:
 
         async def get_oauth_metadata(server_url: str):
             from urllib.parse import urlparse, urlunparse, urljoin
+
             parsed = urlparse(server_url)
             base_url = urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
             metadata_url = urljoin(base_url, "/.well-known/oauth-authorization-server")
@@ -122,7 +128,9 @@ class MCPAsyncClient:
 
             oauth_auth = OAuthClientProvider(
                 server_url=self.config.url,
-                client_metadata=OAuthClientMetadata.model_validate(client_metadata_dict),
+                client_metadata=OAuthClientMetadata.model_validate(
+                    client_metadata_dict
+                ),
                 storage=InMemoryTokenStorage(),
                 redirect_handler=_default_redirect_handler,
                 callback_handler=callback_handler,
@@ -152,7 +160,7 @@ class MCPAsyncClient:
                     headers=self.config.headers,
                     timeout=self.config.timeout.total_seconds(),
                     sse_read_timeout=self.config.sse_read_timeout.total_seconds(),
-                    auth=self.config.auth if hasattr(self.config, 'auth') else None,
+                    auth=self.config.auth if hasattr(self.config, "auth") else None,
                 )
             else:
                 client = streamablehttp_client(
@@ -161,11 +169,15 @@ class MCPAsyncClient:
                     timeout=self.config.timeout,
                     sse_read_timeout=self.config.sse_read_timeout,
                     terminate_on_close=self.config.terminate_on_close,
-                    auth=self.config.auth if hasattr(self.config, 'auth') else None,
+                    auth=self.config.auth if hasattr(self.config, "auth") else None,
                 )
 
-        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(client)
-        self.session = await self.exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+        read_stream, write_stream, *_ = await self.exit_stack.enter_async_context(
+            client
+        )
+        self.session = await self.exit_stack.enter_async_context(
+            ClientSession(read_stream, write_stream)
+        )
         await self.session.initialize()
 
 
@@ -183,6 +195,7 @@ def from_mcp(
     Returns:
         A Node subclass that invokes the MCP tool.
     """
+
     class MCPToolNode(Node):
         def __init__(self, **kwargs):
             super().__init__()
@@ -209,6 +222,7 @@ def from_mcp(
             return cls(**tool_parameters)
 
     return MCPToolNode
+
 
 #############
 
@@ -271,7 +285,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
             <html>
             <body>
                 <h1>Authorization Failed</h1>
-                <p>Error: {query_params['error'][0]}</p>
+                <p>Error: {query_params["error"][0]}</p>
                 <p>You can close this window and return to the terminal.</p>
             </body>
             </html>

@@ -102,6 +102,56 @@ async def test_structured_with_tool_calls(
         assert isinstance(response.answer.Total_cost, float)
         assert isinstance(response.answer.Currency, str)
 
+@pytest.mark.asyncio
+async def test_simple_function_passed_tool_call(simple_function_taking_node, simple_output_model):
+    """Test the functionality of a ToolCallLLM node (using actual tools) with a structured output model."""
+    with rc.Runner(executor_config=rc.ExecutorConfig(timeout=50, logging_setting="QUIET")) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "give me a number between 1 and 100 please as well"
+                )
+            ]
+        )
+        response = await runner.run(simple_function_taking_node, message_history=message_history)
+        assert isinstance(response.answer, simple_output_model)
+        assert isinstance(response.answer.text, str)
+        assert isinstance(response.answer.number, int)
+
+@pytest.mark.asyncio
+async def test_some_functions_passed_tool_calls(some_function_taking_travel_planner_node, travel_planner_output_model):
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(timeout=50, logging_setting="NONE")
+        ) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "I live in Delhi. I am going to travel to Denmark for 3 days, followed by Germany for 2 days and finally New York for 4 days. Please provide me with a budget summary for the trip in INR."
+                )
+            ]
+        )
+        response = await runner.run(some_function_taking_travel_planner_node, message_history=message_history)
+        assert isinstance(response.answer, travel_planner_output_model)
+        assert isinstance(response.answer.travel_plan, str)
+        assert isinstance(response.answer.Total_cost, float)
+        assert isinstance(response.answer.Currency, str)
+
+@pytest.mark.asyncio
+async def test_functions_passed_tool_calls(only_function_taking_travel_planner_node, travel_planner_output_model):
+    """Test the functionality of a ToolCallLLM node (using actual tools) with a structured output model."""
+    with rc.Runner(executor_config=rc.ExecutorConfig(timeout=50, logging_setting="QUIET")) as runner:
+        message_history = rc.llm.MessageHistory(
+            [
+                rc.llm.UserMessage(
+                    "I live in Delhi. I am going to travel to Denmark for 3 days, followed by Germany for 2 days and finally New York for 4 days. Please provide me with a budget summary for the trip in INR."
+                )
+            ]
+        )
+        response = await runner.run(only_function_taking_travel_planner_node, message_history=message_history)
+        assert isinstance(response.answer, travel_planner_output_model)
+        assert isinstance(response.answer.travel_plan, str)
+        assert isinstance(response.answer.Total_cost, float)
+        assert isinstance(response.answer.Currency, str)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("math_node", NODE_INIT_METHODS, indirect=True)
@@ -532,7 +582,6 @@ async def test_tool_with_structured_output_child_tool():
     assert response.answer.success is True
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "llm_function, connected_nodes",
     [

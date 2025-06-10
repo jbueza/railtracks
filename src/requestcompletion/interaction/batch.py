@@ -1,14 +1,10 @@
 import asyncio
 
 from typing import (
-    List,
-    Tuple,
     Iterable,
-    Iterator,
     ParamSpec,
     Callable,
     Any,
-    Dict,
     TypeVar,
 )
 
@@ -40,6 +36,14 @@ async def batch(
 
     Returns:
         An iterable of results from the node.
+
+    Usage:
+        ```python
+        results = await batch(NodeA, ["hello world"] * 10)
+        for result in results:
+            handle(result)
+
+        ```
     """
     contracts = [call(node, *args) for args in zip(*iterables)]
 

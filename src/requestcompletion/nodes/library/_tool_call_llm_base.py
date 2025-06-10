@@ -1,5 +1,5 @@
 import asyncio
-from typing import TypeVar, Generic, Set, Type, Dict, Any
+from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Callable
 from copy import deepcopy
 from ..nodes import Node
 from ...llm import (
@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 from ...exceptions import FatalError
 
 _T = TypeVar("_T")
+_P = ParamSpec("_P")
 
 
 class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
@@ -49,7 +50,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
     def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
         """
-        A function which creates a new instance of a node from a tool name and arguments.
+        A function which creates a new instance of a node Class from a tool name and arguments.
 
         This function may be overwritten to fit the needs of the given node as needed.
         """
@@ -94,6 +95,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     assert all(
                         isinstance(x, ToolCall) for x in returned_mess.message.content
                     )
+
 
                     contracts = []
                     for t_c in returned_mess.message.content:

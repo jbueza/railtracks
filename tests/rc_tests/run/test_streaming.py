@@ -4,6 +4,7 @@ import asyncio
 
 import requestcompletion as rc
 
+
 from requestcompletion import ExecutorConfig
 
 
@@ -85,9 +86,11 @@ def rng_stream_tester(
     class Sub:
         def __init__(self):
             self.total_streams = []
+            self.asyncio_lock = asyncio.Lock()
 
-        def handle(self, item: str) -> None:
-            self.total_streams.append(item)
+        async def handle(self, item: str) -> None:
+            async with self.asyncio_lock:
+                self.total_streams.append(item)
 
     sub = Sub()
     with rc.Runner(

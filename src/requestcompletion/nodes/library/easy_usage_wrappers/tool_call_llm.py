@@ -19,7 +19,8 @@ from ....nodes.nodes import Node
 from ....llm.message import Role
 
 from typing_extensions import Self
-
+from inspect import isclass, isfunction
+from ....nodes.library.function import from_function
 
 def tool_call_llm(  # noqa: C901
     connected_nodes: Set[Type[Node]],
@@ -45,6 +46,19 @@ def tool_call_llm(  # noqa: C901
         raise NotImplementedError(
             "MessageHistory output type is not supported with output_model at the moment."
         )
+
+    # If a function is passed in, we will convert it to a node
+    for elem in connected_nodes:
+        if isclass(elem):
+            if not issubclass(elem, Node):
+                raise TypeError(
+                    f"Tools must be of type Node or FunctionType but got {type(elem)}")
+        elif isfunction(elem):
+            connected_nodes.remove(elem)
+            connected_nodes.add(from_function(elem))
+        else:
+            raise TypeError(
+                f"Tools must be of type Node or FunctionType but got {type(elem)}")
 
     class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
         def return_output(self):

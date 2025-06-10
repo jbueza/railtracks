@@ -2,6 +2,7 @@ from .._litellm_wrapper import LiteLLMWrapper
 import litellm
 from litellm.litellm_core_utils.get_llm_provider_logic import get_llm_provider
 
+
 class ProviderLLMWrapper(LiteLLMWrapper):
     def __init__(self, model_name: str, **kwargs):
         provider_name = self.model_type().lower()
