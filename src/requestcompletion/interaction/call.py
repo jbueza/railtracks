@@ -14,7 +14,7 @@ from ..pubsub.utils import output_mapping
 
 from ..nodes.nodes import Node
 from ..state.request import RequestTemplate
-from nodes.library.function import from_function
+from ..nodes.library.function import from_function
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
