@@ -4,7 +4,7 @@ from ..terminal_llm import TerminalLLM
 from ....llm import MessageHistory, ModelBase, SystemMessage, UserMessage
 from ....llm.tools import Parameter, Tool
 from copy import deepcopy
-from ....exceptions.node_creation_exceptions.validation import (
+from ....exceptions.node_creation.validation import (
     check_tool_params_and_details,
     check_duplicate_param_names,
     check_system_message,

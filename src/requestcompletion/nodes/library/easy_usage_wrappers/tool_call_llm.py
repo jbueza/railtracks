@@ -18,7 +18,7 @@ from ....nodes.nodes import Node
 from ....llm.message import Role
 
 from typing_extensions import Self
-from ....exceptions.node_creation_exceptions.validation import (
+from ....exceptions.node_creation.validation import (
     check_tool_params_and_details,
     check_duplicate_param_names,
     check_system_message,

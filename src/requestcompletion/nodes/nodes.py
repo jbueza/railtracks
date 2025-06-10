@@ -12,7 +12,7 @@ from typing import (
     Any,
 )
 from typing_extensions import Self
-from ..exceptions.node_creation_exceptions.validation import (
+from ..exceptions.node_creation.validation import (
     check_classmethod,
     check_output_model,
     check_connected_nodes,

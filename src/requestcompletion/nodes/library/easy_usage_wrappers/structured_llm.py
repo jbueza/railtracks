@@ -12,7 +12,7 @@ from typing_extensions import Self
 
 from ....nodes.library.structured_llm import StructuredLLM
 from pydantic import BaseModel
-from ....exceptions.node_creation_exceptions.validation import (
+from ....exceptions.node_creation.validation import (
     check_tool_params_and_details,
     check_duplicate_param_names,
     check_system_message,
