@@ -6,13 +6,6 @@ def sync_blocking(timeout: float):
     time.sleep(timeout)
 
 
-async def async_blocking(timeout: float):
-    """
-    An async function that blocks for a given timeout.
-    """
-    await rc.library.from_function(sync_blocking)(timeout)
-
-
 Blocking = rc.library.from_function(sync_blocking)
 
 lengths = [1, 2, 2, 2, 1]
