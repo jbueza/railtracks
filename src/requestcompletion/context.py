@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextvars
 import warnings
-from functools import wraps
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -61,27 +60,6 @@ class ThreadContext:
         )
 
 
-def register_global_wrapper(parent_id: str | None = None):
-    """
-    A decorator designed to wrap a function registering the global variables before executing it.
-    """
-    parent_global_variables = get_globals()
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Register the global variables before executing the function
-            register_globals(
-                parent_global_variables.prepare_new(new_parent_id=parent_id)
-            )
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
 def get_globals() -> ThreadContext:
     """
     Get the global variables for the current thread.
@@ -107,11 +85,13 @@ def update_parent_id(new_parent_id: str):
     Update the parent ID of the current thread's global variables.
     """
     current_context = thread_context.get()
+
     if current_context is None:
         raise KeyError("No global variable set")
 
-    current_context.parent_id = new_parent_id
-    thread_context.set(current_context)
+    new_context = current_context.prepare_new(new_parent_id)
+
+    thread_context.set(new_context)
 
 
 def delete_globals():

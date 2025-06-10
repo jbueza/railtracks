@@ -1,4 +1,5 @@
-from typing import ParamSpec, Callable, TypeVar
+from typing import ParamSpec, Callable, TypeVar, Union
+from types import FunctionType
 
 from ..run import Runner
 from ..context import get_globals
@@ -6,7 +7,6 @@ from ..pubsub.messages import (
     RequestCreation,
     RequestCompletionMessage,
     RequestFinishedBase,
-    Streaming,
 )
 
 from ..pubsub.utils import output_mapping
@@ -14,15 +14,26 @@ from ..pubsub.utils import output_mapping
 
 from ..nodes.nodes import Node
 from ..state.request import RequestTemplate
+from ..nodes.library.function import from_function
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.kwargs):
+async def call(node: Callable[_P, Union[Node[_TOutput], _TOutput]], *args: _P.args, **kwargs: _P.kwargs):
     """
     Call a node from within a node inside the framework. This will return a coroutine that you can interact with
     in whatever way using the `asyncio` framework.
+
+    Usage:
+    ```python
+    # for sequential operation
+    result = await call(NodeA, "hello world", 42)
+
+    # for parallel operation
+    tasks = [call(NodeA, "hello world", i) for i in range(10)]
+    results = await asyncio.gather(*tasks)
+    ```
 
     Args:
         node: The node type you would like to create
@@ -32,6 +43,9 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
     try:
         context = get_globals()
     except KeyError:
+        #If function is passed, we will convert it to a node
+        if isinstance(node, FunctionType):
+            node = from_function(node)
         with Runner() as runner:
             await runner.run(node, *args, **kwargs)
             return runner.info.answer
@@ -72,19 +86,3 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
     )
 
     return await f
-
-
-async def stream(item: str):
-    """
-    Streams the given message
-
-    It will trigger the callback provided in the runner_config.
-
-    Args:
-        item (str): The item you want to stream.
-    """
-    publisher = get_globals().publisher
-
-    await publisher.publish(
-        Streaming(node_id=get_globals().parent_id, streamed_object=item)
-    )

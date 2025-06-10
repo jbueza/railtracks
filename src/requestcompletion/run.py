@@ -187,6 +187,7 @@ class Runner:
         return self.rc_state.info
 
     def _close(self):
+        # the publisher should have already been closed in `_run_base`
         self.rc_state.shutdown()
         detach_logging_handlers()
         delete_globals()

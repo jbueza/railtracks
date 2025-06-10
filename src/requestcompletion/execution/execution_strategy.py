@@ -64,7 +64,6 @@ class AsyncioExecutionStrategy(TaskExecutionStrategy):
 
 
 class ConcurrentFuturesExecutor(TaskExecutionStrategy):
-
     def __init__(self, executor: concurrent.futures.Executor):
         raise NotImplementedError(
             "We currently do not support concurrent futures executor. See issue #140"

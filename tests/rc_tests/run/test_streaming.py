@@ -4,6 +4,7 @@ import asyncio
 
 import requestcompletion as rc
 
+
 from requestcompletion import ExecutorConfig
 
 
@@ -28,7 +29,9 @@ def test_simple_streamer():
     sub = SubObject()
     with rc.Runner(
         subscriber=sub.handle,
-        executor_config=rc.ExecutorConfig(force_close_streams=True, logging_setting="NONE"),
+        executor_config=rc.ExecutorConfig(
+            force_close_streams=True, logging_setting="NONE"
+        ),
     ) as runner:
         finished_result = runner.run_sync(StreamingRNGNode)
 
@@ -84,13 +87,18 @@ def rng_stream_tester(
     class Sub:
         def __init__(self):
             self.total_streams = []
+            self.asyncio_lock = asyncio.Lock()
 
-        def handle(self, item: str) -> None:
-            self.total_streams.append(item)
+        async def handle(self, item: str) -> None:
+            async with self.asyncio_lock:
+                self.total_streams.append(item)
 
     sub = Sub()
     with rc.Runner(
-        executor_config=ExecutorConfig(force_close_streams=False, logging_setting="NONE"), subscriber=sub.handle
+        executor_config=ExecutorConfig(
+            force_close_streams=False, logging_setting="NONE"
+        ),
+        subscriber=sub.handle,
     ) as run:
         finished_result = run.run_sync(
             RNGTreeStreamer, num_calls, parallel_call_nums, multiplier

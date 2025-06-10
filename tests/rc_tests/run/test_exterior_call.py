@@ -5,6 +5,8 @@ import time
 import asyncio
 import concurrent.futures
 
+import requestcompletion.interaction.stream
+
 RNGNode = rc.library.from_function(random.random)
 
 
@@ -34,9 +36,9 @@ async def test_runner_call_with_context():
         response = await rc.call(RNGNode)
         assert isinstance(response, float), "Expected a float result from RNGNode"
         info = run.info
-        assert info.answer == response, (
-            "Expected the answer to be the same as the response"
-        )
+        assert (
+            info.answer == response
+        ), "Expected the answer to be the same as the response"
 
 
 async def logging_config_test_async():
@@ -58,9 +60,9 @@ async def logging_config_test_async():
         response = info.answer
         assert isinstance(response, float), "Expected a float result from RNGNode"
         assert 0 < response < 1, "Expected a float result from RNGNode"
-        assert info.answer == response, (
-            "Expected the answer to be the same as the response"
-        )
+        assert (
+            info.answer == response
+        ), "Expected the answer to be the same as the response"
 
     async def run_with_logging_config_w_context_w_call(log_setting):
         rc.set_config(rc.ExecutorConfig(logging_setting=log_setting))
@@ -114,9 +116,9 @@ def logging_config_test_threads():
         response = info.answer
         assert isinstance(response, float), "Expected a float result from RNGNode"
         assert 0 < response < 1, "Expected a float result from RNGNode"
-        assert info.answer == response, (
-            "Expected the answer to be the same as the response"
-        )
+        assert (
+            info.answer == response
+        ), "Expected the answer to be the same as the response"
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(
@@ -155,7 +157,7 @@ message = "Hello, World!"
 
 
 async def streaming_func():
-    await rc.stream(message)
+    await requestcompletion.interaction.stream.stream(message)
     return
 
 
