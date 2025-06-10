@@ -12,7 +12,7 @@ def check_classmethod(method: Any, method_name: str) -> None:
         method_name: The name of the method (for error messages).
 
     Raises:
-        RCNodeCreationException: If the method is not a classmethod.
+        NodeCreationError: If the method is not a classmethod.
     """
     if not isinstance(method, classmethod):
         raise NodeCreationError(
@@ -29,7 +29,7 @@ def check_connected_nodes(node_set, node: type) -> None:
         Node: The base Node class.
 
     Raises:
-        RCNodeCreationException: If node_set is empty or contains invalid types.
+        NodeCreationError: If node_set is empty or contains invalid types.
     """
     if not node_set:
         raise NodeCreationError(
@@ -50,7 +50,7 @@ def check_duplicate_param_names(tool_params: Iterable[Any]) -> None:
         tool_params: Iterable of parameter objects with a 'name' attribute.
 
     Raises:
-        RCNodeCreationException: If duplicate parameter names are found.
+        NodeCreationError: If duplicate parameter names are found.
     """
     if tool_params:
         names = [x.name for x in tool_params]
@@ -69,7 +69,7 @@ def check_output_model(method: classmethod, cls: type) -> None:
         cls: The class to pass to the method.
 
     Raises:
-        RCNodeCreationException: If the output model is missing, invalid, or empty.
+        NodeCreationError: If the output model is missing, invalid, or empty.
     """
     output_model = method.__func__(cls)
     if not output_model:
@@ -97,7 +97,7 @@ def check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
         tool_details: The tool details object.
 
     Raises:
-        RCNodeCreationException: If pretty_name is missing when tool_details are present.
+        NodeCreationError: If pretty_name is missing when tool_details are present.
     """
     if pretty_name is None and tool_details:
         raise NodeCreationError(get_message("MISSING_PRETTY_NAME_MSG"))
@@ -111,7 +111,7 @@ def check_system_message(system_message: Any, system_message_type: type) -> None
         SystemMessageType: The expected type for system_message.
 
     Raises:
-        RCNodeCreationException: If system_message is not of the correct type.
+        NodeCreationError: If system_message is not of the correct type.
     """
     if system_message is not None and not isinstance(system_message, system_message_type):
         raise NodeCreationError(
@@ -128,7 +128,7 @@ def check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
         tool_details: The tool details object.
 
     Raises:
-        RCNodeCreationException: If tool_params exist but tool_details are missing.
+        NodeCreationError: If tool_params exist but tool_details are missing.
     """
     if tool_params and not tool_details:
         raise NodeCreationError(

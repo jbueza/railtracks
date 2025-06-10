@@ -5,7 +5,7 @@ import pytest
 import requestcompletion as rc
 
 from pydantic import BaseModel, Field
-from requestcompletion.exceptions import RCNodeCreationException
+from requestcompletion.exceptions import NodeCreationError
 from requestcompletion.llm import MessageHistory, UserMessage
 
 from requestcompletion.nodes.library import from_function
@@ -31,7 +31,7 @@ async def test_structured_with_no_tool_calls(simple_node, simple_output_model):
 @pytest.mark.asyncio
 async def test_empty_connected_nodes_easy_wrapper(model):
     """Test when the output model is empty while making a node with easy wrapper."""
-    with pytest.raises(RCNodeCreationException, match="connected_nodes must not return an empty set."):
+    with pytest.raises(NodeCreationError, match="connected_nodes must not return an empty set."):
         _ = rc.library.tool_call_llm(
             connected_nodes=set(),
             system_message=rc.llm.SystemMessage(
@@ -46,7 +46,7 @@ async def test_empty_connected_nodes_easy_wrapper(model):
 async def test_empty_connected_nodes_class_based(model):
     """Test when the output model is empty while making a node with class based."""
 
-    with pytest.raises(RCNodeCreationException, match="connected_nodes must not return an empty set."):
+    with pytest.raises(NodeCreationError, match="connected_nodes must not return an empty set."):
 
         system_simple = rc.llm.SystemMessage(
             "Return a simple text and number. Don't use any tools."
@@ -602,7 +602,7 @@ class SimpleOutput(BaseModel):
                     name="param1", param_type="string", description="A test parameter."
                 )
             ],
-            RCNodeCreationException,
+            NodeCreationError,
             "Tool parameters are provided, but tool details are missing.",
         ),
         # Test: Duplicate parameter names in tool_params
@@ -619,7 +619,7 @@ class SimpleOutput(BaseModel):
                     description="A duplicate parameter.",
                 ),
             ],
-            RCNodeCreationException,
+            NodeCreationError,
             "Duplicate parameter names are not allowed.",
         ),
     ],

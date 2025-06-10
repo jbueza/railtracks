@@ -1,7 +1,7 @@
 import pytest
 import requestcompletion as rc
 from pydantic import BaseModel
-from requestcompletion.exceptions import RCNodeCreationException
+from requestcompletion.exceptions import NodeCreationError
 from typing import Type
 
 # ================================================ START basic functionality =========================================================
@@ -12,7 +12,7 @@ from typing import Type
 # =================== START Easy Usage Node Creation ===================
 @pytest.mark.asyncio
 async def test_easy_usage_no_output_model():
-    with pytest.raises(RCNodeCreationException, match="Output model cannot be empty"):
+    with pytest.raises(NodeCreationError, match="Output model cannot be empty"):
         _ = rc.library.structured_llm(
             output_model=None,
             system_message=rc.llm.SystemMessage(
@@ -24,7 +24,7 @@ async def test_easy_usage_no_output_model():
 
 @pytest.mark.asyncio
 async def test_easy_usage_empty_output_model(empty_output_model):
-    with pytest.raises(RCNodeCreationException, match="Output model cannot be empty"):
+    with pytest.raises(NodeCreationError, match="Output model cannot be empty"):
         _ = rc.library.structured_llm(
             output_model=empty_output_model,
             system_message=rc.llm.SystemMessage(
@@ -37,7 +37,7 @@ async def test_easy_usage_empty_output_model(empty_output_model):
 @pytest.mark.asyncio
 async def test_easy_usage_tool_details_not_provided(simple_output_model):
     with pytest.raises(
-        RCNodeCreationException,
+        NodeCreationError,
         match="Tool parameters are provided, but tool details are missing.",
     ):
         _ = rc.library.structured_llm(
@@ -60,7 +60,7 @@ async def test_easy_usage_tool_details_not_provided(simple_output_model):
 @pytest.mark.asyncio
 async def test_easy_usage_duplicate_parameter_names(simple_output_model):
     with pytest.raises(
-        RCNodeCreationException, match="Duplicate parameter names are not allowed."
+        NodeCreationError, match="Duplicate parameter names are not allowed."
     ):
         _ = rc.library.structured_llm(
             output_model=simple_output_model,
@@ -88,7 +88,7 @@ async def test_easy_usage_duplicate_parameter_names(simple_output_model):
 @pytest.mark.asyncio
 async def test_easy_usage_system_message_is_a_string(simple_output_model):
     with pytest.raises(
-        RCNodeCreationException,
+        NodeCreationError,
         match="system_message must be a SystemMessage object, not a string or any other type.",
     ):
         _ = rc.library.structured_llm(
@@ -103,7 +103,7 @@ async def test_easy_usage_system_message_is_a_string(simple_output_model):
 # =================== START Class Based Node Creation ===================
 @pytest.mark.asyncio
 async def test_class_based_empty_output_model(empty_output_model):
-    with pytest.raises(RCNodeCreationException, match="Output model cannot be empty."):
+    with pytest.raises(NodeCreationError, match="Output model cannot be empty."):
         class Structurer(rc.library.StructuredLLM):
             def __init__(
                 self,
@@ -127,7 +127,7 @@ async def test_class_based_empty_output_model(empty_output_model):
 
 @pytest.mark.asyncio
 async def test_class_based_output_model_not_class_based(simple_output_model):
-    with pytest.raises(RCNodeCreationException, match="The 'output_model' method must be a @classmethod."):
+    with pytest.raises(NodeCreationError, match="The 'output_model' method must be a @classmethod."):
         class Structurer(rc.library.StructuredLLM):
             def __init__(
                 self,
@@ -150,7 +150,7 @@ async def test_class_based_output_model_not_class_based(simple_output_model):
             
 @pytest.mark.asyncio
 async def test_class_based_output_model_not_pydantic():
-    with pytest.raises(RCNodeCreationException, match="Output model must be a pydantic model"):
+    with pytest.raises(NodeCreationError, match="Output model must be a pydantic model"):
         class Structurer(rc.library.StructuredLLM):
             def __init__(
                 self,

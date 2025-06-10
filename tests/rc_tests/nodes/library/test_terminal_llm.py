@@ -1,7 +1,7 @@
 import pytest
 import requestcompletion as rc
 from pydantic import BaseModel
-from requestcompletion.exceptions import RCNodeCreationException
+from requestcompletion.exceptions import NodeCreationError
 
 class CapitalizeText(rc.Node[str]):
     def __init__(self, string: str):
@@ -74,7 +74,7 @@ def test_terminal_llm_class_based_run(model , encoder_system_message):
 # =================== START Easy Usage Node Creation ===================
 @pytest.mark.asyncio
 async def test_system_message_is_a_string_easy_usage(model):
-    with pytest.raises(RCNodeCreationException, match="Message history must be a list of Message objects"):
+    with pytest.raises(NodeCreationError, match="Message history must be a list of Message objects"):
         encoder_agent = rc.library.terminal_llm(
             pretty_name="Encoder",
             system_message="You are a helpful assistant that can encode text into bytes.",
@@ -91,7 +91,7 @@ async def test_terminal_llm_missing_tool_details_easy_usage(model, encoder_syste
     }
 
     with pytest.raises(
-        RCNodeCreationException, match="Tool parameters are provided, but tool details are missing."
+        NodeCreationError, match="Tool parameters are provided, but tool details are missing."
     ):
         encoder_wo_tool_details = rc.library.terminal_llm(
             pretty_name="Encoder",
@@ -107,7 +107,7 @@ async def test_terminal_llm_no_pretty_name_with_tool_easy_usage(model, encoder_s
     # Test case where tool is configured but pretty_name is missing
     
     with pytest.raises(
-        RCNodeCreationException, match="You must provide a pretty_name when using this node as a tool"
+        NodeCreationError, match="You must provide a pretty_name when using this node as a tool"
     ):
         encoder_tool_details = "A tool used to encode text into bytes."
 
@@ -178,7 +178,7 @@ async def test_terminal_llm_tool_duplicate_parameter_names_easy_usage(
     }
 
     with pytest.raises(
-        RCNodeCreationException, match="Duplicate parameter names are not allowed."
+        NodeCreationError, match="Duplicate parameter names are not allowed."
     ):
        encoder_w_duplicate_param = rc.library.terminal_llm(
             pretty_name="Encoder",
@@ -207,7 +207,7 @@ async def test_system_message_is_a_string_class_based(model):
         def pretty_name(cls) -> str:
             return "Simple Node"
 
-    with pytest.raises(RCNodeCreationException, match="Message history must be a list of Message objects"):
+    with pytest.raises(NodeCreationError, match="Message history must be a list of Message objects"):
         response = await rc.call(Encoder, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
 
 
@@ -235,7 +235,7 @@ async def test_no_pretty_name_class_based(model, encoder_system_message):
 @pytest.mark.asyncio
 async def test_tool_info_not_classmethod(model, encoder_system_message):
     with pytest.raises(
-        RCNodeCreationException, match="The 'tool_info' method must be a @classmethod."
+        NodeCreationError, match="The 'tool_info' method must be a @classmethod."
     ):
         class Encoder(rc.library.TerminalLLM): 
             def __init__(
