@@ -1,33 +1,24 @@
 from .base import RCException
 
-from ..state.request import RequestTemplate
-from ..info import ExecutionInfo
-
 class RCNodeInvocationException(RCException):
     """
-    General error for execution problems in graph, including node or orchestration failures.
+    Raised during node for execution problems in graph, including node or orchestration failures.
+    For example, bad config, missing required parameters, or structural errors.
     """
 
-    def __init__(
-        self,
-        failed_request: RequestTemplate,
-        execution_info: ExecutionInfo,
-        final_exception: Exception,
-    ):
-        """
-        Store context for post-mortem analysis.
-        """
-        self.failed_request = failed_request
-        self.execution_info = execution_info
-        self.final_exception = final_exception
-        super().__init__(
-            f"Execution failed for request {failed_request!r} with error {final_exception!r}. "
-            f"See exception history: {self.exception_history}"
-        )
+    def __init__(self, message=None, notes=None):
+        if message is None:
+            message = "Something went wrong during node creation."
+        super().__init__(message)
+        self.notes = notes or []
 
-    @property
-    def exception_history(self):
-        return getattr(self.execution_info, "exception_history", None)
+    def __str__(self):
+        base = super().__str__()
+        if self.notes:
+            notes_str = "\n" + self.color("Tips to debug:\n", self.GREEN) + \
+                        "\n".join(self.color(f"- {note}", self.GREEN) for note in self.notes)
+            return f"\n{self.color(base, self.RED)}{notes_str}"
+        return self.color(base, self.RED)
 
 class RCGlobalTimeOutException(RCException):
     """

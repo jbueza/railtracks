@@ -103,7 +103,7 @@ async def test_easy_usage_system_message_is_a_string(simple_output_model):
 # =================== START Class Based Node Creation ===================
 @pytest.mark.asyncio
 async def test_class_based_empty_output_model(empty_output_model):
-    with pytest.raises(RCNodeCreationException, match="Output model cannot be empty"):
+    with pytest.raises(RCNodeCreationException, match="Output model must not be empty."):
         class Structurer(rc.library.StructuredLLM):
             def __init__(
                 self,
@@ -150,7 +150,7 @@ async def test_class_based_output_model_not_class_based(simple_output_model):
             
 @pytest.mark.asyncio
 async def test_class_based_output_model_not_pydantic():
-    with pytest.raises(RCNodeCreationException, match="Output model cannot be empty/must be a pydantic model"):
+    with pytest.raises(RCNodeCreationException, match="Output model must be a pydantic model"):
         class Structurer(rc.library.StructuredLLM):
             def __init__(
                 self,

@@ -1,12 +1,11 @@
 from __future__ import annotations
-
 import asyncio
 import uuid
 from copy import deepcopy
-
+from ..exceptions.fatal import RCNodeCreationException
 from ..llm import Tool
 from abc import ABC, abstractmethod, ABCMeta
-
+from pydantic import BaseModel
 from typing import (
     TypeVar,
     Generic,
@@ -15,7 +14,6 @@ from typing import (
     Any,
 )
 from typing_extensions import Self
-
 _TOutput = TypeVar("_TOutput")
 
 
@@ -45,7 +43,6 @@ class NodeCreationMeta(ABCMeta):
             if method_name in dct and callable(dct[method_name]):
                 method = dct[method_name]
                 if not isinstance(method, classmethod):
-                    from ..exceptions import RCNodeCreationException
                     raise RCNodeCreationException(
                         message=f"The '{method_name}' method must be a @classmethod.",
                         notes=[
@@ -57,25 +54,29 @@ class NodeCreationMeta(ABCMeta):
         if 'output_model' in dct:
             method = dct['output_model']
             if not isinstance(method, classmethod):
-                from ..exceptions import RCNodeCreationException
                 raise RCNodeCreationException(
-                    message="The 'output_model' method must be a @classmethod.",
+                    message="\nThe 'output_model' method must be a @classmethod.",
                     notes=[
                         "Add @classmethod decorator to 'output_model'.",
                         "Signature should be: \n@classmethod\ndef 'output_model'(cls): ..."
                     ]
                 )
-            # # Additional check: output_model must return a pydantic model class
-            # output_model = method.__func__(cls)
-            # from pydantic import BaseModel
-            # if not (isinstance(output_model, type) and issubclass(output_model, BaseModel)):
-            #     from ..exceptions import RCNodeCreationException
-            #     raise RCNodeCreationException(
-            #             message="Output model cannot be empty/must be a pydantic model",
-            #             notes=[
-            #                 "The output_model classmethod must return a pydantic BaseModel subclass."
-            #             ]
-            #         )
+            if not getattr(cls, "__abstractmethods__", False):
+                output_model = method.__func__(cls)
+                if not issubclass(output_model, BaseModel):
+                    raise RCNodeCreationException(
+                        message=f"Output model must be a pydantic model not {type(output_model)}",
+                        notes=[
+                            "The output_model classmethod must return a pydantic BaseModel subclass."
+                        ]
+                    )
+                elif output_model is None or len(output_model.model_fields) == 0:
+                    raise RCNodeCreationException(
+                        message=f"Output model must not be empty",
+                        notes=[
+                            "The output_model classmethod must return a pydantic BaseModel subclass."
+                        ]
+                    )
 
 
 class NodeState(Generic[_TNode]):
