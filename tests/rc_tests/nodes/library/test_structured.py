@@ -89,7 +89,7 @@ async def test_easy_usage_duplicate_parameter_names(simple_output_model):
 async def test_easy_usage_system_message_is_a_string(simple_output_model):
     with pytest.raises(
         RCNodeCreationException,
-        match="Message history must be a list of Message objects",
+        match="system_message must be a SystemMessage object, not a string or any other type.",
     ):
         _ = rc.library.structured_llm(
             output_model=simple_output_model,

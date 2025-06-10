@@ -247,8 +247,8 @@ class FunctionNode(Node[_TOutput]):
         return f"Function Node - {cls.__class__.__name__}"
 
     @classmethod
-    def tool_info(self) -> Tool:
-        return Tool.from_function(self.func)
+    def tool_info(cls) -> Tool:
+        return Tool.from_function(cls.func)
 
     @classmethod
     def prepare_tool(cls, tool_parameters):

@@ -97,5 +97,4 @@ def terminal_llm(  # noqa: C901
             "Message history must be a list of Message objects",
             notes=["system_message must be a SystemMessage object, not a string or other type."]
         )
-    
     return TerminalLLMNode

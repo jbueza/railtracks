@@ -10,4 +10,3 @@ class RCException(Exception):
     @classmethod
     def color(cls, text, color_code):
         return f"{color_code}{text}{cls.RESET}"
-    

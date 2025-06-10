@@ -101,11 +101,13 @@ def structured_llm(  # noqa: C901
             message="Duplicate parameter names are not allowed.",
             notes=["Parameter names in tool_params must be unique."],
         )
-    elif not output_model or len(output_model.model_fields) == 0 or not isinstance(output_model, BaseModel):
-        raise RCNodeCreationException("Output model cannot be empty/must be a pydantic model")
+    elif not output_model or len(output_model.model_fields) == 0:
+        raise RCNodeCreationException("Output model cannot be empty")
+    elif not issubclass(output_model, BaseModel):
+        raise RCNodeCreationException(f"Output model must be a pydantic model, not {type(output_model)}")
     elif system_message is not None and not isinstance(system_message, SystemMessage):
         raise RCNodeCreationException(
-            "Message history must be a list of Message objects",
-            notes=["system_message must be a SystemMessage object, not a string or other type."]
+            "system_message must be a SystemMessage object, not a string or any other type.",
+            notes=["Message history must be a list of Message objects"],
         )
     return StructuredLLMNode

@@ -59,10 +59,10 @@ class NodeCreationMeta(ABCMeta):
             if not isinstance(method, classmethod):
                 from ..exceptions import RCNodeCreationException
                 raise RCNodeCreationException(
-                    message=f"The 'output_model' method must be a @classmethod.",
+                    message="The 'output_model' method must be a @classmethod.",
                     notes=[
-                        f"Add @classmethod decorator to 'output_model'.",
-                        f"Signature should be: \n@classmethod\ndef 'output_model'(cls): ..."
+                        "Add @classmethod decorator to 'output_model'.",
+                        "Signature should be: \n@classmethod\ndef 'output_model'(cls): ..."
                     ]
                 )
             # # Additional check: output_model must return a pydantic model class
@@ -76,7 +76,7 @@ class NodeCreationMeta(ABCMeta):
             #                 "The output_model classmethod must return a pydantic BaseModel subclass."
             #             ]
             #         )
-            
+
 
 class NodeState(Generic[_TNode]):
     """
