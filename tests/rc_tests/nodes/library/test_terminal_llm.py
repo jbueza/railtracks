@@ -107,7 +107,7 @@ async def test_terminal_llm_no_pretty_name_with_tool_easy_usage(model, encoder_s
     # Test case where tool is configured but pretty_name is missing
     
     with pytest.raises(
-        RCNodeCreationException, match="You must provide a pretty_name when using TerminalLLM as a tool"
+        RCNodeCreationException, match="You must provide a pretty_name when using this node as a tool"
     ):
         encoder_tool_details = "A tool used to encode text into bytes."
 

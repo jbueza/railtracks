@@ -33,10 +33,10 @@ from ..utils.logging.action import (
 
 if TYPE_CHECKING:
     from .. import ExecutorConfig
-from ..exceptions import RCFatalException
+from ..exceptions import RCFatalError
 from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..exceptions import RCNodeInvocationException
+from ..exceptions import RCNodeInvocationError
 from ..utils.profiling import Stamp
 from ..utils.logging.create import get_rc_logger
 
@@ -363,7 +363,7 @@ class RCState:
 
         if self.executor_config.end_on_error:
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = RCNodeInvocationException(
+            ee = RCNodeInvocationError(
                 message=node_exception_action.to_logging_msg(),
                 notes=[
                     "This is a fatal exception. The system will be shutting down.",
@@ -374,9 +374,9 @@ class RCState:
             return Failure(exception)
 
         # fatal exceptions should only be thrown if there is something seriously wrong.
-        if isinstance(exception, RCFatalException):
+        if isinstance(exception, RCFatalError):
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = RCNodeInvocationException(
+            ee = RCNodeInvocationError(
                 message=node_exception_action.to_logging_msg(),
                 notes=[
                     "This is a fatal exception. The system will be shutting down.",

@@ -1,7 +1,6 @@
 import warnings
 from copy import deepcopy
 from typing import Set, Type, Union, Literal, Dict, Any
-from ....exceptions import RCNodeCreationException
 from pydantic import BaseModel
 from ....llm import (
     MessageHistory,
@@ -19,6 +18,12 @@ from ....nodes.nodes import Node
 from ....llm.message import Role
 
 from typing_extensions import Self
+from ....exceptions.node_creation_exceptions.validation import (
+    check_tool_params_and_details,
+    check_duplicate_param_names,
+    check_system_message,
+    check_pretty_name,
+)
 
 
 def tool_call_llm(  # noqa: C901
@@ -130,28 +135,9 @@ def tool_call_llm(  # noqa: C901
             )
             return cls(message_hist)
 
-    if tool_params and not tool_details:
-        raise RCNodeCreationException(
-            "Tool parameters are provided, but tool details are missing.",
-            notes=["If you want to use ToolCallLLM as a tool, you must provide tool details."],
-        )
-    elif (
-        tool_details
-        and tool_params
-        and len([x.name for x in tool_params]) != len({x.name for x in tool_params})
-    ):
-        raise RCNodeCreationException(
-            message="Duplicate parameter names are not allowed.",
-            notes=["Parameter names in tool_params must be unique."],
-        )
-    elif pretty_name is None and tool_details:
-        raise RCNodeCreationException(
-            "You must provide a pretty_name when using ToolCallLLM as a tool, as this is used to identify the tool."
-        )
-    elif system_message is not None and not isinstance(system_message, SystemMessage):
-        raise RCNodeCreationException(
-            "Message history must be a list of Message objects",
-            notes=["system_message must be a SystemMessage object, not a string or other type."]
-        )
+    check_tool_params_and_details(tool_params, tool_details)
+    check_duplicate_param_names(tool_params or [])
+    check_system_message(system_message, SystemMessage)
+    check_pretty_name(pretty_name, tool_details)
 
     return ToolCallLLM

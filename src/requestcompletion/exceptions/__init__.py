@@ -1,12 +1,12 @@
-from .fatal import RCFatalException, RCNodeCreationException
-from .execution import RCNodeInvocationException, RCGlobalTimeOutException, RCLLMException
+from .fatal import RCFatalError, RCNodeCreationError
+from .execution import RCNodeInvocationError, RCGlobalTimeOutError, RCLLMError
 
 
 
 __all__ = [
-    "RCFatalException",
-    "RCNodeCreationException",
-    "RCNodeInvocationException",
-    "RCGlobalTimeOutException",
-    "RCLLMException",
+    "RCFatalError",
+    "RCNodeCreationError",
+    "RCNodeInvocationError",
+    "RCGlobalTimeOutError",
+    "RCLLMError",
 ]

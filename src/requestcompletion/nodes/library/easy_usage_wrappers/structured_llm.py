@@ -1,7 +1,6 @@
 import warnings
 from typing import Type, Dict, Any
 from copy import deepcopy
-from ....exceptions import RCNodeCreationException
 from ....llm import (
     UserMessage,
     MessageHistory,
@@ -13,6 +12,12 @@ from typing_extensions import Self
 
 from ....nodes.library.structured_llm import StructuredLLM
 from pydantic import BaseModel
+from ....exceptions.node_creation_exceptions.validation import (
+    check_tool_params_and_details,
+    check_duplicate_param_names,
+    check_system_message,
+    check_pretty_name,
+)
 
 
 def structured_llm(  # noqa: C901
@@ -87,23 +92,9 @@ def structured_llm(  # noqa: C901
             )
             return cls(message_hist)
 
-    if tool_params and not tool_details:
-        raise RCNodeCreationException(
-            "Tool parameters are provided, but tool details are missing.",
-            notes=["If you want to use StructuredLLM as a tool, you must provide tool details."],
-        )
-    elif (
-        tool_details
-        and tool_params
-        and len([x.name for x in tool_params]) != len({x.name for x in tool_params})
-    ):
-        raise RCNodeCreationException(
-            message="Duplicate parameter names are not allowed.",
-            notes=["Parameter names in tool_params must be unique."],
-        )
-    elif system_message is not None and not isinstance(system_message, SystemMessage):
-        raise RCNodeCreationException(
-            "system_message must be a SystemMessage object, not a string or any other type.",
-            notes=["Message history must be a list of Message objects"],
-        )
+    check_tool_params_and_details(tool_params, tool_details)
+    check_duplicate_param_names(tool_params or [])
+    check_system_message(system_message, SystemMessage)
+    check_pretty_name(pretty_name, tool_details)
+
     return StructuredLLMNode
