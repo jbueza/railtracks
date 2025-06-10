@@ -1,5 +1,5 @@
 import asyncio
-from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Callable
+from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any
 from copy import deepcopy
 from ..nodes import Node
 from ...llm import (
