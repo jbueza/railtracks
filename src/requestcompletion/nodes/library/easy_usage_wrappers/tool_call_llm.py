@@ -31,7 +31,6 @@ def tool_call_llm(  # noqa: C901
     output_model: BaseModel | None = None,
     tool_details: str | None = None,
     tool_params: dict | None = None,
-    max_tool_calls: int | None = None,
 ) -> Type[OutputLessToolCallLLM[Union[MessageHistory, AssistantMessage, BaseModel]]]:
     if output_model:
         OutputType = output_model  # noqa: N806
@@ -75,6 +74,7 @@ def tool_call_llm(  # noqa: C901
             self,
             message_history: MessageHistory,
             llm_model: ModelBase | None = None,
+            max_tool_calls: int | None = 30,
         ):
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
@@ -101,7 +101,7 @@ def tool_call_llm(  # noqa: C901
                     )
                 llm_model = model
 
-            super().__init__(message_history_copy, llm_model)
+            super().__init__(message_history_copy, llm_model, max_tool_calls=max_tool_calls)
 
             if output_model:
                 system_structured = SystemMessage(
@@ -114,11 +114,6 @@ def tool_call_llm(  # noqa: C901
         def connected_nodes(self) -> Set[Type[Node]]:
             return connected_nodes
 
-        @classmethod
-        def default_max_tool_calls(cls) -> int:
-            if max_tool_calls is None:
-                return super().default_max_tool_calls()
-            return max_tool_calls
 
         @classmethod
         def pretty_name(cls) -> str:

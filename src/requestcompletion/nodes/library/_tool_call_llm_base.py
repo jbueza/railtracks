@@ -27,26 +27,18 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
         message_history: MessageHistory,
         model: ModelBase,
-        max_tool_calls: int | None = None,
+        max_tool_calls: int | None = 30,
     ):
         super().__init__()
         self.model = model
         self.message_hist = deepcopy(message_history)
         self.structured_resp_node = None  # The structured LLM node
 
-        if max_tool_calls is None:
-            max_tool_calls = self.default_max_tool_calls()
         self.max_tool_calls = max_tool_calls
 
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
 
-    @classmethod
-    def default_max_tool_calls(cls) -> int:
-        """
-        Returns the default number of maximum tool calls before this node will throw a runtime error.
-        """
-        return 30
 
     def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
         """
@@ -74,7 +66,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     ) -> _T:
         while True:
             # special check for maximum tool calls
-            if (
+            if self.max_tool_calls is not None and (
                 len([m for m in self.message_hist if isinstance(m, ToolMessage)])
                 >= self.max_tool_calls
             ):
