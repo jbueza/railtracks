@@ -34,7 +34,7 @@ async def call(node: Callable[_P, Union[Node[_TOutput], _TOutput]], *args: _P.ar
         context = get_globals()
     except KeyError:
         #If function is passed, we will convert it to a node
-        if type(node) is FunctionType:
+        if isinstance(node, FunctionType):
             node = from_function(node)
         with Runner() as runner:
             await runner.run(node, *args, **kwargs)
