@@ -2,7 +2,7 @@ from typing import TypeVar, Type
 from copy import deepcopy
 from ...llm import MessageHistory, ModelBase
 from ..nodes import Node
-
+from ...exceptions.node_invocation.validation import check_message_history
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
 
@@ -23,10 +23,8 @@ class StructuredLLM(Node[_TOutput], ABC):
         """
         super().__init__()
         self.model = model
+        check_message_history(message_history)               # raises NodeInvocationError if any of the checks fail
         self.message_hist = deepcopy(message_history)
-
-        if self.output_model() is None or len(self.output_model().model_fields) == 0:
-            raise ValueError("Output model cannot be empty")
 
     async def invoke(self) -> _TOutput:
         """Makes a call containing the inputted message and system prompt to the model and returns the response

@@ -13,6 +13,7 @@ from ...llm import (
 from ...interaction.call import call
 from abc import ABC, abstractmethod
 from ...exceptions import FatalError
+from ...exceptions.node_invocation.validation import check_message_history
 
 _T = TypeVar("_T")
 _P = ParamSpec("_P")
@@ -31,6 +32,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     ):
         super().__init__()
         self.model = model
+        check_message_history(message_history)               # raises NodeInvocationError if any of the checks fail
         self.message_hist = deepcopy(message_history)
         self.structured_resp_node = None  # The structured LLM node
         self.max_tool_calls = max_tool_calls

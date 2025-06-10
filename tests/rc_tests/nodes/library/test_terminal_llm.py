@@ -122,8 +122,6 @@ async def test_terminal_llm_no_pretty_name_with_tool_easy_usage(model, encoder_s
                 tool_params=encoder_tool_params,
             )
 
-
-
 @pytest.mark.timeout(30)
 @pytest.mark.asyncio
 async def test_terminal_llm_tool_with_invalid_parameters_easy_usage(model, encoder_system_message):

@@ -2,7 +2,7 @@ from ...llm import MessageHistory, ModelBase, Message
 from ..nodes import Node
 from abc import ABC
 from copy import deepcopy
-from ...exceptions import NodeCreationError
+from ...exceptions.node_invocation.validation import check_message_history
 
 class TerminalLLM(Node[str], ABC):
     """A simple LLM nodes that takes in a message and returns a response. It is the simplest of all llms."""
@@ -15,26 +15,7 @@ class TerminalLLM(Node[str], ABC):
         """
         super().__init__()
         self.model = model
-
-        # ========= Creation Exceptions =========
-        if any(not isinstance(m, Message) for m in message_history):
-            raise NodeCreationError(
-                message="Message history must be a list of Message objects",
-                notes=[
-                    "System messages must be of type rc.llm.SystemMessage (not string)",
-                    "User messages must be of type rc.llm.UserMessage (not string)",
-                ],
-            )
-        elif len(message_history) == 0:
-            raise NodeCreationError(
-                message="Message history must contain at least one message",
-                notes=["No messages provided"],
-            )
-        elif message_history[0].role != "system":
-            raise NodeCreationError(
-                message="Missing SystemMessage: The first message in the message history must be a system message"
-            )
-        # ========= End Creation Exceptions =========
+        check_message_history(message_history)               # raises NodeInvocationError if any of the checks fail
         self.message_hist = deepcopy(message_history)
 
     async def invoke(self) -> str | None:
