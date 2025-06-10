@@ -27,11 +27,13 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
         message_history: MessageHistory,
         model: ModelBase,
+        max_tool_calls: int = 30,
     ):
         super().__init__()
         self.model = model
         self.message_hist = deepcopy(message_history)
         self.structured_resp_node = None  # The structured LLM node
+        self.max_tool_calls = max_tool_calls
 
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
@@ -61,10 +63,20 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
     ) -> _T:
         while True:
+            # special check for maximum tool calls
+            if (
+                len([m for m in self.message_hist if isinstance(m, ToolMessage)])
+                >= self.max_tool_calls
+            ):
+                raise RuntimeError(
+                    f"Maximum number of tool calls ({self.max_tool_calls}) exceeded.\nMessage History:\n{self.message_hist}"
+                )
+
             # collect the response from the model
             returned_mess = self.model.chat_with_tools(
                 self.message_hist, tools=self.tools()
             )
+
             self.message_hist.append(returned_mess.message)
 
             if returned_mess.message.role == "assistant":
@@ -73,16 +85,16 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     assert all(
                         isinstance(x, ToolCall) for x in returned_mess.message.content
                     )
-                    contracts = [
-                        call(
-                            self.create_node(
-                                tool_name=t_c.name,
-                                arguments=t_c.arguments
-                            ),
+
+
+                    contracts = []
+                    for t_c in returned_mess.message.content:
+                        contract = call(
+                            self.create_node,
+                            t_c.name,
                             t_c.arguments,
                         )
-                        for t_c in returned_mess.message.content
-                    ]
+                        contracts.append(contract)
 
                     tool_responses = await asyncio.gather(
                         *contracts, return_exceptions=True
@@ -110,8 +122,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                                 )
                             )
                         )
-
-                elif returned_mess.message.content is not None:
+                else:
                     # this means the tool call is finished
                     break
             else:

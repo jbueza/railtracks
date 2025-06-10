@@ -111,7 +111,7 @@ class StreamingRNGNode(RNGNode):
         self,
     ) -> float:
         response = super().invoke()
-        rc.stream(self.rng_template.format(response))
+        await rc.stream(self.rng_template.format(response))
         # this sleep is important for testing
         # if the thing returns too fast, the streamer will kill before it is able to finish its process.
         # time.sleep(0.01)
@@ -121,13 +121,14 @@ class StreamingRNGNode(RNGNode):
 class StreamingCallNode(CallNode):
     call_template_call = "Creating Call with type {0}"
 
-    def invoke(self):
+    async def invoke(self):
         for _ in range(self.number_of_calls):
             contracts = [
                 rc.call(self.node_creator) for _ in range(self.parallel_call_num)
             ]
-            response = asyncio.gather(*contracts)
-            [rc.stream(r) for r in response]
+            response = await asyncio.gather(*contracts)
+            for r in response:
+                await rc.stream(r)
 
             self.data.extend([d for d in response])
 
