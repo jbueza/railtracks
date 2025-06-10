@@ -6,6 +6,7 @@ import webbrowser
 from contextlib import AsyncExitStack
 from datetime import timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from inspect import _empty
 from typing import Any, Dict
 from urllib.parse import urlparse, parse_qs
 
@@ -19,6 +20,8 @@ from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAu
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.client.sse import sse_client
+from mcp.server.fastmcp.tools.base import Tool as MCPTool
+from mcp.server.fastmcp.utilities.func_metadata import FuncMetadata, func_metadata
 
 from pydantic import BaseModel
 from ..llm import Tool
@@ -341,18 +344,31 @@ class CallbackServer:
         return self.callback_data["state"]
 
 
-def create_mcp_server(nodes: List[Node], server_name: str = "MCP Server") -> Any:
+def create_mcp_server(nodes: List[Node], server_name: str = "MCP Server", fastmcp: FastMCP = None):
     """
-    Create an MCP server that can be used to run MCP tools.
+    Create a FastMCP server that can be used to run nodes as MCP tools.
 
     Args:
-        nodes: List of Node instances to be registered with the MCP server.
+        nodes: List of Node classes to be registered as tools with the MCP server.
+        server_name: Name of the MCP server instance.
+        fastmcp: Optional FastMCP instance to use instead of creating a new one.
 
     Returns:
-        An MCP server instance.
+        A FastMCP server instance.
     """
+    if fastmcp is not None:
+        if not isinstance(fastmcp, FastMCP):
+            raise ValueError("Provided fastmcp must be an instance of FastMCP.")
+        mcp = FastMCP(server_name)
 
-    mcp = FastMCP(server_name)
+    type_map = {
+        "integer": int,
+        "number": float,
+        "string": str,
+        "boolean": bool,
+        "array": list,
+        "object": dict,
+    }
 
     def create_tool_function(node_cls: Node, node_info):
         params = []
@@ -360,21 +376,24 @@ def create_mcp_server(nodes: List[Node], server_name: str = "MCP Server") -> Any
         params_schema = node_info.parameters.model_json_schema() if node_info.parameters is not None else {}
         for param_name, param_info in params_schema.get("properties", {}).items():
             required = param_name in params_schema.get("required", [])
+            param_type = param_info.get("type", "any")
+            annotation = type_map.get(param_type, str)
             if required:
-                params.append(inspect.Parameter(param_name, inspect.Parameter.POSITIONAL_OR_KEYWORD))
+                params.append(inspect.Parameter(
+                    param_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=annotation
+                ))
             else:
-                params.append(inspect.Parameter(param_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None))
+                params.append(inspect.Parameter(
+                    param_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=annotation
+                ))
 
-            param_type = param_info.get("type", "Any")
             param_desc = param_info.get("description", "")
-            args_doc.append(f"    {param_name} ({param_type}): {param_desc}")
-
-        docstring = f"""
-            Auto-generated tool function.
-
-            Args:
-        {chr(10).join(args_doc)}
-            """
+            args_doc.append(f"    {param_name}: {param_desc}")
 
         async def tool_function(**kwargs):
             with rc.Runner(
@@ -384,15 +403,21 @@ def create_mcp_server(nodes: List[Node], server_name: str = "MCP Server") -> Any
                 return response.answer
 
         tool_function.__signature__ = inspect.Signature(params)
-        tool_function.__doc__ = docstring
         return tool_function
 
     for node in nodes:
         node_info = node.tool_info()
         func = create_tool_function(node, node_info)
-        mcp.tool(
+
+        mcp._tool_manager._tools[node_info.name] = MCPTool(
+            fn=func,
             name=node_info.name,
             description=node_info.detail,
-        )(func)
+            parameters=node_info.parameters.model_json_schema() if node_info.parameters is not None else {},
+            fn_metadata=func_metadata(func, []),
+            is_async=True,
+            context_kwarg=None,
+            annotations=None,
+        )  # Register the node as a tool
 
     return mcp
