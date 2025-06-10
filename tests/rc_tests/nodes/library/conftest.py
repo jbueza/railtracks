@@ -138,6 +138,17 @@ def person_output_model():
 
 # ============ Tools ===========
 @pytest.fixture
+def simple_tools():
+    def random_number() -> int:
+        """Returns a random number between 1 and 100.
+        Args:
+        Returns:
+            int: A random number between 1 and 100.
+        """
+        return random.randint(1, 100)
+    return random_number
+
+@pytest.fixture
 def travel_planner_tools():
     def available_locations() -> List[str]:
         """Returns a list of available locations.
@@ -459,3 +470,74 @@ def complex_node(request, model, person_output_model):
         return SentientNode
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
+
+@pytest.fixture
+def simple_function_taking_node(request, model, simple_tools, simple_output_model):
+    """
+    Returns the appropriate nodes based on the parametrized fixture name.
+    """
+    random_number = simple_tools
+    system_mes = rc.llm.SystemMessage(
+        "You are a helpful assistant that uses the random number tool to generate a random number between 1 and 100"
+    )
+
+    simple_node = rc.library.tool_call_llm(
+        connected_nodes={random_number,
+                        },
+        pretty_name="Random Number Provider Node",
+        system_message=system_mes,
+        model=model,
+        output_model=simple_output_model,
+    )
+
+    return simple_node
+
+@pytest.fixture
+def some_function_taking_travel_planner_node(request, model, travel_planner_tools, travel_planner_output_model):
+    """
+    Returns the appropriate nodes based on the parametrized fixture name.
+    """
+    convert_currency, available_locations, currency_used, average_location_cost = travel_planner_tools
+    system_travel_planner = rc.llm.SystemMessage(
+        "You are a travel planner that will plan a trip. you have access to AvailableLocations, ConvertCurrency, CurrencyUsed and AverageLocationCost tools. Use them when you need to."
+    )
+
+    travel_planner_node = rc.library.tool_call_llm(
+        connected_nodes={
+            convert_currency,
+            rc.library.from_function(available_locations),
+            currency_used,
+            rc.library.from_function(average_location_cost),
+        },
+        pretty_name="Travel Planner Node",
+        system_message=system_travel_planner,
+        model=model,
+        output_model=travel_planner_output_model,
+    )
+
+    return travel_planner_node
+
+@pytest.fixture
+def only_function_taking_travel_planner_node(request, model, travel_planner_tools, travel_planner_output_model):
+    """
+    Returns the appropriate nodes based on the parametrized fixture name.
+    """
+    convert_currency, available_locations, currency_used, average_location_cost = travel_planner_tools
+    system_travel_planner = rc.llm.SystemMessage(
+        "You are a travel planner that will plan a trip. you have access to AvailableLocations, ConvertCurrency, CurrencyUsed and AverageLocationCost tools. Use them when you need to."
+    )
+
+    travel_planner_node = rc.library.tool_call_llm(
+        connected_nodes={
+            convert_currency,
+            available_locations,
+            currency_used,
+            average_location_cost,
+        },
+        pretty_name="Travel Planner Node",
+        system_message=system_travel_planner,
+        model=model,
+        output_model=travel_planner_output_model,
+    )
+
+    return travel_planner_node
