@@ -357,13 +357,17 @@ def create_mcp_server(nodes: List[Node], server_name: str = "MCP Server") -> Any
     def create_tool_function(node_cls: Node, node_info):
         params = []
         args_doc = []
-        for p in node_info.parameters:
-            if p.required:
-                params.append(inspect.Parameter(p.name, inspect.Parameter.POSITIONAL_OR_KEYWORD))
+        params_schema = node_info.parameters.model_json_schema() if node_info.parameters is not None else {}
+        for param_name, param_info in params_schema.get("properties", {}).items():
+            required = param_name in params_schema.get("required", [])
+            if required:
+                params.append(inspect.Parameter(param_name, inspect.Parameter.POSITIONAL_OR_KEYWORD))
             else:
-                params.append(inspect.Parameter(p.name, inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None))
+                params.append(inspect.Parameter(param_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None))
 
-            args_doc.append(f"    {p.name} ({p.param_type}): {p.description}")
+            param_type = param_info.get("type", "Any")
+            param_desc = param_info.get("description", "")
+            args_doc.append(f"    {param_name} ({param_type}): {param_desc}")
 
         docstring = f"""
             Auto-generated tool function.
@@ -372,11 +376,11 @@ def create_mcp_server(nodes: List[Node], server_name: str = "MCP Server") -> Any
         {chr(10).join(args_doc)}
             """
 
-        def tool_function(**kwargs):
+        async def tool_function(**kwargs):
             with rc.Runner(
                     executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
             ) as runner:
-                response = asyncio.run(runner.run(node_cls, **kwargs))
+                response = await runner.run(node_cls.prepare_tool, kwargs)
                 return response.answer
 
         tool_function.__signature__ = inspect.Signature(params)
