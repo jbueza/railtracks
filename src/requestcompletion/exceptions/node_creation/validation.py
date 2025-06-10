@@ -1,4 +1,4 @@
-from .exception_messages import get_message, get_notes
+from .exception_messages import ExceptionMessageKey, get_message, get_notes
 from typing import Any, Iterable
 from ..fatal import NodeCreationError
 from pydantic import BaseModel
@@ -16,8 +16,8 @@ def check_classmethod(method: Any, method_name: str) -> None:
     """
     if not isinstance(method, classmethod):
         raise NodeCreationError(
-            message=get_message("CLASSMETHOD_REQUIRED_MSG").format(method_name=method_name),
-            notes=[note.format(method_name=method_name) for note in get_notes("CLASSMETHOD_REQUIRED_NOTES")],
+            message=get_message(ExceptionMessageKey.CLASSMETHOD_REQUIRED_MSG).format(method_name=method_name),
+            notes=[note.format(method_name=method_name) for note in get_notes(ExceptionMessageKey.CLASSMETHOD_REQUIRED_NOTES)],
         )
 
 def check_connected_nodes(node_set, node: type) -> None:
@@ -33,13 +33,13 @@ def check_connected_nodes(node_set, node: type) -> None:
     """
     if not node_set:
         raise NodeCreationError(
-            message=get_message("CONNECTED_NODES_EMPTY_MSG"),
-            notes=get_notes("CONNECTED_NODES_EMPTY_NOTES"),
+            message=get_message(ExceptionMessageKey.CONNECTED_NODES_EMPTY_MSG),
+            notes=get_notes(ExceptionMessageKey.CONNECTED_NODES_EMPTY_NOTES),
         )
     elif not all(issubclass(x, node) for x in node_set):    # ideally we should be importing node from requestcompletion, but we don't want to deal woth circular imports here :'
         raise NodeCreationError(
-            message=get_message("CONNECTED_NODES_TYPE_MSG"),
-            notes=get_notes("CONNECTED_NODES_TYPE_NOTES"),
+            message=get_message(ExceptionMessageKey.CONNECTED_NODES_TYPE_MSG),
+            notes=get_notes(ExceptionMessageKey.CONNECTED_NODES_TYPE_NOTES),
         )
 
 def check_duplicate_param_names(tool_params: Iterable[Any]) -> None:
@@ -56,8 +56,8 @@ def check_duplicate_param_names(tool_params: Iterable[Any]) -> None:
         names = [x.name for x in tool_params]
         if len(names) != len(set(names)):
             raise NodeCreationError(
-                message=get_message("DUPLICATE_PARAMETER_NAMES_MSG"),
-                notes=get_notes("DUPLICATE_PARAMETER_NAMES_NOTES"),
+                message=get_message(ExceptionMessageKey.DUPLICATE_PARAMETER_NAMES_MSG),
+                notes=get_notes(ExceptionMessageKey.DUPLICATE_PARAMETER_NAMES_NOTES),
             )
 
 def check_output_model(method: classmethod, cls: type) -> None:
@@ -74,18 +74,18 @@ def check_output_model(method: classmethod, cls: type) -> None:
     output_model = method.__func__(cls)
     if not output_model:
         raise NodeCreationError(
-            message=get_message("OUTPUT_MODEL_REQUIRED_MSG"),
-            notes=get_notes("OUTPUT_MODEL_REQUIRED_NOTES"),
+            message=get_message(ExceptionMessageKey.OUTPUT_MODEL_REQUIRED_MSG),
+            notes=get_notes(ExceptionMessageKey.OUTPUT_MODEL_REQUIRED_NOTES),
         )
     elif not issubclass(output_model, BaseModel):
         raise NodeCreationError(
-            message=get_message("OUTPUT_MODEL_TYPE_MSG").format(actual_type=type(output_model)),
-            notes=get_notes("OUTPUT_MODEL_TYPE_NOTES"),
+            message=get_message(ExceptionMessageKey.OUTPUT_MODEL_TYPE_MSG).format(actual_type=type(output_model)),
+            notes=get_notes(ExceptionMessageKey.OUTPUT_MODEL_TYPE_NOTES),
         )
     elif len(output_model.model_fields) == 0:
         raise NodeCreationError(
-            message=get_message("OUTPUT_MODEL_EMPTY_MSG"),
-            notes=get_notes("OUTPUT_MODEL_EMPTY_NOTES"),
+            message=get_message(ExceptionMessageKey.OUTPUT_MODEL_EMPTY_MSG),
+            notes=get_notes(ExceptionMessageKey.OUTPUT_MODEL_EMPTY_NOTES),
         )
 
 def check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
@@ -100,7 +100,7 @@ def check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
         NodeCreationError: If pretty_name is missing when tool_details are present.
     """
     if pretty_name is None and tool_details:
-        raise NodeCreationError(get_message("MISSING_PRETTY_NAME_MSG"))
+        raise NodeCreationError(get_message(ExceptionMessageKey.MISSING_PRETTY_NAME_MSG))
 
 def check_system_message(system_message: Any, system_message_type: type) -> None:
     """
@@ -115,8 +115,8 @@ def check_system_message(system_message: Any, system_message_type: type) -> None
     """
     if system_message is not None and not isinstance(system_message, system_message_type):
         raise NodeCreationError(
-            get_message("INVALID_SYSTEM_MESSAGE_MSG"),
-            notes=get_notes("INVALID_SYSTEM_MESSAGE_NOTES"),
+            get_message(ExceptionMessageKey.INVALID_SYSTEM_MESSAGE_MSG),
+            notes=get_notes(ExceptionMessageKey.INVALID_SYSTEM_MESSAGE_NOTES),
         )
 
 def check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
@@ -132,6 +132,6 @@ def check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
     """
     if tool_params and not tool_details:
         raise NodeCreationError(
-            get_message("MISSING_TOOL_DETAILS_MSG"),
-            notes=get_notes("MISSING_TOOL_DETAILS_NOTES"),
+            get_message(ExceptionMessageKey.MISSING_TOOL_DETAILS_MSG),
+            notes=get_notes(ExceptionMessageKey.MISSING_TOOL_DETAILS_NOTES),
         )
