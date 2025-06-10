@@ -581,7 +581,6 @@ async def test_tool_with_structured_output_child_tool():
     assert response.answer.success is True
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "llm_function, connected_nodes",
     [

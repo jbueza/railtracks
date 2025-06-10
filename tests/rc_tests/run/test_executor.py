@@ -32,6 +32,12 @@ def many_calls_tester(num_calls: int, parallel_calls: int):
     assert isinstance(ans, list)
     assert len(ans) == num_calls * parallel_calls
     assert all([0 < x < 1 for x in ans])
+    print("\n".join([f"{x.step}. {x.identifier}" for x in finished_result.all_stamps]))
+    assert {x.step for x in finished_result.all_stamps} == {
+        i for i in range(num_calls * parallel_calls * 2 + 2)
+    }
+
+    assert len(finished_result.all_stamps) == 3 * num_calls * parallel_calls + 3
 
 
 @pytest.mark.timeout(5)
@@ -57,7 +63,7 @@ def test_large_no_deadlock():
 
 
 def test_simple_rng():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(RNGNode)
 
     assert 0 < result.answer < 1

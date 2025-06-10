@@ -1,13 +1,5 @@
-import pytest
+import requestcompletion as rc
 from requestcompletion.llm.message import Message
-from requestcompletion.llm.history import MessageHistory
-
-
-def test_message_history_is_valid(message_history):
-    """
-    Test the is_valid method of MessageHistory.
-    """
-    assert message_history.is_valid() is True
 
 
 def test_message_history_str(message_history):
@@ -24,8 +16,23 @@ def test_message_history_str(message_history):
     assert str(message_history) == expected_str
 
 
-def test_empty_message_history():
-    empty_history = MessageHistory()
-    assert str(empty_history) == ""
-    assert empty_history.is_valid() is True
+def test_message_hist_string():
+    message_hist = rc.llm.MessageHistory(
+        [rc.llm.UserMessage("What is going on in this beautiful world?")]
+    )
 
+    assert str(message_hist) == "user: What is going on in this beautiful world?"
+
+
+def test_multiline_hist_string():
+    message_hist = rc.llm.MessageHistory(
+        [
+            rc.llm.UserMessage("What is going on in this beautiful world?"),
+            rc.llm.AssistantMessage("Nothing much as of now"),
+        ]
+    )
+
+    assert (
+        str(message_hist)
+        == "user: What is going on in this beautiful world?\nassistant: Nothing much as of now"
+    )

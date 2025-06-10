@@ -29,7 +29,6 @@ async def test_parallel_calls(parallel_node, timeout_config, expected, buffer):
         assert results.answer == timeout_config
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "timeout_config, expected, buffer",
     [

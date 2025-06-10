@@ -202,9 +202,9 @@ class RCPublisher(Generic[_T]):
                         "Listener has been killed before receiving the correct message."
                     )
 
-            assert (
-                returnable_result is not None
-            ), "Listener should have received a message before returning."
+            assert returnable_result is not None, (
+                "Listener should have received a message before returning."
+            )
             self.unsubscribe(sub_id)
             return result_mapping(returnable_result)
 

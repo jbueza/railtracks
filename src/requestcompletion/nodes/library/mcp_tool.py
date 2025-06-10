@@ -19,9 +19,7 @@ def from_mcp_server(
     Returns:
         List of Nodes, one for each discovered tool.
     """
-    return asyncio.run(
-        async_from_mcp_server(config)
-    )
+    return asyncio.run(async_from_mcp_server(config))
 
 
 async def async_from_mcp_server(
@@ -38,10 +36,4 @@ async def async_from_mcp_server(
     """
     async with MCPAsyncClient(config) as client:
         tools = await client.list_tools()
-        return [
-            from_mcp(
-                tool,
-                config
-            )
-            for tool in tools
-        ]
+        return [from_mcp(tool, config) for tool in tools]
