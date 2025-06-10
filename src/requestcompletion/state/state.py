@@ -267,9 +267,9 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(
-            n in self._node_heap for n in children
-        ), "You cannot add a request for a node which has not yet been added"
+        assert all(n in self._node_heap for n in children), (
+            "You cannot add a request for a node which has not yet been added"
+        )
 
         if request_ids is None:
             request_ids = [None] * len(children)
@@ -296,7 +296,7 @@ class RCState:
                 input_kwargs,
                 [
                     stamp_gen(
-                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n]}"
+                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n].pretty_name()}"
                     )
                     for n in children
                 ],

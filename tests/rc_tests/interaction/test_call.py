@@ -225,3 +225,12 @@ async def test_message_history_not_mutated_tool_call_llm(model, tool_calling_nod
             orig.content == new.content
             for orig, new in zip(original_message_history, message_history)
         ), "Message history modified after runner run"
+
+
+async def test_no_context_call():
+    with pytest.raises(Exception):
+        await rc.call(
+            lambda: "This should not work",
+            "This is a test argument",
+            key="This is a test keyword argument",
+        )
