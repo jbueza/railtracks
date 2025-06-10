@@ -32,7 +32,7 @@ to another modular component.
 - **Configurable** - The system is designed to be configurable and extensible. You maintain full control of a variety of
   parameters that can be used to control the behavior of the system.
 
-## Getting Started
+## Quick Start
 
 Let's get started with building your first Agentic system. The following steps will guide you through the process of
 creating a simple Agentic system using the Request Completion framework.
@@ -42,8 +42,6 @@ creating a simple Agentic system using the Request Completion framework.
 ```bash
 pip install requestcompletion
 ```
-
-Or add it to your requirements.txt.
 
 ### Step 2: Define your Modular Components
 

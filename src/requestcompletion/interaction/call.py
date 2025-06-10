@@ -23,6 +23,16 @@ async def call(node: Callable[_P, Node[_TOutput]], *args: _P.args, **kwargs: _P.
     Call a node from within a node inside the framework. This will return a coroutine that you can interact with
     in whatever way using the `asyncio` framework.
 
+    Usage:
+    ```python
+    # for sequential operation
+    result = await call(NodeA, "hello world", 42)
+
+    # for parallel operation
+    tasks = [call(NodeA, "hello world", i) for i in range(10)]
+    results = await asyncio.gather(*tasks)
+    ```
+
     Args:
         node: The node type you would like to create
         *args: The arguments to pass to the node
