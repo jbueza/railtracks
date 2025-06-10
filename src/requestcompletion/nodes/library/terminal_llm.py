@@ -2,7 +2,7 @@ from ...llm import MessageHistory, ModelBase, Message
 from ..nodes import Node
 from abc import ABC
 from copy import deepcopy
-from ...exceptions import RCNodeCreationError
+from ...exceptions import NodeCreationError
 
 class TerminalLLM(Node[str], ABC):
     """A simple LLM nodes that takes in a message and returns a response. It is the simplest of all llms."""
@@ -18,7 +18,7 @@ class TerminalLLM(Node[str], ABC):
 
         # ========= Creation Exceptions =========
         if any(not isinstance(m, Message) for m in message_history):
-            raise RCNodeCreationError(
+            raise NodeCreationError(
                 message="Message history must be a list of Message objects",
                 notes=[
                     "System messages must be of type rc.llm.SystemMessage (not string)",
@@ -26,12 +26,12 @@ class TerminalLLM(Node[str], ABC):
                 ],
             )
         elif len(message_history) == 0:
-            raise RCNodeCreationError(
+            raise NodeCreationError(
                 message="Message history must contain at least one message",
                 notes=["No messages provided"],
             )
         elif message_history[0].role != "system":
-            raise RCNodeCreationError(
+            raise NodeCreationError(
                 message="Missing SystemMessage: The first message in the message history must be a system message"
             )
         # ========= End Creation Exceptions =========

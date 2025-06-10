@@ -1,6 +1,6 @@
 from .base import RCError
 
-class RCNodeInvocationError(RCError):
+class NodeInvocationError(RCError):
     """
     Raised during node for execution problems in graph, including node or orchestration failures.
     For example, bad config, missing required parameters, or structural errors.
@@ -20,14 +20,14 @@ class RCNodeInvocationError(RCError):
             return f"\n{self.color(base, self.RED)}{notes_str}"
         return self.color(base, self.RED)
 
-class RCGlobalTimeOutError(RCError):
+class GlobalTimeOutError(RCError):
     """
     Raised on global timeout for whole execution.
     """
     def __init__(self, timeout: float):
         super().__init__(f"Execution timed out after {timeout} seconds")
 
-class RCLLMError(RCError):
+class LLMError(RCError):
     """
     Raised when an error occurs during LLM invocation or completion.
     """

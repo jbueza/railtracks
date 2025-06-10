@@ -1,11 +1,11 @@
 from .base import RCError
 
 
-class RCFatalError(RCError):
+class FatalError(RCError):
     pass
 
 
-class RCNodeCreationError(RCError):
+class NodeCreationError(RCError):
     """
     Raised during node creation/validation before any execution begins.
     For example, bad config, missing required parameters, or structural errors.

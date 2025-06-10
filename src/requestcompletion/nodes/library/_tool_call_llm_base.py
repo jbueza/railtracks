@@ -12,7 +12,7 @@ from ...llm import (
 )
 from ...interaction.call import call
 from abc import ABC, abstractmethod
-from ...exceptions import RCFatalError
+from ...exceptions import FatalError
 
 _T = TypeVar("_T")
 
@@ -47,7 +47,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         if node == []:
             raise RuntimeError(f"Tool {tool_name} cannot be create a node")
         if len(node) > 1:
-            raise RCFatalError(
+            raise FatalError(
                 f"Tool {tool_name} has multiple nodes, this is not allowed. Current Node include {[x.tool_info().name for x in self.connected_nodes()]}",
             )
         return node[0].prepare_tool(arguments)
