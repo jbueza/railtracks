@@ -4,7 +4,7 @@ from ..terminal_llm import TerminalLLM
 from ....llm import MessageHistory, ModelBase, SystemMessage, UserMessage
 from ....llm.tools import Parameter, Tool
 from copy import deepcopy
-from ....exceptions import RCNodeCreationException, RCNodeInvocationException
+from ....exceptions import RCNodeCreationException
 
 
 def terminal_llm(  # noqa: C901
@@ -79,10 +79,6 @@ def terminal_llm(  # noqa: C901
             "Tool parameters provided but no tool details provided.",
             notes=["If you want to use TerminalLLM as a tool, you must provide tool details."],
         )
-    elif tool_details and tool_params is not None and len(tool_params) == 0:
-        raise RCNodeCreationException(
-            "If you want no params for the tool, tool_params must be set to None."
-        )
     elif (
         tool_details
         and tool_params
@@ -96,5 +92,10 @@ def terminal_llm(  # noqa: C901
         raise RCNodeCreationException(
             "You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
         )
-
+    elif system_message is not None and not isinstance(system_message, SystemMessage):
+        raise RCNodeCreationException(
+            "Message history must be a list of Message objects",
+            notes=["system_message must be a SystemMessage object, not a string or other type."]
+        )
+    
     return TerminalLLMNode

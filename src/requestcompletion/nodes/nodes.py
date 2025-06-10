@@ -53,7 +53,30 @@ class NodeCreationMeta(ABCMeta):
                             f"Signature should be: \n@classmethod\ndef {method_name}(cls): ..."
                         ]
                     )
-
+        # special case for output_model structured_output node
+        if 'output_model' in dct:
+            method = dct['output_model']
+            if not isinstance(method, classmethod):
+                from ..exceptions import RCNodeCreationException
+                raise RCNodeCreationException(
+                    message=f"The 'output_model' method must be a @classmethod.",
+                    notes=[
+                        f"Add @classmethod decorator to 'output_model'.",
+                        f"Signature should be: \n@classmethod\ndef 'output_model'(cls): ..."
+                    ]
+                )
+            # # Additional check: output_model must return a pydantic model class
+            # output_model = method.__func__(cls)
+            # from pydantic import BaseModel
+            # if not (isinstance(output_model, type) and issubclass(output_model, BaseModel)):
+            #     from ..exceptions import RCNodeCreationException
+            #     raise RCNodeCreationException(
+            #             message="Output model cannot be empty/must be a pydantic model",
+            #             notes=[
+            #                 "The output_model classmethod must return a pydantic BaseModel subclass."
+            #             ]
+            #         )
+            
 
 class NodeState(Generic[_TNode]):
     """

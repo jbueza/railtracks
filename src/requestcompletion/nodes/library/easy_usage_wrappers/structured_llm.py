@@ -1,7 +1,7 @@
 import warnings
 from typing import Type, Dict, Any
 from copy import deepcopy
-
+from ....exceptions import RCNodeCreationException
 from ....llm import (
     UserMessage,
     MessageHistory,
@@ -88,20 +88,24 @@ def structured_llm(  # noqa: C901
             return cls(message_hist)
 
     if tool_params and not tool_details:
-        raise RuntimeError(
-            "Tool parameters are provided, but tool details are missing."
-        )
-    elif tool_details and (tool_params is not None and not tool_params):
-        raise RuntimeError(
-            "If no parameters are required for the tool, `tool_params` must be set to None."
+        raise RCNodeCreationException(
+            "Tool parameters provided but no tool details provided.",
+            notes=["If you want to use TerminalLLM as a tool, you must provide tool details."],
         )
     elif (
         tool_details
         and tool_params
-        and len({param.name for param in tool_params}) != len(tool_params)
+        and len([x.name for x in tool_params]) != len({x.name for x in tool_params})
     ):
-        raise ValueError("Duplicate parameter names are not allowed.")
-    if not output_model or len(output_model.model_fields) == 0:
-        raise ValueError("Output model cannot be empty")
-
+        raise RCNodeCreationException(
+            message="Duplicate parameter names are not allowed.",
+            notes=["Parameter names in tool_params must be unique."],
+        )
+    elif not output_model or len(output_model.model_fields) == 0 or not isinstance(output_model, BaseModel):
+        raise RCNodeCreationException("Output model cannot be empty/must be a pydantic model")
+    elif system_message is not None and not isinstance(system_message, SystemMessage):
+        raise RCNodeCreationException(
+            "Message history must be a list of Message objects",
+            notes=["system_message must be a SystemMessage object, not a string or other type."]
+        )
     return StructuredLLMNode

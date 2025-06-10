@@ -1,7 +1,7 @@
 import warnings
 from copy import deepcopy
 from typing import Set, Type, Union, Literal, Dict, Any
-
+from ....exceptions import RCNodeCreationException
 from pydantic import BaseModel
 from ....llm import (
     MessageHistory,
@@ -131,18 +131,27 @@ def tool_call_llm(  # noqa: C901
             return cls(message_hist)
 
     if tool_params and not tool_details:
-        raise RuntimeError(
-            "Tool parameters are provided, but tool details are missing."
-        )
-    elif tool_details and (tool_params is not None and not tool_params):
-        raise RuntimeError(
-            "If no parameters are required for the tool, `tool_params` must be set to None."
+        raise RCNodeCreationException(
+            "Tool parameters provided but no tool details provided.",
+            notes=["If you want to use TerminalLLM as a tool, you must provide tool details."],
         )
     elif (
         tool_details
         and tool_params
-        and len({param.name for param in tool_params}) != len(tool_params)
+        and len([x.name for x in tool_params]) != len({x.name for x in tool_params})
     ):
-        raise ValueError("Duplicate parameter names are not allowed.")
+        raise RCNodeCreationException(
+            message="Duplicate parameter names are not allowed.",
+            notes=["Parameter names in tool_params must be unique."],
+        )
+    elif pretty_name is None and tool_details:
+        raise RCNodeCreationException(
+            "You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
+        )
+    elif system_message is not None and not isinstance(system_message, SystemMessage):
+        raise RCNodeCreationException(
+            "Message history must be a list of Message objects",
+            notes=["system_message must be a SystemMessage object, not a string or other type."]
+        )
 
     return ToolCallLLM

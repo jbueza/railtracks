@@ -74,14 +74,13 @@ def test_terminal_llm_class_based_run(model , encoder_system_message):
 # =================== START Easy Usage Node Creation ===================
 @pytest.mark.asyncio
 async def test_system_message_is_a_string_easy_usage(model):
-    encoder_agent = rc.library.terminal_llm(
-        pretty_name="Encoder",
-        system_message="You are a helpful assistant that can encode text into bytes.",
-        model=model,
-    )
-
     with pytest.raises(RCNodeCreationException, match="Message history must be a list of Message objects"):
-        response = await rc.call(encoder_agent, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
+        encoder_agent = rc.library.terminal_llm(
+            pretty_name="Encoder",
+            system_message="You are a helpful assistant that can encode text into bytes.",
+            model=model,
+        )
+
 
 
 @pytest.mark.asyncio
@@ -164,25 +163,6 @@ async def test_terminal_llm_tool_with_invalid_parameters_easy_usage(model, encod
         assert any(
             message.role == "tool" and "There was an error running the tool" in message.content.result
             for message in response.answer
-        )
-
-
-@pytest.mark.asyncio
-async def test_terminal_llm_tool_empty_parameters_easy_usage(model, encoder_system_message):
-    # Test with empty parameter set
-    encoder_tool_details = "A tool that doesn't need any parameters."
-    encoder_tool_params = set()  # Empty set
-
-    with pytest.raises(
-        RCNodeCreationException,
-        match="If you want no params for the tool, tool_params must be set to None.",
-    ):
-        encoder = rc.library.terminal_llm(
-            pretty_name="EmptyParamEncoder",
-            system_message=encoder_system_message,
-            model=model,
-            tool_details=encoder_tool_details,
-            tool_params=encoder_tool_params,
         )
 
 
