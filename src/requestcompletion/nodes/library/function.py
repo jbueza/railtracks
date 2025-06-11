@@ -47,26 +47,25 @@ def from_function(  # noqa: C901
             self.args = args
             self.kwargs = kwargs
 
-        async def invoke(self) -> _TOutput:
-            """Invoke the function with converted arguments."""
-            try:
-                # Convert kwargs to appropriate types based on function signature
-                converted_kwargs = self._convert_kwargs_to_appropriate_types()
+        if inspect.iscoroutinefunction(func):
 
-                # we want to have different behavior if the function is a coroutine or not
-                result = func(*self.args, **converted_kwargs)
-                if inspect.iscoroutine(result):
-                    result = await result
+            async def invoke(self) -> _TOutput:
+                """Invoke the function as a coroutine."""
+                return await func(*self.args, **self.kwargs)
 
+        else:
+
+            def invoke(self):
+                result = func(*self.args, **self.kwargs)
+                if asyncio.iscoroutine(result):
+                    # TODO: connect with item #91
+                    raise RuntimeError(
+                        "The function you provided was a coroutine in the clothing of a sync context. Please label it as an async function."
+                    )
                 return result
 
-            except Exception as e:
-                warnings.warn(
-                    f"Error invoking function {func.__name__}\n ProvidedArgs: {self.args}\nProvided kwargs:\n{self.kwargs}.\n: {str(e)}"
-                )
-                raise
-
-        def _convert_kwargs_to_appropriate_types(self) -> Dict[str, Any]:
+        @classmethod
+        def _convert_kwargs_to_appropriate_types(cls, kwargs) -> Dict[str, Any]:
             """Convert kwargs to appropriate types based on function signature."""
             converted_kwargs = {}
 
@@ -82,15 +81,16 @@ def from_function(  # noqa: C901
             # Process all parameters from the function signature
             for param_name, param in sig.parameters.items():
                 # If the parameter is in kwargs, convert it
-                if param_name in self.kwargs:
-                    converted_kwargs[param_name] = self._convert_value(
-                        self.kwargs[param_name], param.annotation, param_name
+                if param_name in kwargs:
+                    converted_kwargs[param_name] = cls._convert_value(
+                        kwargs[param_name], param.annotation, param_name
                     )
 
             return converted_kwargs
 
+        @classmethod
         def _convert_value(
-            self, value: Any, target_type: Any, param_name: str = "unknown"
+            cls, value: Any, target_type: Any, param_name: str = "unknown"
         ) -> Any:
             """
             Convert a value to the target type based on type annotation.
@@ -109,7 +109,7 @@ def from_function(  # noqa: C901
 
             # Handle Pydantic models
             if inspect.isclass(target_type) and issubclass(target_type, BaseModel):
-                return self._convert_to_pydantic_model(value, target_type)
+                return cls._convert_to_pydantic_model(value, target_type)
 
             # Get the origin type (for generics like List, Dict, etc.)
             origin = get_origin(target_type)
@@ -122,7 +122,7 @@ def from_function(  # noqa: C901
 
             # Handle sequence types (lists and tuples) consistently
             if origin in (list, tuple):
-                return self._convert_to_sequence(value, origin, args)
+                return cls._convert_to_sequence(value, origin, args)
 
             # For primitive types, try direct conversion
             try:
@@ -137,8 +137,9 @@ def from_function(  # noqa: C901
             # If conversion fails or isn't applicable, return the original value
             return value
 
+        @classmethod
         def _convert_to_pydantic_model(
-            self, value: Any, model_class: Type[BaseModel]
+            cls, value: Any, model_class: Type[BaseModel]
         ) -> Any:
             """Convert a value to a Pydantic model."""
             if isinstance(value, dict):
@@ -147,8 +148,9 @@ def from_function(  # noqa: C901
                 return model_class(**value.__dict__)
             return value
 
+        @classmethod
         def _convert_to_sequence(
-            self, value: Any, target_type: Type, type_args: Tuple[Type, ...]
+            cls, value: Any, target_type: Type, type_args: Tuple[Type, ...]
         ) -> Union[List[Any], Tuple[Any, ...]]:
             """
             Convert a value to a sequence (list or tuple) with the expected element types.
@@ -165,18 +167,19 @@ def from_function(  # noqa: C901
             if isinstance(value, (list, tuple)):
                 # Convert each element to the appropriate type
                 result = [
-                    self._convert_element(item, type_args, i)
+                    cls._convert_element(item, type_args, i)
                     for i, item in enumerate(value)
                 ]
                 # Return as the target type (list or tuple)
                 return tuple(result) if target_type is tuple else result
 
             # For any non-sequence type, wrap in a sequence with a single element
-            result = [self._convert_element(value, type_args, 0)]
+            result = [cls._convert_element(value, type_args, 0)]
             return tuple(result) if target_type is tuple else result
 
+        @classmethod
         def _convert_element(
-            self, value: Any, type_args: Tuple[Type, ...], index: int
+            cls, value: Any, type_args: Tuple[Type, ...], index: int
         ) -> Any:
             """
             Convert a sequence element to the expected type.
@@ -202,7 +205,7 @@ def from_function(  # noqa: C901
                 element_type = type_args[0]
 
             # Convert the value to the determined type
-            return self._convert_value(value, element_type)
+            return cls._convert_value(value, element_type)
 
         @classmethod
         def pretty_name(cls) -> str:
@@ -214,7 +217,8 @@ def from_function(  # noqa: C901
 
         @classmethod
         def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
-            return cls(**tool_parameters)
+            converted_params = cls._convert_kwargs_to_appropriate_types(tool_parameters)
+            return cls(**converted_params)
 
     return DynamicFunctionNode
 

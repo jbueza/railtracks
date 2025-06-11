@@ -54,11 +54,11 @@ def test_slow_streamer():
             self.finished_message = item
 
     sub = Sub()
-    with rc.Runner(executor_config=ExecutorConfig()) as runner:
-        finished_result = runner.run_sync(StreamingRNGNode, subscriber=sub.handle)
+    with rc.Runner(executor_config=ExecutorConfig(subscriber=sub.handle)) as runner:
+        finished_result = runner.run_sync(StreamingRNGNode)
 
     assert isinstance(finished_result.answer, float)
-    assert sub.finished_message is None
+    assert sub.finished_message is not None
 
 
 async def rng_tree_streamer(num_calls: int, parallel_call_nums: int, multiplier: int):
