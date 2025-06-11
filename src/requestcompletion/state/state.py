@@ -11,7 +11,7 @@ from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKIN
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
-from ..context import register_globals, ThreadContext
+from ..context import register_globals, ThreadContext, update_parent_id
 from ..execution.coordinator import Coordinator
 from ..pubsub.publisher import RCPublisher
 from ..execution.task import Task
@@ -94,13 +94,7 @@ class RCState:
         if isinstance(item, RequestFinishedBase):
             await self.handle_result(item)
         if isinstance(item, RequestCreation):
-            # TODO fix this logic. It works but it is far from clean. Trace the line of context to make this work better.
-            register_globals(
-                ThreadContext(
-                    parent_id=item.current_node_id,
-                    publisher=self.publisher,
-                )
-            )
+            update_parent_id(item.current_node_id)
 
             assert item.new_request_id not in self._request_heap.heap().keys()
 
@@ -267,9 +261,9 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(n in self._node_heap for n in children), (
-            "You cannot add a request for a node which has not yet been added"
-        )
+        assert all(
+            n in self._node_heap for n in children
+        ), "You cannot add a request for a node which has not yet been added"
 
         if request_ids is None:
             request_ids = [None] * len(children)
