@@ -57,11 +57,14 @@ class NodeCreationMeta(ABCMeta):
         # 3. Check if the connected_nodes is not empty, special case for ToolCallLLM
         if "connected_nodes" in dct and not getattr(cls, "__abstractmethods__", False):
             method = dct["connected_nodes"]
-            try:  # in case of class based init
+            try:
+                # Try to call the method as a classmethod (typical case)
                 node_set = method.__func__(cls)
-            except AttributeError:  # in case of easy_wrapper init
+            except AttributeError:
+                # If that fails, call it as an instance method (for easy_wrapper init)
                 dummy = object.__new__(cls)
                 node_set = method(dummy)
+            # Validate that the returned node_set is correct and contains only Node/function instances
             check_connected_nodes(node_set, Node)
         # ================= End Creation Exceptions ================
 

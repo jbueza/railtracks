@@ -1,6 +1,6 @@
 import warnings
 from copy import deepcopy
-from typing import Set, Type, Union, Literal, Dict, Any
+from typing import Set, Type, Union, Literal, Dict, Any, Callable
 from pydantic import BaseModel
 from ....llm import (
     MessageHistory,
@@ -19,16 +19,13 @@ from ....llm.message import Role
 
 from typing_extensions import Self
 from ....exceptions.node_creation.validation import (
-    check_tool_params_and_details,
-    check_duplicate_param_names,
-    check_system_message,
-    check_pretty_name,
+    validate_tool_metadata,
 )
 from inspect import isclass, isfunction
 from ....nodes.library.function import from_function
 
 def tool_call_llm(  # noqa: C901
-    connected_nodes: Set[Type[Node]],
+    connected_nodes: Set[Union[Type[Node], Callable]],
     pretty_name: str | None = None,
     model: ModelBase | None = None,
     system_message: SystemMessage | None = None,
@@ -115,7 +112,7 @@ def tool_call_llm(  # noqa: C901
                     output_model, system_message=system_structured, model=llm_model
                 )
 
-        def connected_nodes(self) -> Set[Type[Node]]:
+        def connected_nodes(self) -> Set[Union[Type[Node], Callable]]:
             return connected_nodes
 
         @classmethod
@@ -149,9 +146,6 @@ def tool_call_llm(  # noqa: C901
             )
             return cls(message_hist)
 
-    check_tool_params_and_details(tool_params, tool_details)
-    check_duplicate_param_names(tool_params or [])
-    check_system_message(system_message, SystemMessage)
-    check_pretty_name(pretty_name, tool_details)
+    validate_tool_metadata(tool_params, tool_details, system_message, pretty_name)
 
     return ToolCallLLM

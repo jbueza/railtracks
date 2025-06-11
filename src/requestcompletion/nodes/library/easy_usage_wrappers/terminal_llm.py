@@ -5,10 +5,7 @@ from ....llm import MessageHistory, ModelBase, SystemMessage, UserMessage
 from ....llm.tools import Parameter, Tool
 from copy import deepcopy
 from ....exceptions.node_creation.validation import (
-    check_tool_params_and_details,
-    check_duplicate_param_names,
-    check_system_message,
-    check_pretty_name,
+    validate_tool_metadata,
 )
 
 
@@ -79,8 +76,5 @@ def terminal_llm(  # noqa: C901
                 )
                 return cls(message_hist)
 
-    check_tool_params_and_details(tool_params, tool_details)
-    check_duplicate_param_names(tool_params or [])
-    check_system_message(system_message, SystemMessage)
-    check_pretty_name(pretty_name, tool_details)
+    validate_tool_metadata(tool_params, tool_details, system_message, pretty_name)
     return TerminalLLMNode
