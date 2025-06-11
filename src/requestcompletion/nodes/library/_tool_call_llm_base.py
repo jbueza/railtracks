@@ -1,5 +1,5 @@
 import asyncio
-from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any
+from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Union, Callable
 from copy import deepcopy
 from ..nodes import Node
 from ...llm import (
@@ -37,7 +37,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self.max_tool_calls = max_tool_calls
 
     @abstractmethod
-    def connected_nodes(self) -> Set[Type[Node]]: ...
+    def connected_nodes(self) -> Set[Union[Type[Node], Callable]]: ...
 
     def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
         """
