@@ -20,7 +20,10 @@ class NodeCreationError(RCError):
     def __str__(self):
         base = super().__str__()
         if self.notes:
-            notes_str = "\n" + self._color("Tips to debug:\n", self.GREEN) + \
-                        "\n".join(self._color(f"- {note}", self.GREEN) for note in self.notes)
+            notes_str = (
+                "\n"
+                + self._color("Tips to debug:\n", self.GREEN)
+                + "\n".join(self._color(f"- {note}", self.GREEN) for note in self.notes)
+            )
             return f"\n{self._color(base, self.RED)}{notes_str}"
         return self._color(base, self.RED)

@@ -174,7 +174,6 @@ class Runner:
                 timeout_exception_flag["value"] = True
                 raise error
 
-
         # Here we wait the completion of the future with timeouts.
         try:
             result = await asyncio.wait_for(

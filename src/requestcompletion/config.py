@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 
-
 from typing import Callable, Coroutine
 
 from .utils.logging.config import allowable_log_levels
 
 
 class ExecutorConfig:
-
     def __init__(
         self,
         *,

@@ -4,6 +4,7 @@ from ..fatal import NodeCreationError
 from pydantic import BaseModel
 from ...llm import SystemMessage
 
+
 def check_classmethod(method: Any, method_name: str) -> None:
     """
     Ensure the given method is a classmethod.
@@ -17,9 +18,15 @@ def check_classmethod(method: Any, method_name: str) -> None:
     """
     if not isinstance(method, classmethod):
         raise NodeCreationError(
-            message=get_message(ExceptionMessageKey.CLASSMETHOD_REQUIRED_MSG).format(method_name=method_name),
-            notes=[note.format(method_name=method_name) for note in get_notes(ExceptionMessageKey.CLASSMETHOD_REQUIRED_NOTES)],
+            message=get_message(ExceptionMessageKey.CLASSMETHOD_REQUIRED_MSG).format(
+                method_name=method_name
+            ),
+            notes=[
+                note.format(method_name=method_name)
+                for note in get_notes(ExceptionMessageKey.CLASSMETHOD_REQUIRED_NOTES)
+            ],
         )
+
 
 def check_connected_nodes(node_set, node: type) -> None:
     """
@@ -38,13 +45,13 @@ def check_connected_nodes(node_set, node: type) -> None:
             notes=get_notes(ExceptionMessageKey.CONNECTED_NODES_EMPTY_NOTES),
         )
     elif not all(
-        (isinstance(x, type) and issubclass(x, node)) or callable(x)
-        for x in node_set
+        (isinstance(x, type) and issubclass(x, node)) or callable(x) for x in node_set
     ):
         raise NodeCreationError(
             message=get_message(ExceptionMessageKey.CONNECTED_NODES_TYPE_MSG),
             notes=get_notes(ExceptionMessageKey.CONNECTED_NODES_TYPE_NOTES),
         )
+
 
 def check_output_model(method: classmethod, cls: type) -> None:
     """
@@ -65,7 +72,9 @@ def check_output_model(method: classmethod, cls: type) -> None:
         )
     elif not issubclass(output_model, BaseModel):
         raise NodeCreationError(
-            message=get_message(ExceptionMessageKey.OUTPUT_MODEL_TYPE_MSG).format(actual_type=type(output_model)),
+            message=get_message(ExceptionMessageKey.OUTPUT_MODEL_TYPE_MSG).format(
+                actual_type=type(output_model)
+            ),
             notes=get_notes(ExceptionMessageKey.OUTPUT_MODEL_TYPE_NOTES),
         )
     elif len(output_model.model_fields) == 0:
@@ -73,6 +82,7 @@ def check_output_model(method: classmethod, cls: type) -> None:
             message=get_message(ExceptionMessageKey.OUTPUT_MODEL_EMPTY_MSG),
             notes=get_notes(ExceptionMessageKey.OUTPUT_MODEL_EMPTY_NOTES),
         )
+
 
 # ========================= Common Validation accross easy_usage_wrappers ========================
 def _check_duplicate_param_names(tool_params: Iterable[Any]) -> None:
@@ -93,6 +103,7 @@ def _check_duplicate_param_names(tool_params: Iterable[Any]) -> None:
                 notes=get_notes(ExceptionMessageKey.DUPLICATE_PARAMETER_NAMES_NOTES),
             )
 
+
 def _check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
     """
     Ensure a pretty_name is provided if tool_details exist.
@@ -105,7 +116,10 @@ def _check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
         NodeCreationError: If pretty_name is missing when tool_details are present.
     """
     if pretty_name is None and tool_details:
-        raise NodeCreationError(get_message(ExceptionMessageKey.MISSING_PRETTY_NAME_MSG))
+        raise NodeCreationError(
+            get_message(ExceptionMessageKey.MISSING_PRETTY_NAME_MSG)
+        )
+
 
 def _check_system_message(system_message: Any) -> None:
     """
@@ -124,6 +138,7 @@ def _check_system_message(system_message: Any) -> None:
             notes=get_notes(ExceptionMessageKey.INVALID_SYSTEM_MESSAGE_NOTES),
         )
 
+
 def _check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
     """
     Ensure tool_details are provided if tool_params exist.
@@ -140,6 +155,7 @@ def _check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
             get_message(ExceptionMessageKey.MISSING_TOOL_DETAILS_MSG),
             notes=get_notes(ExceptionMessageKey.MISSING_TOOL_DETAILS_NOTES),
         )
+
 
 def validate_tool_metadata(
     tool_params: Any,
@@ -163,4 +179,6 @@ def validate_tool_metadata(
     _check_duplicate_param_names(tool_params or [])
     _check_system_message(system_message)
     _check_pretty_name(pretty_name, tool_details)
+
+
 # ================================================ END Common Validation accross easy_usage_wrappers ===========================================================

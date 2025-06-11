@@ -2,6 +2,7 @@ import yaml
 import os
 from enum import Enum
 
+
 class ExceptionMessageKey(Enum):
     CLASSMETHOD_REQUIRED_MSG = "CLASSMETHOD_REQUIRED_MSG"
     CLASSMETHOD_REQUIRED_NOTES = "CLASSMETHOD_REQUIRED_NOTES"
@@ -28,10 +29,12 @@ _yaml_path = os.path.join(os.path.dirname(__file__), "exception_messages.yaml")
 with open(_yaml_path, "r", encoding="utf-8") as f:
     _messages = yaml.safe_load(f)
 
+
 def get_message(key):
     if isinstance(key, Enum):
         key = key.value
     return _messages[key]
+
 
 def get_notes(key):
     if isinstance(key, Enum):
