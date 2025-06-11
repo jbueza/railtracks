@@ -21,10 +21,10 @@ async def test_parallel_calls(parallel_node, timeout_config, expected, buffer):
     with rc.Runner(
         executor_config=rc.ExecutorConfig(
             logging_setting="NONE",
-        )
+        ),
     ) as runner:
         start_time = time.time()
-        results = await runner.run(parallel_node, expected=expected, buffer=buffer)
+        results = await runner.run(parallel_node, timeout_config)
         assert abs(time.time() - start_time - expected) < buffer
         assert results.answer == timeout_config
 
@@ -46,7 +46,7 @@ def test_parallel_calls_sync(parallel_node, timeout_config, expected, buffer):
         )
     ) as runner:
         start_time = time.time()
-        results = runner.run_sync(parallel_node, expected=expected, buffer=buffer)
+        results = runner.run_sync(parallel_node, timeout_config)
         assert abs(time.time() - start_time - expected) < buffer
         assert results.answer == timeout_config
 

@@ -30,13 +30,18 @@ class NodeCreationMeta(ABCMeta):
 
         # now we need to make sure the invoke method is a coroutine, if not we should automatically switch it here.
         method_name = "invoke"
+
         if method_name in dct and callable(dct[method_name]):
             method = dct[method_name]
 
             # a simple wrapper to convert any async function to a non async one.
             async def async_wrapper(self, *args, **kwargs):
-                if asyncio.iscoroutinefunction(method):
+                if asyncio.iscoroutinefunction(
+                    method
+                ):  # check if the method is a coroutine
                     return await method(self, *args, **kwargs)
+                else:
+                    return await asyncio.to_thread(method, self, *args, **kwargs)
 
             setattr(cls, method_name, async_wrapper)
 

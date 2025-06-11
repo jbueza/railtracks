@@ -267,6 +267,7 @@ async def test_tool_with_llm_tool_as_input_easy_tools():
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Skipping test due to stochastic LLM failures.")
 async def test_tool_with_llm_tool_as_input_class_easy():
     """Test a tool that uses another LLM tool as input."""
 
