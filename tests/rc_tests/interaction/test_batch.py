@@ -21,7 +21,7 @@ async def test_parallel_calls(parallel_node, timeout_config, expected, buffer):
     with rc.Runner(
         executor_config=rc.ExecutorConfig(
             logging_setting="NONE",
-        )
+        ),
     ) as runner:
         start_time = time.time()
         results = await runner.run(parallel_node, timeout_config)
@@ -29,7 +29,6 @@ async def test_parallel_calls(parallel_node, timeout_config, expected, buffer):
         assert results.answer == timeout_config
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "timeout_config, expected, buffer",
     [

@@ -32,6 +32,12 @@ def many_calls_tester(num_calls: int, parallel_calls: int):
     assert isinstance(ans, list)
     assert len(ans) == num_calls * parallel_calls
     assert all([0 < x < 1 for x in ans])
+    print("\n".join([f"{x.step}. {x.identifier}" for x in finished_result.all_stamps]))
+    assert {x.step for x in finished_result.all_stamps} == {
+        i for i in range(num_calls * parallel_calls * 2 + 2)
+    }
+
+    assert len(finished_result.all_stamps) == 3 * num_calls * parallel_calls + 3
 
 
 @pytest.mark.timeout(5)
@@ -57,7 +63,7 @@ def test_large_no_deadlock():
 
 
 def test_simple_rng():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(RNGNode)
 
     assert 0 < result.answer < 1
@@ -154,3 +160,37 @@ def test_multiple_runs():
         assert 0 < result.answer < 1
         with pytest.raises(RuntimeError):
             run.run_sync(RNGNode)
+
+
+async def timeout_node(timeout_len: float):
+    """
+    A node that sleeps for the given timeout length.
+    """
+    await asyncio.sleep(timeout_len)
+    return timeout_len
+
+
+TimeoutNode = rc.library.from_function(timeout_node)
+
+
+def test_timeout():
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=0.1)
+    ) as run:
+        with pytest.raises(rc.exceptions.execution.GlobalTimeOutError):
+            run.run_sync(TimeoutNode, 0.3)
+
+
+async def timeout_thrower():
+    raise asyncio.TimeoutError("Test timeout error")
+
+
+TimeoutThrower = rc.library.from_function(timeout_thrower)
+
+
+def test_timeout_thrower():
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
+        try:
+            result = run.run_sync(TimeoutThrower)
+        except Exception as e:
+            assert isinstance(e, asyncio.TimeoutError)

@@ -188,7 +188,7 @@ def test_streaming_inserted_globally():
 def test_streaming_inserted_locally():
     handler = StreamHandler()
 
-    with rc.Runner(subscriber=handler.handle) as run:
+    with rc.Runner(rc.ExecutorConfig(subscriber=handler.handle)) as run:
         result = run.run_sync(StreamingNode)
         assert result.answer == None
 
@@ -205,7 +205,7 @@ def test_streaming_overwrite():
     handler = StreamHandler()
 
     rc.set_streamer(fake_handler)
-    with rc.Runner(subscriber=handler.handle) as run:
+    with rc.Runner(rc.ExecutorConfig(subscriber=handler.handle)) as run:
         result = run.run_sync(StreamingNode)
         assert result.answer == None
 

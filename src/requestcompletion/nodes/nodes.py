@@ -109,24 +109,6 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         raise NotImplementedError(
             "You must implement the tool_info method in your node"
         )
-        # detail = inspect.getdoc(cls)
-        # if detail is None:
-        #     warnings.warn(f"Node {cls.__name__} does not have a docstring. Using empty string instead.")
-        #     detail = ""
-        #
-        # params = inspect.signature(cls.__init__).parameters
-        #
-        # tool = Tool(
-        #     name=cls.pretty_name(),
-        #     detail=detail,
-        #     parameters=set(
-        #         [
-        #             Parameter(name=k, description=v.annotation, param_type="string")
-        #             for k, v in params.items()
-        #             if k != "self"
-        #         ]
-        #     ),
-        # )
 
     @classmethod
     def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
