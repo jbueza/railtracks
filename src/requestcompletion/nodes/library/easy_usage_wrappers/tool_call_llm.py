@@ -18,9 +18,8 @@ from ....nodes.nodes import Node
 from ....llm.message import Role
 
 from typing_extensions import Self
-from ....exceptions.node_creation.validation import (
-    validate_tool_metadata,
-)
+from ....exceptions.node_creation.validation import validate_tool_metadata
+from ....exceptions.node_invocation.validation import check_model
 from inspect import isclass, isfunction
 from ....nodes.library.function import from_function
 
@@ -100,10 +99,7 @@ def tool_call_llm(  # noqa: C901
                         "You have provided a model as a parameter and as a class variable. We will use the parameter."
                     )
             else:
-                if model is None:
-                    raise RuntimeError(
-                        "You must provide a model to the ToolCallLLM class"
-                    )
+                check_model(model)
                 llm_model = model
 
             super().__init__(
@@ -134,8 +130,6 @@ def tool_call_llm(  # noqa: C901
 
         @classmethod
         def tool_info(cls):
-            if not tool_details:
-                raise ValueError("Tool details are not provided.")
             return Tool(
                 name=cls.pretty_name().replace(" ", "_"),
                 detail=tool_details,

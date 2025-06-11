@@ -7,11 +7,10 @@ class NodeInvocationError(RCError):
     For example, bad config, missing required parameters, or structural errors.
     """
 
-    def __init__(self, message=None, notes=None):
-        if message is None:
-            message = "Something went wrong during node creation."
+    def __init__(self, message: str = None, notes: list[str] = None, fatal: bool = False):
         super().__init__(message)
         self.notes = notes or []
+        self.fatal = fatal
 
     def __str__(self):
         base = super().__str__()

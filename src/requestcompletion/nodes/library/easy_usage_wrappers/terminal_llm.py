@@ -4,10 +4,8 @@ from ..terminal_llm import TerminalLLM
 from ....llm import MessageHistory, ModelBase, SystemMessage, UserMessage
 from ....llm.tools import Parameter, Tool
 from copy import deepcopy
-from ....exceptions.node_creation.validation import (
-    validate_tool_metadata,
-)
-
+from ....exceptions.node_creation.validation import validate_tool_metadata
+from ....exceptions.node_invocation.validation import check_model
 
 def terminal_llm(  # noqa: C901
     pretty_name: str | None = None,
@@ -41,10 +39,7 @@ def terminal_llm(  # noqa: C901
                         "You have provided a model as a parameter and as a class variable. We will use the parameter."
                     )
             else:
-                if model is None:
-                    raise RuntimeError(
-                        "You MUST provide an LLM model to the TerminalLLM class"
-                    )
+                check_model(model)
                 llm_model = model
 
             super().__init__(message_history=message_history_copy, model=llm_model)

@@ -1,7 +1,7 @@
 import pytest
 import requestcompletion as rc
 from pydantic import BaseModel
-from requestcompletion.exceptions import NodeCreationError
+from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
 
 class CapitalizeText(rc.Node[str]):
     def __init__(self, string: str):
@@ -266,6 +266,31 @@ async def test_tool_info_not_classmethod(model, encoder_system_message):
                 )
         
 # =================== END Class Based Node Creation ===================
+# =================== START invocation exceptions =====================
+@pytest.mark.asyncio
+async def test_no_message_history_easy_usage(model, encoder_system_message):
+    simple_agent = rc.library.terminal_llm(
+            pretty_name="Encoder",
+            model=model,
+        )
+    
+    with pytest.raises(NodeInvocationError, match="Message history must contain at least one message"):
+        await rc.call(simple_agent, message_history=rc.llm.MessageHistory([]))
+
+@pytest.mark.asyncio
+async def test_no_message_history_class_based(model):
+    class Encoder(rc.library.TerminalLLM):
+        def __init__(self, message_history: rc.llm.MessageHistory, model: rc.llm.ModelBase = None):
+            super().__init__(message_history=message_history, model=model)
+
+        @classmethod 
+        def pretty_name(cls) -> str:
+            return "Encoder"
+
+    with pytest.raises(NodeInvocationError, match="Message history must contain at least one message"):
+        _ = await rc.call(Encoder, message_history=rc.llm.MessageHistory([]))
+    
+# =================== END invocation exceptions =====================
 # ================================================ END terminal_llm Exception testing ===========================================================
 
 # ================================================ START terminal_llm as tools =========================================================== 

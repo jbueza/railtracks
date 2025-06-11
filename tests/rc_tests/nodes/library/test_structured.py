@@ -1,7 +1,7 @@
 import pytest
 import requestcompletion as rc
 from pydantic import BaseModel
-from requestcompletion.exceptions import NodeCreationError
+from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
 from typing import Type
 
 # ================================================ START basic functionality =========================================================
@@ -172,4 +172,41 @@ async def test_class_based_output_model_not_pydantic():
             def pretty_name(cls) -> str:
                 return "Structurer"
 # =================== END Class Based Node Creation =====================
+
+# =================== START invocation exceptions =====================
+@pytest.mark.asyncio
+async def test_no_system_message_class_based(simple_output_model):
+    class Structurer(rc.library.StructuredLLM):
+        def __init__(
+            self,
+            message_history: rc.llm.MessageHistory,
+            model: rc.llm.ModelBase = None,
+        ):
+            super().__init__(
+                message_history=message_history,
+                model=model,
+            )
+
+        @classmethod
+        def output_model(cls) -> Type[BaseModel]:
+            return simple_output_model
+        
+        @classmethod
+        def pretty_name(cls) -> str:
+            return "Structurer"
+        
+    with pytest.raises(NodeInvocationError, match="Missing SystemMessage: The first message in the message history must be a system message"):
+        await rc.call(Structurer, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
+        
+@pytest.mark.asyncio
+async def test_no_system_message_easy_usage(simple_output_model):
+    simple_structured = rc.library.structured_llm(
+        output_model=simple_output_model,
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        pretty_name="Structured ToolCallLLM",
+    )
+
+    with pytest.raises(NodeInvocationError, match="Missing SystemMessage: The first message in the message history must be a system message"):
+        await rc.call(simple_structured, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
+# =================== END invocation exceptions =====================
 # ================================================ END Exception testing =============================================================
