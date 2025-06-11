@@ -55,7 +55,7 @@ def test_slow_streamer():
 
     sub = Sub()
     with rc.Runner(
-        executor_config=ExecutorConfig(force_close_streams=True, subscriber=sub.handle)
+        executor_config=ExecutorConfig(subscriber=sub.handle)
     ) as runner:
         finished_result = runner.run_sync(StreamingRNGNode)
 
