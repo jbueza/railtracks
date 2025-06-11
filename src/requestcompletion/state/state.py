@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-import warnings
 from collections import deque
 
 
@@ -267,9 +266,9 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(
-            n in self._node_heap for n in children
-        ), "You cannot add a request for a node which has not yet been added"
+        assert all(n in self._node_heap for n in children), (
+            "You cannot add a request for a node which has not yet been added"
+        )
 
         if request_ids is None:
             request_ids = [None] * len(children)
