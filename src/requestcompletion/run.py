@@ -1,6 +1,5 @@
 import asyncio
 import warnings
-from collections import namedtuple
 from typing import TypeVar, ParamSpec, Callable, Coroutine
 
 from .config import ExecutorConfig
@@ -174,7 +173,6 @@ class Runner:
             except asyncio.TimeoutError as error:
                 timeout_exception_flag["value"] = True
                 raise error
-
 
         # Here we wait the completion of the future with timeouts.
         try:

@@ -4,6 +4,9 @@ from ..terminal_llm import TerminalLLM
 from ....llm import MessageHistory, ModelBase, SystemMessage, UserMessage
 from ....llm.tools import Parameter, Tool
 from copy import deepcopy
+from ....exceptions.node_creation.validation import (
+    validate_tool_metadata,
+)
 
 
 def terminal_llm(  # noqa: C901
@@ -40,7 +43,7 @@ def terminal_llm(  # noqa: C901
             else:
                 if model is None:
                     raise RuntimeError(
-                        "You Must provide a model to the TerminalLLM class"
+                        "You MUST provide an LLM model to the TerminalLLM class"
                     )
                 llm_model = model
 
@@ -49,10 +52,6 @@ def terminal_llm(  # noqa: C901
         @classmethod
         def pretty_name(cls) -> str:
             if pretty_name is None:
-                if tool_details:  # at this point if tool_details is not None, then terminal_llm is being used as a tool
-                    raise RuntimeError(
-                        "You must provide a pretty_name when using TerminalLLM as a tool, as this is used to identify the tool."
-                    )
                 return "TerminalLLM"
             else:
                 return pretty_name
@@ -77,17 +76,5 @@ def terminal_llm(  # noqa: C901
                 )
                 return cls(message_hist)
 
-    if tool_params and not tool_details:
-        raise RuntimeError("Tool parameters provided but no tool details provided.")
-    elif tool_details and tool_params is not None and len(tool_params) == 0:
-        raise RuntimeError(
-            "If you want no params for the tool, tool_params must be set to None."
-        )
-    elif (
-        tool_details
-        and tool_params
-        and len([x.name for x in tool_params]) != len({x.name for x in tool_params})
-    ):
-        raise ValueError("Duplicate parameter names are not allowed")
-
+    validate_tool_metadata(tool_params, tool_details, system_message, pretty_name)
     return TerminalLLMNode

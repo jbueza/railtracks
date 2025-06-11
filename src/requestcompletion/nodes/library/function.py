@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 from typing_extensions import Self
-import warnings
 
 from ...llm.tools import Tool
 
@@ -250,8 +249,9 @@ class FunctionNode(Node[_TOutput]):
     def pretty_name(cls) -> str:
         return f"Function Node - {cls.__class__.__name__}"
 
-    def tool_info(self) -> Tool:
-        return Tool.from_function(self.func)
+    @classmethod
+    def tool_info(cls) -> Tool:
+        return Tool.from_function(cls.func)
 
     @classmethod
     def prepare_tool(cls, tool_parameters):

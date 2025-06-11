@@ -287,7 +287,8 @@ def structured_nodes(request, model, structured_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
-                def output_model(self) -> BaseModel:
+                @classmethod
+                def output_model(cls) -> BaseModel:
                     return output_model
 
                 @classmethod

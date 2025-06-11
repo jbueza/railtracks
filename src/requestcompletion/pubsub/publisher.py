@@ -35,7 +35,7 @@ class Subscriber(Generic[_T]):
             result = self.callback(message)
             if asyncio.iscoroutine(result):
                 await result
-        except Exception as e:
+        except Exception as e:  # TODO: deal with this during logging task
             logger.exception(msg=f"Error in {self.name}", exc_info=e)
 
 
