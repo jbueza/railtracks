@@ -5,7 +5,8 @@ from mcp.server import FastMCP
 from mcp.server.fastmcp.tools import Tool as MCPTool
 from mcp.server.fastmcp.utilities.func_metadata import func_metadata
 
-from .. import ExecutorConfig, Runner
+from ..config import ExecutorConfig
+from ..run import Runner
 from ..nodes.nodes import Node
 
 
