@@ -10,7 +10,7 @@ from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKIN
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
-from ..context import register_globals, ThreadContext
+from ..context import update_parent_id
 from ..execution.coordinator import Coordinator
 from ..pubsub.publisher import RCPublisher
 from ..execution.task import Task
@@ -93,13 +93,7 @@ class RCState:
         if isinstance(item, RequestFinishedBase):
             await self.handle_result(item)
         if isinstance(item, RequestCreation):
-            # TODO fix this logic. It works but it is far from clean. Trace the line of context to make this work better.
-            register_globals(
-                ThreadContext(
-                    parent_id=item.current_node_id,
-                    publisher=self.publisher,
-                )
-            )
+            update_parent_id(item.current_node_id)
 
             assert item.new_request_id not in self._request_heap.heap().keys()
 

@@ -77,6 +77,7 @@ def register_globals(global_var: ThreadContext):
     """
     Register the global variables for the current thread.
     """
+    # TODO modify this to fail fast.
     if thread_context.get():
         warnings.warn("Overwriting previous global variable")
 
