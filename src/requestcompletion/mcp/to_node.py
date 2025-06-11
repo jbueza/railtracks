@@ -1,15 +1,15 @@
 import inspect
 from typing import List
 
-import requestcompletion as rc
 from mcp.server import FastMCP
 from mcp.server.fastmcp.tools import Tool as MCPTool
 from mcp.server.fastmcp.utilities.func_metadata import func_metadata
 
-from src.requestcompletion import Node
+from .. import ExecutorConfig, Runner
+from ..nodes.nodes import Node
 
 
-def create_tool_function(node_cls: Node, node_info, executor_config: rc.ExecutorConfig = rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)):
+def create_tool_function(node_cls: Node, node_info, executor_config: ExecutorConfig = ExecutorConfig(logging_setting="QUIET", timeout=1000)):
     type_map = {
         "integer": int,
         "number": float,
@@ -44,7 +44,7 @@ def create_tool_function(node_cls: Node, node_info, executor_config: rc.Executor
         args_doc.append(f"    {param_name}: {param_desc}")
 
     async def tool_function(**kwargs):
-        with rc.Runner(
+        with Runner(
                 executor_config=executor_config
         ) as runner:
             response = await runner.run(node_cls.prepare_tool, kwargs)
@@ -58,7 +58,7 @@ def create_mcp_server(
         nodes: List[Node],
         server_name: str = "MCP Server",
         fastmcp: FastMCP = None,
-        executor_config: rc.ExecutorConfig = rc.ExecutorConfig(logging_setting="QUIET", timeout=200)
+        executor_config: ExecutorConfig = ExecutorConfig(logging_setting="QUIET", timeout=200)
 ):
     """
     Create a FastMCP server that can be used to run nodes as MCP tools.

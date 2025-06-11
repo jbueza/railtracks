@@ -14,9 +14,9 @@ from mcp.client.streamable_http import streamablehttp_client
 from mcp.client.sse import sse_client
 
 from pydantic import BaseModel
-from src.requestcompletion.llm import Tool
-from src.requestcompletion.mcp.oauth import InMemoryTokenStorage, CallbackServer
-from src.requestcompletion.nodes.nodes import Node
+from ..llm import Tool
+from ..mcp.oauth import InMemoryTokenStorage, CallbackServer
+from ..nodes.nodes import Node
 
 try:
     from sseclient import SSEClient
