@@ -267,21 +267,15 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(n in self._node_heap for n in children), (
-            "You cannot add a request for a node which has not yet been added"
-        )
+        assert all(
+            n in self._node_heap for n in children
+        ), "You cannot add a request for a node which has not yet been added"
 
         if request_ids is None:
             request_ids = [None] * len(children)
 
-        if parent_node is None and any(x is not None for x in request_ids):
-            # TODO get rid of this logic. It should be injected instead of hardcoded
-            warnings.warn(
-                "This is an insertion request and you provided identifier this will be overwritten"
-            )
-
         parent_node_name = (
-            self._node_heap.id_type_mapping[parent_node]
+            self._node_heap.id_type_mapping[parent_node].pretty_name()
             if parent_node is not None
             else "START"
         )
@@ -289,7 +283,7 @@ class RCState:
         request_ids = list(
             map(
                 self._request_heap.create,
-                [r_id if parent_node else "START" for r_id in request_ids],
+                request_ids,
                 [parent_node] * len(children),
                 children,
                 input_args,
