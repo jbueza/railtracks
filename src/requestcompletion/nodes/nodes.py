@@ -30,13 +30,18 @@ class NodeCreationMeta(ABCMeta):
 
         # now we need to make sure the invoke method is a coroutine, if not we should automatically switch it here.
         method_name = "invoke"
+
         if method_name in dct and callable(dct[method_name]):
             method = dct[method_name]
 
             # a simple wrapper to convert any async function to a non async one.
             async def async_wrapper(self, *args, **kwargs):
-                if asyncio.iscoroutinefunction(method):
+                if asyncio.iscoroutinefunction(
+                    method
+                ):  # check if the method is a coroutine
                     return await method(self, *args, **kwargs)
+                else:
+                    return await asyncio.to_thread(method, self, *args, **kwargs)
 
             setattr(cls, method_name, async_wrapper)
 
@@ -57,11 +62,14 @@ class NodeCreationMeta(ABCMeta):
         # 3. Check if the connected_nodes is not empty, special case for ToolCallLLM
         if "connected_nodes" in dct and not getattr(cls, "__abstractmethods__", False):
             method = dct["connected_nodes"]
-            try:  # in case of class based init
+            try:
+                # Try to call the method as a classmethod (typical case)
                 node_set = method.__func__(cls)
-            except AttributeError:  # in case of easy_wrapper init
+            except AttributeError:
+                # If that fails, call it as an instance method (for easy_wrapper init)
                 dummy = object.__new__(cls)
                 node_set = method(dummy)
+            # Validate that the returned node_set is correct and contains only Node/function instances
             check_connected_nodes(node_set, Node)
         # ================= End Creation Exceptions ================
 

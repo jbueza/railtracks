@@ -1,9 +1,9 @@
 import asyncio
 import warnings
-from typing import TypeVar, ParamSpec, Callable
-
+from typing import TypeVar, ParamSpec, Callable, Coroutine
 
 from .config import ExecutorConfig
+from .exceptions import GlobalTimeOutError
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
 from .pubsub.messages import (
@@ -25,7 +25,6 @@ from .info import (
 from .state.state import RCState
 
 from .context import (
-    streamer,
     config,
     register_globals,
     ThreadContext,
@@ -71,7 +70,6 @@ class Runner:
 
     def __init__(
         self,
-        subscriber: Callable[[str], None] = None,
         executor_config: ExecutorConfig = None,
     ):
         # first lets read from defaults if nessecary for the provided input config
@@ -80,15 +78,9 @@ class Runner:
             if saved_config is None:
                 executor_config = ExecutorConfig()
             else:
-                print(f"Using saved executor config {saved_config.end_on_error}")
                 executor_config = saved_config
 
-        if subscriber is None:
-            saved_subscriber = streamer.get()
-            if saved_subscriber is None:
-                subscriber = None
-            else:
-                subscriber = saved_subscriber
+        self.executor_config = executor_config
 
         # TODO see issue about logger
         prepare_logger(
@@ -105,7 +97,6 @@ class Runner:
         self.rc_state = RCState(
             executor_info, executor_config, self.coordinator, self.publisher
         )
-        self.subscriber = subscriber
 
     def __enter__(self):
         return self
@@ -127,9 +118,10 @@ class Runner:
         Prepares and attaches the saved subscriber to the publisher attached to this runner.
         """
 
-        if self.subscriber is not None:
+        if self.executor_config.subscriber is not None:
             self.publisher.subscribe(
-                stream_subscriber(self.subscriber), name="Streaming Subscriber"
+                stream_subscriber(self.executor_config.subscriber),
+                name="Streaming Subscriber",
             )
 
     async def _run_base(
@@ -170,9 +162,33 @@ class Runner:
             )
         )
 
-        result = await fut
+        # there is a really funny edge case that we need to handle here to prevent if the user itself throws an timeout
+        #  exception. It should be handled differently then the global timeout exception.
+        #  Yes I am aware that is a bit of a hack but this is the best way to handle this specific case.
+        timeout_exception_flag = {"value": False}
 
-        await self.publisher.shutdown()
+        async def wrapped_fut(f: Coroutine):
+            try:
+                return await f
+            except asyncio.TimeoutError as error:
+                timeout_exception_flag["value"] = True
+                raise error
+
+        # Here we wait the completion of the future with timeouts.
+        try:
+            result = await asyncio.wait_for(
+                wrapped_fut(fut), timeout=self.executor_config.timeout
+            )
+        except asyncio.TimeoutError as e:
+            # if the internal flag is set then the coroutine itself raised a timeout error and it was not the wait
+            #  for function.
+            if timeout_exception_flag["value"]:
+                raise e
+
+            raise GlobalTimeOutError(timeout=self.executor_config.timeout)
+        finally:
+            await self.publisher.shutdown()
+
         return result
 
     def run_sync(
@@ -256,4 +272,6 @@ def set_streamer(subscriber: Callable[[str], None]):
             "The data streamer is being set after the runner has been created, changes will not be propagated to the current runner"
         )
 
-    streamer.set(subscriber)
+    executor_config = config.get()
+    executor_config.subscriber = subscriber
+    config.set(executor_config)

@@ -129,7 +129,7 @@ class TestPrimitiveInputTypes:
             Returns:
                 str: The result of the function.
             """
-            return isinstance(num, float)
+            return str(isinstance(num, float))
 
         agent = create_top_level_node(
             magic_test,

@@ -288,7 +288,7 @@ def structured_nodes(request, model, structured_llms_system_messages):
                     super().__init__(message_history=message_history, model=llm_model)
 
                 @classmethod
-                def output_model(self) -> BaseModel:
+                def output_model(cls) -> BaseModel:
                     return output_model
 
                 @classmethod
@@ -395,7 +395,7 @@ def tool_calling_nodes(
 
 
 @pytest.fixture
-def parallel_node(timeout_config: List[float]):
+def parallel_node():
     """
     A simple node that runs a function in parallel a specified number of times.
     """
@@ -407,7 +407,7 @@ def parallel_node(timeout_config: List[float]):
 
     TimeoutNode = rc.library.from_function(sleep)
 
-    async def parallel_function():
+    async def parallel_function(timeout_config: List[float]):
         return await rc.batch(TimeoutNode, timeout_config)
 
     return rc.library.from_function(parallel_function)

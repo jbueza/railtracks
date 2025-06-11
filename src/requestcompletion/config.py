@@ -1,46 +1,32 @@
 from __future__ import annotations
 
 
-from pydantic import BaseModel, Field
+from typing import Callable, Coroutine
 
 from .utils.logging.config import allowable_log_levels
 
 
-# There may be moments when you are confused what should be in this config object vs. what should
-class ExecutorConfig(BaseModel):
-    """
-    A class that contains configuration details of the executor that will be used to execute the graph.
+class ExecutorConfig:
+    def __init__(
+        self,
+        *,
+        timeout: float = 50.0,
+        end_on_error: bool = False,
+        logging_setting: allowable_log_levels = "REGULAR",
+        subscriber: (
+            Callable[[str], None] | Callable[[str], Coroutine[None, None, None]] | None
+        ) = None,
+    ):
+        """
+        ExecutorConfig is special configuration object designed to allow customization of the executor in the RC system.
 
-    This class is designed to have a majority of default values that are allowed to be overridden by the user as needed.
-    """
-
-    timeout: float = Field(
-        default=25,
-        description="The maximum number of time in seconds you would like to wait for a response.",
-    )
-
-    force_close_streams: bool = Field(
-        default=True,
-        description="If true the executor will force close any open streams when it finishes execution.",
-    )
-    end_on_error: bool = Field(
-        default=False,
-        description="If true the executor will stop execution when an error is encountered.",
-    )
-    # Make sure that this default is in line with allowable_log_levels
-    logging_setting: allowable_log_levels = Field(
-        default="VERBOSE",
-        description="The setting for the level of logging you would like to have.",
-    )
-    # logging_file: str | None = Field(
-    #     default=None,
-    #     description="If you would like to save the logs to a file, provide the file path here. Otherwise it will use the command line",
-    # )
-    # file_logging_config: dict | None = Field(
-    #     default=None,
-    #     description="If you would like to specify the file logging config, provide the configuration here.",
-    # )
-    # file_logging_level: Optional[logging.DEBUG | logging.INFO | logging.WARNING | logging.ERROR | logging.CRITICAL] = Field(
-    #     default=None,
-    #     description="If you would like to specify the file logging level, provide the level here.",
-    # )
+        Args:
+            timeout (float): The maximum number of seconds to wait for a response to your top level request
+            end_on_error (bool): If true, the executor will stop execution when an exception is encountered.
+            logging_setting (allowable_log_levels): The setting for the level of logging you would like to have.
+            subscriber (Callable or Coroutine): A function or coroutine that will handle streaming messages.
+        """
+        self.timeout = timeout
+        self.end_on_error = end_on_error
+        self.logging_setting = logging_setting
+        self.subscriber = subscriber

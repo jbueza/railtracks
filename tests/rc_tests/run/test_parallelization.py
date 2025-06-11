@@ -50,15 +50,17 @@ TopLevel = rc.library.from_function(top_level)
 
 
 @pytest.mark.timeout(4)
-def test_async_style_parallel():
+@pytest.mark.parametrize("node", [TopLevel, TopLevelAsync], ids=["sync", "async"])
+def test_async_style_parallel(node):
     with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
-        result = run.run_sync(TopLevelAsync)
+        result = run.run_sync(node)
         assert result.answer == [1, 2, 3, 2, 1]
 
 
 @pytest.mark.timeout(4)
 @pytest.mark.asyncio
-async def test_async_style_parallel_2():
+@pytest.mark.parametrize("node", [TopLevel, TopLevelAsync], ids=["sync", "async"])
+async def test_async_style_parallel_2(node):
     with rc.Runner() as run:
-        result = await run.run(TopLevelAsync)
+        result = await run.run(node)
         assert result.answer == [1, 2, 3, 2, 1]

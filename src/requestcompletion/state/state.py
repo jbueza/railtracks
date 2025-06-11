@@ -365,10 +365,6 @@ class RCState:
             self.logger.critical(node_exception_action.to_logging_msg())
             ee = NodeInvocationError(
                 message=node_exception_action.to_logging_msg(),
-                notes=[
-                    "This is a fatal exception. The system will be shutting down.",
-                    "If you want to continue running the system, you can set the `end_on_error` flag to `False` in the executor config.",
-                ],
             )
             await self.publisher.publish(FatalFailure(error=ee))
             return Failure(exception)
@@ -378,10 +374,6 @@ class RCState:
             self.logger.critical(node_exception_action.to_logging_msg())
             ee = NodeInvocationError(
                 message=node_exception_action.to_logging_msg(),
-                notes=[
-                    "This is a fatal exception. The system will be shutting down.",
-                    "If you want to continue running the system, you can set the `end_on_error` flag to `False` in the executor config.",
-                ],
             )
             await self.publisher.publish(FatalFailure(error=ee))
             return Failure(exception)

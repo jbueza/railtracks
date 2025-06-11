@@ -8,5 +8,5 @@ class RCError(Exception):
     RESET = "\033[0m"
 
     @classmethod
-    def color(cls, text, color_code):
+    def _color(cls, text, color_code):
         return f"{color_code}{text}{cls.RESET}"

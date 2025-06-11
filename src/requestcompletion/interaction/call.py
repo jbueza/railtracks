@@ -20,7 +20,11 @@ _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
-async def call(node: Callable[_P, Union[Node[_TOutput], _TOutput]], *args: _P.args, **kwargs: _P.kwargs):
+async def call(
+    node: Callable[_P, Union[Node[_TOutput], _TOutput]],
+    *args: _P.args,
+    **kwargs: _P.kwargs,
+):
     """
     Call a node from within a node inside the framework. This will return a coroutine that you can interact with
     in whatever way using the `asyncio` framework.
@@ -43,7 +47,7 @@ async def call(node: Callable[_P, Union[Node[_TOutput], _TOutput]], *args: _P.ar
     try:
         context = get_globals()
     except KeyError:
-        #If function is passed, we will convert it to a node
+        # If function is passed, we will convert it to a node
         if isinstance(node, FunctionType):
             node = from_function(node)
         with Runner() as runner:
