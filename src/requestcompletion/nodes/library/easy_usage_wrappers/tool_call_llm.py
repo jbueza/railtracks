@@ -19,7 +19,7 @@ from ....llm.message import Role
 
 from typing_extensions import Self
 from ....exceptions.node_creation.validation import validate_tool_metadata
-from ....exceptions.node_invocation.validation import check_model
+from ....exceptions.node_invocation.validation import check_model, check_message_history
 from inspect import isclass, isfunction
 from ....nodes.library.function import from_function
 
@@ -80,6 +80,7 @@ def tool_call_llm(  # noqa: C901
             llm_model: ModelBase | None = None,
             max_tool_calls: int | None = 30,
         ):
+            check_message_history(message_history)
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
                 if len([x for x in message_history_copy if x.role == Role.system]) > 0:
