@@ -39,7 +39,6 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     @abstractmethod
     def connected_nodes(self) -> Set[Type[Node]]: ...
 
-
     def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
         """
         A function which creates a new instance of a node Class from a tool name and arguments.
