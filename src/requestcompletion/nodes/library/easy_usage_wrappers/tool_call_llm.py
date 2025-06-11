@@ -74,6 +74,7 @@ def tool_call_llm(  # noqa: C901
             self,
             message_history: MessageHistory,
             llm_model: ModelBase | None = None,
+            max_tool_calls: int | None = 30,
         ):
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
@@ -100,7 +101,7 @@ def tool_call_llm(  # noqa: C901
                     )
                 llm_model = model
 
-            super().__init__(message_history_copy, llm_model)
+            super().__init__(message_history_copy, llm_model, max_tool_calls=max_tool_calls)
 
             if output_model:
                 system_structured = SystemMessage(
@@ -112,6 +113,7 @@ def tool_call_llm(  # noqa: C901
 
         def connected_nodes(self) -> Set[Type[Node]]:
             return connected_nodes
+
 
         @classmethod
         def pretty_name(cls) -> str:
