@@ -42,7 +42,6 @@ async def batch(
         results = await batch(NodeA, ["hello world"] * 10)
         for result in results:
             handle(result)
-
         ```
     """
     contracts = [call(node, *args) for args in zip(*iterables)]
