@@ -1,6 +1,5 @@
 import asyncio
 import warnings
-from collections import namedtuple
 from typing import TypeVar, ParamSpec, Callable, Coroutine
 
 from .config import ExecutorConfig

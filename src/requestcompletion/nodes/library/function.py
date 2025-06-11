@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 from typing_extensions import Self
-import warnings
 
 from ...llm.tools import Tool
 
