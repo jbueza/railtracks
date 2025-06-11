@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-import warnings
 from collections import deque
 
 
@@ -274,14 +273,8 @@ class RCState:
         if request_ids is None:
             request_ids = [None] * len(children)
 
-        if parent_node is None and any(x is not None for x in request_ids):
-            # TODO get rid of this logic. It should be injected instead of hardcoded
-            warnings.warn(
-                "This is an insertion request and you provided identifier this will be overwritten"
-            )
-
         parent_node_name = (
-            self._node_heap.id_type_mapping[parent_node]
+            self._node_heap.id_type_mapping[parent_node].pretty_name()
             if parent_node is not None
             else "START"
         )
@@ -289,7 +282,7 @@ class RCState:
         request_ids = list(
             map(
                 self._request_heap.create,
-                [r_id if parent_node else "START" for r_id in request_ids],
+                request_ids,
                 [parent_node] * len(children),
                 children,
                 input_args,
