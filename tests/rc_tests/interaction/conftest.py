@@ -213,7 +213,8 @@ def terminal_nodes(request, model, terminal_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
-                def pretty_name(self) -> str:
+                @classmethod
+                def pretty_name(cls) -> str:
                     return pretty_name
 
             return TerminalLLMNode
@@ -286,7 +287,8 @@ def structured_nodes(request, model, structured_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
-                def output_model(self) -> BaseModel:
+                @classmethod
+                def output_model(cls) -> BaseModel:
                     return output_model
 
                 @classmethod
@@ -393,7 +395,7 @@ def tool_calling_nodes(
 
 
 @pytest.fixture
-def parallel_node(timeout_config: List[float]):
+def parallel_node():
     """
     A simple node that runs a function in parallel a specified number of times.
     """
@@ -405,7 +407,7 @@ def parallel_node(timeout_config: List[float]):
 
     TimeoutNode = rc.library.from_function(sleep)
 
-    async def parallel_function():
+    async def parallel_function(timeout_config: List[float]):
         return await rc.batch(TimeoutNode, timeout_config)
 
     return rc.library.from_function(parallel_function)

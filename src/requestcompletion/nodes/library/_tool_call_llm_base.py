@@ -1,5 +1,5 @@
 import asyncio
-from typing import TypeVar, Generic, Set, Type, Dict, Any
+from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Union, Callable
 from copy import deepcopy
 from ..nodes import Node
 from ...llm import (
@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 from ...exceptions import FatalError
 
 _T = TypeVar("_T")
+_P = ParamSpec("_P")
 
 
 class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
@@ -26,20 +27,21 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         self,
         message_history: MessageHistory,
         model: ModelBase,
-        max_tool_calls: int = 30,
+        max_tool_calls: int | None = 30,
     ):
         super().__init__()
         self.model = model
         self.message_hist = deepcopy(message_history)
         self.structured_resp_node = None  # The structured LLM node
+
         self.max_tool_calls = max_tool_calls
 
     @abstractmethod
-    def connected_nodes(self) -> Set[Type[Node]]: ...
+    def connected_nodes(self) -> Set[Union[Type[Node], Callable]]: ...
 
     def create_node(self, tool_name: str, arguments: Dict[str, Any]) -> Node:
         """
-        A function which creates a new instance of a node from a tool name and arguments.
+        A function which creates a new instance of a node Class from a tool name and arguments.
 
         This function may be overwritten to fit the needs of the given node as needed.
         """
@@ -63,7 +65,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
     ) -> _T:
         while True:
             # special check for maximum tool calls
-            if (
+            if self.max_tool_calls is not None and (
                 len([m for m in self.message_hist if isinstance(m, ToolMessage)])
                 >= self.max_tool_calls
             ):

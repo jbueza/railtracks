@@ -3,14 +3,14 @@ import time
 import asyncio
 
 import requestcompletion as rc
-import requestcompletion.interaction.stream
+
 
 from requestcompletion import ExecutorConfig
 
 
 async def streaming_rng():
     number = random.random()
-    await requestcompletion.interaction.stream.stream(str(number))
+    await rc.stream(str(number))
 
     return number
 
@@ -28,8 +28,9 @@ def test_simple_streamer():
 
     sub = SubObject()
     with rc.Runner(
-        subscriber=sub.handle,
-        executor_config=rc.ExecutorConfig(force_close_streams=True, logging_setting="NONE"),
+        executor_config=rc.ExecutorConfig(
+            logging_setting="NONE", subscriber=sub.handle
+        ),
     ) as runner:
         finished_result = runner.run_sync(StreamingRNGNode)
 
@@ -53,11 +54,11 @@ def test_slow_streamer():
             self.finished_message = item
 
     sub = Sub()
-    with rc.Runner(executor_config=ExecutorConfig(force_close_streams=True)) as runner:
-        finished_result = runner.run_sync(StreamingRNGNode, subscriber=sub.handle)
+    with rc.Runner(executor_config=ExecutorConfig(subscriber=sub.handle)) as runner:
+        finished_result = runner.run_sync(StreamingRNGNode)
 
     assert isinstance(finished_result.answer, float)
-    assert sub.finished_message is None
+    assert sub.finished_message is not None
 
 
 async def rng_tree_streamer(num_calls: int, parallel_call_nums: int, multiplier: int):
@@ -67,7 +68,7 @@ async def rng_tree_streamer(num_calls: int, parallel_call_nums: int, multiplier:
         responses = await asyncio.gather(*contracts)
         responses = [r * multiplier for r in responses]
         for r in responses:
-            await requestcompletion.interaction.stream.stream(str(r))
+            await rc.stream(str(r))
 
         data.extend(responses)
 
@@ -85,13 +86,15 @@ def rng_stream_tester(
     class Sub:
         def __init__(self):
             self.total_streams = []
+            self.asyncio_lock = asyncio.Lock()
 
-        def handle(self, item: str) -> None:
-            self.total_streams.append(item)
+        async def handle(self, item: str) -> None:
+            async with self.asyncio_lock:
+                self.total_streams.append(item)
 
     sub = Sub()
     with rc.Runner(
-        executor_config=ExecutorConfig(force_close_streams=False, logging_setting="NONE"), subscriber=sub.handle
+        executor_config=ExecutorConfig(logging_setting="NONE", subscriber=sub.handle)
     ) as run:
         finished_result = run.run_sync(
             RNGTreeStreamer, num_calls, parallel_call_nums, multiplier

@@ -35,7 +35,7 @@ class Subscriber(Generic[_T]):
             result = self.callback(message)
             if asyncio.iscoroutine(result):
                 await result
-        except Exception as e:
+        except Exception as e:  # TODO: deal with this during logging task
             logger.exception(msg=f"Error in {self.name}", exc_info=e)
 
 
@@ -202,9 +202,9 @@ class RCPublisher(Generic[_T]):
                         "Listener has been killed before receiving the correct message."
                     )
 
-            assert (
-                returnable_result is not None
-            ), "Listener should have received a message before returning."
+            assert returnable_result is not None, (
+                "Listener should have received a message before returning."
+            )
             self.unsubscribe(sub_id)
             return result_mapping(returnable_result)
 

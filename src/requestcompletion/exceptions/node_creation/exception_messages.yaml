@@ -1,0 +1,43 @@
+CLASSMETHOD_REQUIRED_MSG: "The '{method_name}' method must be a @classmethod."
+CLASSMETHOD_REQUIRED_NOTES:
+  - "Add @classmethod decorator to '{method_name}'."
+  - "Signature should be: \n@classmethod\ndef {method_name}(cls): ..."
+
+CONNECTED_NODES_EMPTY_MSG: "connected_nodes must not return an empty set."
+CONNECTED_NODES_EMPTY_NOTES:
+  - "Please provide a set nodes that can be used as tools by the ToolCallLLM node."
+
+CONNECTED_NODES_TYPE_MSG: "connected_nodes must return a set of Nodes or functions."
+CONNECTED_NODES_TYPE_NOTES:
+  - "Ensure all the nodes provided as connected_nodes are of type Node or callable functions."
+
+DUPLICATE_PARAMETER_NAMES_MSG: "Duplicate parameter names are not allowed."
+DUPLICATE_PARAMETER_NAMES_NOTES:
+  - "Parameter names in tool_params must be unique."
+
+INVALID_SYSTEM_MESSAGE_MSG: "system_message must be a SystemMessage object, not a string or any other type."
+INVALID_SYSTEM_MESSAGE_NOTES:
+  - "Message history must be a list of Message objects"
+
+MISSING_PRETTY_NAME_MSG: "You must provide a pretty_name when using this node as a tool, as this is used to identify the tool."
+
+MISSING_TOOL_DETAILS_MSG: "Tool parameters are provided, but tool details are missing."
+MISSING_TOOL_DETAILS_NOTES:
+  - "If you want to use this node as a tool, you must provide tool details."
+
+OUTPUT_MODEL_EMPTY_MSG: "Output model has no fields defined."
+OUTPUT_MODEL_EMPTY_NOTES:
+  - "Check to see if the BaseModel has any fields defined."
+  - "Output model cannot be empty."
+  - "The model fields must be defined in the output_model. Eg.-\n class MyModel(BaseModel): \n    field1: str = Field(description='field1 description')"
+
+OUTPUT_MODEL_REQUIRED_MSG: "Output model is not provided."
+OUTPUT_MODEL_REQUIRED_NOTES:
+  - "Check to see if the output_model is a pydantic model."
+  - "Output model cannot be empty."
+  - "The model fields must be defined in the output_model. Eg.-\n class MyModel(BaseModel): \n    field1: str = Field(description='field1 description')"
+
+OUTPUT_MODEL_TYPE_MSG: "Output model must be a pydantic model, not {actual_type}."
+OUTPUT_MODEL_TYPE_NOTES:
+  - "Check to see if the output_model is a pydantic model."
+  - "The model fields must be defined in the output_model. Eg.-\n class MyModel(BaseModel): \n    field1: str = Field(description='field1 description')"

@@ -6,7 +6,7 @@ import pytest
 import random
 
 import requestcompletion as rc
-
+from requestcompletion.exceptions import NodeInvocationError
 from requestcompletion.state.request import Failure
 
 RNGNode = rc.library.from_function(random.random)
@@ -14,7 +14,7 @@ RNGNode = rc.library.from_function(random.random)
 
 @pytest.mark.timeout(1)
 def test_simple_request():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(RNGNode)
 
     assert isinstance(result.answer, float)
@@ -33,7 +33,7 @@ ErrorThrower = rc.library.from_function(error_thrower)
 
 
 def test_error():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         with pytest.raises(TestError):
             run.run_sync(ErrorThrower)
 
@@ -50,13 +50,13 @@ ErrorHandler = rc.library.from_function(error_handler)
 
 @pytest.mark.timeout(1)
 def test_error_handler():
-    with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
+    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(ErrorHandler)
     assert result.answer == "Caught the error"
 
 
 def test_error_handler_wo_retry():
-    with pytest.raises(rc.state.state.ExecutionError):
+    with pytest.raises(NodeInvocationError):
         with rc.Runner(
             executor_config=rc.ExecutorConfig(
                 end_on_error=True, logging_setting="NONE"

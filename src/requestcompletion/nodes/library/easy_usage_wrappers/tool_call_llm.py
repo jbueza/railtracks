@@ -1,7 +1,6 @@
 import warnings
 from copy import deepcopy
-from typing import Set, Type, Union, Literal, Dict, Any
-
+from typing import Set, Type, Union, Literal, Dict, Any, Callable
 from pydantic import BaseModel
 from ....llm import (
     MessageHistory,
@@ -19,10 +18,15 @@ from ....nodes.nodes import Node
 from ....llm.message import Role
 
 from typing_extensions import Self
+from ....exceptions.node_creation.validation import (
+    validate_tool_metadata,
+)
+from inspect import isclass, isfunction
+from ....nodes.library.function import from_function
 
 
 def tool_call_llm(  # noqa: C901
-    connected_nodes: Set[Type[Node]],
+    connected_nodes: Set[Union[Type[Node], Callable]],
     pretty_name: str | None = None,
     model: ModelBase | None = None,
     system_message: SystemMessage | None = None,
@@ -45,6 +49,21 @@ def tool_call_llm(  # noqa: C901
             "MessageHistory output type is not supported with output_model at the moment."
         )
 
+    # If a function is passed in, we will convert it to a node
+    for elem in connected_nodes:
+        if isclass(elem):
+            if not issubclass(elem, Node):
+                raise TypeError(
+                    f"Tools must be of type Node or FunctionType but got {type(elem)}"
+                )
+        elif isfunction(elem):
+            connected_nodes.remove(elem)
+            connected_nodes.add(from_function(elem))
+        else:
+            raise TypeError(
+                f"Tools must be of type Node or FunctionType but got {type(elem)}"
+            )
+
     class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
         def return_output(self):
             if output_model:
@@ -60,6 +79,7 @@ def tool_call_llm(  # noqa: C901
             self,
             message_history: MessageHistory,
             llm_model: ModelBase | None = None,
+            max_tool_calls: int | None = 30,
         ):
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
@@ -86,7 +106,9 @@ def tool_call_llm(  # noqa: C901
                     )
                 llm_model = model
 
-            super().__init__(message_history_copy, llm_model)
+            super().__init__(
+                message_history_copy, llm_model, max_tool_calls=max_tool_calls
+            )
 
             if output_model:
                 system_structured = SystemMessage(
@@ -96,7 +118,7 @@ def tool_call_llm(  # noqa: C901
                     output_model, system_message=system_structured, model=llm_model
                 )
 
-        def connected_nodes(self) -> Set[Type[Node]]:
+        def connected_nodes(self) -> Set[Union[Type[Node], Callable]]:
             return connected_nodes
 
         @classmethod
@@ -130,19 +152,6 @@ def tool_call_llm(  # noqa: C901
             )
             return cls(message_hist)
 
-    if tool_params and not tool_details:
-        raise RuntimeError(
-            "Tool parameters are provided, but tool details are missing."
-        )
-    elif tool_details and (tool_params is not None and not tool_params):
-        raise RuntimeError(
-            "If no parameters are required for the tool, `tool_params` must be set to None."
-        )
-    elif (
-        tool_details
-        and tool_params
-        and len({param.name for param in tool_params}) != len(tool_params)
-    ):
-        raise ValueError("Duplicate parameter names are not allowed.")
+    validate_tool_metadata(tool_params, tool_details, system_message, pretty_name)
 
     return ToolCallLLM

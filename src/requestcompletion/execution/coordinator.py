@@ -143,9 +143,9 @@ class Coordinator:
         execution_modes: Dict[ExecutionConfigurations, TaskExecutionStrategy] = None,
     ):
         self.state = CoordinatorState.empty()
-        assert set(execution_modes.keys()) == set(
-            get_args(ExecutionConfigurations)
-        ), "You must provide all execution modes."
+        assert set(execution_modes.keys()) == set(get_args(ExecutionConfigurations)), (
+            "You must provide all execution modes."
+        )
         self.execution_strategy = execution_modes
 
     def start(self, publisher: RCPublisher[RequestCompletionMessage]):

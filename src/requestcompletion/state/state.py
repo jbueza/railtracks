@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-import warnings
 from collections import deque
 
 
@@ -11,7 +10,7 @@ from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKIN
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
-from ..context import register_globals, ThreadContext
+from ..context import update_parent_id
 from ..execution.coordinator import Coordinator
 from ..pubsub.publisher import RCPublisher
 from ..execution.task import Task
@@ -36,7 +35,7 @@ if TYPE_CHECKING:
 from ..exceptions import FatalError
 from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..exceptions import ExecutionError
+from ..exceptions import NodeInvocationError
 from ..utils.profiling import Stamp
 from ..utils.logging.create import get_rc_logger
 
@@ -94,13 +93,7 @@ class RCState:
         if isinstance(item, RequestFinishedBase):
             await self.handle_result(item)
         if isinstance(item, RequestCreation):
-            # TODO fix this logic. It works but it is far from clean. Trace the line of context to make this work better.
-            register_globals(
-                ThreadContext(
-                    parent_id=item.current_node_id,
-                    publisher=self.publisher,
-                )
-            )
+            update_parent_id(item.current_node_id)
 
             assert item.new_request_id not in self._request_heap.heap().keys()
 
@@ -267,21 +260,15 @@ class RCState:
         """
 
         # note it is assumed that all of the children id are valid and have already been created.
-        assert all(
-            n in self._node_heap for n in children
-        ), "You cannot add a request for a node which has not yet been added"
+        assert all(n in self._node_heap for n in children), (
+            "You cannot add a request for a node which has not yet been added"
+        )
 
         if request_ids is None:
             request_ids = [None] * len(children)
 
-        if parent_node is None and any(x is not None for x in request_ids):
-            # TODO get rid of this logic. It should be injected instead of hardcoded
-            warnings.warn(
-                "This is an insertion request and you provided identifier this will be overwritten"
-            )
-
         parent_node_name = (
-            self._node_heap.id_type_mapping[parent_node]
+            self._node_heap.id_type_mapping[parent_node].pretty_name()
             if parent_node is not None
             else "START"
         )
@@ -289,14 +276,14 @@ class RCState:
         request_ids = list(
             map(
                 self._request_heap.create,
-                [r_id if parent_node else "START" for r_id in request_ids],
+                request_ids,
                 [parent_node] * len(children),
                 children,
                 input_args,
                 input_kwargs,
                 [
                     stamp_gen(
-                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n]}"
+                        f"Adding request between {parent_node_name} and {self._node_heap.id_type_mapping[n].pretty_name()}"
                     )
                     for n in children
                 ],
@@ -363,10 +350,8 @@ class RCState:
 
         if self.executor_config.end_on_error:
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionError(
-                failed_request=self._request_heap[request_id],
-                execution_info=self.info,
-                final_exception=exception,
+            ee = NodeInvocationError(
+                message=node_exception_action.to_logging_msg(),
             )
             await self.publisher.publish(FatalFailure(error=ee))
             return Failure(exception)
@@ -374,10 +359,8 @@ class RCState:
         # fatal exceptions should only be thrown if there is something seriously wrong.
         if isinstance(exception, FatalError):
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = ExecutionError(
-                failed_request=self._request_heap[request_id],
-                execution_info=self.info,
-                final_exception=exception,
+            ee = NodeInvocationError(
+                message=node_exception_action.to_logging_msg(),
             )
             await self.publisher.publish(FatalFailure(error=ee))
             return Failure(exception)

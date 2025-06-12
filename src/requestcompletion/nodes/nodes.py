@@ -1,13 +1,9 @@
 from __future__ import annotations
-
 import asyncio
 import uuid
 from copy import deepcopy
-
 from ..llm import Tool
-
 from abc import ABC, abstractmethod, ABCMeta
-
 from typing import (
     TypeVar,
     Generic,
@@ -15,32 +11,67 @@ from typing import (
     ParamSpec,
     Any,
 )
-
 from typing_extensions import Self
-
+from ..exceptions.node_creation.validation import (
+    check_classmethod,
+    check_output_model,
+    check_connected_nodes,
+)
 
 _TOutput = TypeVar("_TOutput")
-
 
 _TNode = TypeVar("_TNode", bound="Node")
 _P = ParamSpec("_P")
 
 
-class EnsureInvokeCoroutineMeta(ABCMeta):
+class NodeCreationMeta(ABCMeta):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
         # now we need to make sure the invoke method is a coroutine, if not we should automatically switch it here.
         method_name = "invoke"
+
         if method_name in dct and callable(dct[method_name]):
             method = dct[method_name]
 
             # a simple wrapper to convert any async function to a non async one.
             async def async_wrapper(self, *args, **kwargs):
-                if asyncio.iscoroutinefunction(method):
+                if asyncio.iscoroutinefunction(
+                    method
+                ):  # check if the method is a coroutine
                     return await method(self, *args, **kwargs)
+                else:
+                    return await asyncio.to_thread(method, self, *args, **kwargs)
 
             setattr(cls, method_name, async_wrapper)
+
+        # ================= Checks for Creation ================
+        # 1. Check if the class methods are all classmethods, else raise an exception
+        class_method_checklist = ["tool_info", "prepare_tool", "pretty_name"]
+        for method_name in class_method_checklist:
+            if method_name in dct and callable(dct[method_name]):
+                method = dct[method_name]
+                check_classmethod(method, method_name)
+
+        # 2. special case for output_model for structured_llm node
+        if "output_model" in dct and not getattr(cls, "__abstractmethods__", False):
+            method = dct["output_model"]
+            check_classmethod(method, "output_model")
+            check_output_model(method, cls)
+
+        # 3. Check if the connected_nodes is not empty, special case for ToolCallLLM
+        if "connected_nodes" in dct and not getattr(cls, "__abstractmethods__", False):
+            method = dct["connected_nodes"]
+            try:
+                # Try to call the method as a classmethod (typical case)
+                node_set = method.__func__(cls)
+            except AttributeError:
+                # If that fails, call it as an instance method (for easy_wrapper init)
+                dummy = object.__new__(cls)
+                node_set = method(dummy)
+            # Validate that the returned node_set is correct and contains only Node/function instances
+            check_connected_nodes(node_set, Node)
+        # ================= End Creation Exceptions ================
 
 
 class NodeState(Generic[_TNode]):
@@ -63,7 +94,7 @@ class NodeState(Generic[_TNode]):
         return self.node
 
 
-class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
+class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
     """An abstract base class which defines some the functionality of a node"""
 
     def __init__(
@@ -104,24 +135,6 @@ class Node(ABC, Generic[_TOutput], metaclass=EnsureInvokeCoroutineMeta):
         raise NotImplementedError(
             "You must implement the tool_info method in your node"
         )
-        # detail = inspect.getdoc(cls)
-        # if detail is None:
-        #     warnings.warn(f"Node {cls.__name__} does not have a docstring. Using empty string instead.")
-        #     detail = ""
-        #
-        # params = inspect.signature(cls.__init__).parameters
-        #
-        # tool = Tool(
-        #     name=cls.pretty_name(),
-        #     detail=detail,
-        #     parameters=set(
-        #         [
-        #             Parameter(name=k, description=v.annotation, param_type="string")
-        #             for k, v in params.items()
-        #             if k != "self"
-        #         ]
-        #     ),
-        # )
 
     @classmethod
     def prepare_tool(cls, tool_parameters: Dict[str, Any]) -> Self:
