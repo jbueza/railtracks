@@ -23,7 +23,9 @@ class StructuredLLM(Node[_TOutput], ABC):
         """
         super().__init__()
         self.model = model
-        check_message_history(message_history)               # raises NodeInvocationError if any of the checks fail
+        check_message_history(
+            message_history
+        )  # raises NodeInvocationError if any of the checks fail
         self.message_hist = deepcopy(message_history)
 
     async def invoke(self) -> _TOutput:

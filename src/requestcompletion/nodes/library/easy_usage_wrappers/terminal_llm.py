@@ -7,6 +7,7 @@ from copy import deepcopy
 from ....exceptions.node_creation.validation import validate_tool_metadata
 from ....exceptions.node_invocation.validation import check_model, check_message_history
 
+
 def terminal_llm(  # noqa: C901
     pretty_name: str | None = None,
     system_message: SystemMessage | None = None,
