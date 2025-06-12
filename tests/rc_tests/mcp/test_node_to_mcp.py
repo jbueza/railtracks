@@ -54,5 +54,4 @@ def test_add_nums_tool(mcp_server):
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
         response = asyncio.run(runner.run(tools[0], num1=1, num2=3, print_s="Hello"))
 
-    print(response.answer)
     assert response.answer[0].text == "14", f"Expected 14, got {response.answer[0].text}"
