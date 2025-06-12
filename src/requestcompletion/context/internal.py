@@ -6,21 +6,21 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from .pubsub.publisher import RCPublisher
-    from .config import ExecutorConfig
+    from requestcompletion.pubsub.publisher import RCPublisher
+    from requestcompletion.config import ExecutorConfig
 
 
 config: contextvars.ContextVar[ExecutorConfig | None] = contextvars.ContextVar(
     "executor_config", default=None
 )
-thread_context: contextvars.ContextVar[ThreadContext | None] = contextvars.ContextVar(
+thread_context: contextvars.ContextVar[InternalContext | None] = contextvars.ContextVar(
     "thread_context", default=None
 )
 
 
-class ThreadContext:
+class InternalContext:
     """
-    The ThreadContext class is used to store global variables designed to be used in the RC system.
+    The InternalContext class is used to store global variables designed to be used in the RC system.
 
     The tooling in the class is very tightly dependent on the requirements of the RC system.
     """
@@ -50,20 +50,20 @@ class ThreadContext:
     def publisher(self, value: RCPublisher):
         self._publisher = value
 
-    def prepare_new(self, new_parent_id: str) -> ThreadContext:
+    def prepare_new(self, new_parent_id: str) -> InternalContext:
         """
-        Prepares a new ThreadContext with a new parent ID.
+        Prepares a new InternalContext with a new parent ID.
 
         Note: the previous publisher will copied by reference into the next object.
         """
 
-        return ThreadContext(
+        return InternalContext(
             publisher=self._publisher,
             parent_id=new_parent_id,
         )
 
 
-def get_globals() -> ThreadContext:
+def get_globals() -> InternalContext:
     """
     Get the global variables for the current thread.
     """
@@ -73,7 +73,7 @@ def get_globals() -> ThreadContext:
     return thread_context.get()
 
 
-def register_globals(global_var: ThreadContext):
+def register_globals(global_var: InternalContext):
     """
     Register the global variables for the current thread.
     """

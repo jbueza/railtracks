@@ -1,6 +1,6 @@
 from typing import TypeVar, Generic
 
-from ..context import update_parent_id
+from ..context.internal import update_parent_id
 from ..nodes.nodes import Node
 
 _TOutput = TypeVar("_TOutput")

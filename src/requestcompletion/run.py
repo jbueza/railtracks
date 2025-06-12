@@ -1,6 +1,6 @@
 import asyncio
 import warnings
-from typing import TypeVar, ParamSpec, Callable, Coroutine
+from typing import TypeVar, ParamSpec, Callable, Coroutine, Dict, Any
 
 from .config import ExecutorConfig
 from .exceptions import GlobalTimeOutError
@@ -12,6 +12,7 @@ from .pubsub.messages import (
     RequestFinishedBase,
     FatalFailure,
 )
+
 from .pubsub.publisher import RCPublisher
 from .pubsub.subscriber import stream_subscriber
 from .pubsub.utils import output_mapping
@@ -24,13 +25,15 @@ from .info import (
 )
 from .state.state import RCState
 
-from .context import (
+from .context.internal import (
     config,
     register_globals,
-    ThreadContext,
+    InternalContext,
     get_globals,
     delete_globals,
 )
+
+from .context.user_facing import protected_context
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -69,8 +72,7 @@ class Runner:
     _instance = None
 
     def __init__(
-        self,
-        executor_config: ExecutorConfig = None,
+        self, executor_config: ExecutorConfig = None, context: Dict[str, Any] = None
     ):
         # first lets read from defaults if nessecary for the provided input config
         if executor_config is None:
@@ -82,13 +84,18 @@ class Runner:
 
         self.executor_config = executor_config
 
+        if context is None:
+            context = {}
+
+        protected_context.define(context)
+
         # TODO see issue about logger
         prepare_logger(
             setting=executor_config.logging_setting,
         )
         self.publisher: RCPublisher[RequestCompletionMessage] = RCPublisher()
 
-        register_globals(ThreadContext(publisher=self.publisher, parent_id=None))
+        register_globals(InternalContext(publisher=self.publisher, parent_id=None))
 
         executor_info = ExecutionInfo.create_new()
         self.coordinator = Coordinator(

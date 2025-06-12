@@ -1,4 +1,4 @@
-from ..context import get_globals
+from ..context.internal import get_globals
 from ..pubsub.messages import Streaming
 
 
