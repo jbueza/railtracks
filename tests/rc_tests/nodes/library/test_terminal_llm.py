@@ -187,27 +187,6 @@ async def test_terminal_llm_tool_duplicate_parameter_names_easy_usage(
         )
 # =================== END Easy Usage Node Creation ===================
 # =================== START Class Based Node Creation ===================
-@pytest.mark.asyncio
-async def test_system_message_is_a_string_class_based(model):
-    class Encoder(rc.library.TerminalLLM): 
-        def __init__(
-                self,
-                message_history: rc.llm.MessageHistory,
-                model: rc.llm.ModelBase = model,
-            ):
-                message_history = [x for x in message_history if x.role != "system"]
-                message_history.insert(0, "You are a helpful assistant that can encode text into bytes.")
-                super().__init__(
-                    message_history=message_history,
-                    model=model,
-                )
-        @classmethod
-        def pretty_name(cls) -> str:
-            return "Simple Node"
-
-    with pytest.raises(NodeCreationError, match="Message history must be a list of Message objects"):
-        response = await rc.call(Encoder, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
-
 
 @pytest.mark.asyncio
 async def test_no_pretty_name_class_based(model, encoder_system_message):
@@ -290,6 +269,26 @@ async def test_no_message_history_class_based(model):
     with pytest.raises(NodeInvocationError, match="Message history must contain at least one message"):
         _ = await rc.call(Encoder, message_history=rc.llm.MessageHistory([]))
     
+@pytest.mark.asyncio
+async def test_system_message_is_a_string_class_based(model):
+    class Encoder(rc.library.TerminalLLM): 
+        def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+                model: rc.llm.ModelBase = model,
+            ):
+                message_history = [x for x in message_history if x.role != "system"]
+                message_history.insert(0, "You are a helpful assistant that can encode text into bytes.")
+                super().__init__(
+                    message_history=message_history,
+                    model=model,
+                )
+        @classmethod
+        def pretty_name(cls) -> str:
+            return "Simple Node"
+
+    with pytest.raises(NodeInvocationError, match="Message history must be a list of Message objects"):
+        response = await rc.call(Encoder, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
 # =================== END invocation exceptions =====================
 # ================================================ END terminal_llm Exception testing ===========================================================
 

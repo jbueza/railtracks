@@ -1,5 +1,5 @@
 # from .exception_messages import get_message, get_notes
-from ..execution import NodeInvocationError
+from ..errors import NodeInvocationError
 from ...llm import Message, MessageHistory, ModelBase
 import warnings
 
@@ -21,11 +21,10 @@ def check_message_history(message_history: MessageHistory) -> None:
             fatal=True,
         )
     elif message_history[0].role != "system":
-        raise NodeInvocationError(
-            message="Missing SystemMessage: The first message in the message history must be a system message",
-            fatal=True,
+        warnings.warn(
+            "No SystemMessage was provided. This is not recommended. Please provide the first message as a SystemMessage."
         )
-    elif len(message_history) == 1:
+    elif len(message_history) == 1 and message_history[0].role == "system":
         warnings.warn(
             "Only SystemMessage was provided. This is not recommended. Please provide at least one UserMessage."
         )

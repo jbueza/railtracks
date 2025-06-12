@@ -1,6 +1,6 @@
 from .exception_messages import ExceptionMessageKey, get_message, get_notes
 from typing import Any, Iterable
-from ..fatal import NodeCreationError
+from ..errors import NodeCreationError
 from pydantic import BaseModel
 from ...llm import SystemMessage
 

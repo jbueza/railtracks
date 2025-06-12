@@ -80,7 +80,7 @@ def tool_call_llm(  # noqa: C901
             llm_model: ModelBase | None = None,
             max_tool_calls: int | None = 30,
         ):
-            check_message_history(message_history)
+            check_message_history(message_history)               # raises NodeInvocationError if any of the checks fail
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
                 if len([x for x in message_history_copy if x.role == Role.system]) > 0:
@@ -100,7 +100,7 @@ def tool_call_llm(  # noqa: C901
                         "You have provided a model as a parameter and as a class variable. We will use the parameter."
                     )
             else:
-                check_model(model)
+                check_model(model)                               # raises NodeInvocationError if any of the checks fail
                 llm_model = model
 
             super().__init__(

@@ -9,12 +9,10 @@ from ....llm import (
     Tool,
 )
 from typing_extensions import Self
+from ....exceptions.node_creation.validation import validate_tool_metadata
 from ....exceptions.node_invocation.validation import check_model, check_message_history
 from ....nodes.library.structured_llm import StructuredLLM
 from pydantic import BaseModel
-from ....exceptions.node_creation.validation import (
-    validate_tool_metadata,
-)
 
 
 def structured_llm(  # noqa: C901
@@ -31,7 +29,7 @@ def structured_llm(  # noqa: C901
             message_history: MessageHistory,
             llm_model: ModelBase | None = None,
         ):
-            check_message_history(message_history)
+            check_message_history(message_history)          # raises error if message_history is not valid
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
                 if len([x for x in message_history_copy if x.role == "system"]) > 0:
@@ -51,7 +49,7 @@ def structured_llm(  # noqa: C901
                         "You have provided a model as a parameter and as a class varaible. We will use the parameter."
                     )
             else:
-                check_model(model)
+                check_model(model)                           # raises error if model is not valid
                 llm_model = model
 
             super().__init__(message_history=message_history_copy, model=llm_model)
