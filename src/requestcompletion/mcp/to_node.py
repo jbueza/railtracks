@@ -76,6 +76,8 @@ def create_mcp_server(
     if fastmcp is not None:
         if not isinstance(fastmcp, FastMCP):
             raise ValueError("Provided fastmcp must be an instance of FastMCP.")
+        mcp = fastmcp
+    else:
         mcp = FastMCP(server_name)
 
     for node in nodes:

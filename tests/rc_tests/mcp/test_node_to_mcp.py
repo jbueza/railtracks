@@ -21,7 +21,7 @@ def make_server_script():
         from requestcompletion.mcp.to_node import create_mcp_server
 
         def add_nums(num1: int, num2: int, print_s: str):
-            return num1 + num2
+            return num1 + num2 + 10
 
         node = rc.library.from_function(add_nums)
 
@@ -47,16 +47,12 @@ def mcp_server():
     os.remove(script_path)
 
 
-def test_list_tools(mcp_server):
+def test_add_nums_tool(mcp_server):
     tools = from_mcp_server(MCPHttpParams(url="http://127.0.0.1:8000/mcp"))
     assert len(tools) == 1
 
-
-def test_add_nums_tool(mcp_server):
-    tools = from_mcp_server(MCPHttpParams(url="http://127.0.0.1:8000/mcp"))
-
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
-        response = asyncio.run(runner.run(tools, Num1=1, Num2=3))
-    assert response.answer.content == 4, f"Expected 4, got {response.answer.content}"
+        response = asyncio.run(runner.run(tools[0], num1=1, num2=3, print_s="Hello"))
 
-
+    print(response.answer)
+    assert response.answer[0].text == "14", f"Expected 14, got {response.answer[0].text}"
