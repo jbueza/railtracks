@@ -63,6 +63,7 @@ def delete_globals():
 
 def get(
     key: str,
+    /,
     default: Any | None = None,
 ):
     """
@@ -70,7 +71,7 @@ def get(
 
     Args:
         key (str): The key to retrieve.
-        default (Any | None): The default value to return if the key does not exist.
+        default (Any | None): The default value to return if the key does not exist. If set to None and the key does not exist, a KeyError will be raised.
     Returns:
         Any: The value associated with the key, or the default value if the key does not exist.
 
