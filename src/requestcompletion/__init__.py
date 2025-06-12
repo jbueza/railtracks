@@ -19,6 +19,7 @@ __all__ = [
     "llm",
     "set_config",
     "set_streamer",
+    "context",
 ]
 
 

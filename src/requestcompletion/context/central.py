@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextvars
 import warnings
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from requestcompletion.context.external import ImmutableExternalContext, ExternalContext
 

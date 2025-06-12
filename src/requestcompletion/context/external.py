@@ -1,11 +1,9 @@
-import contextvars
 from typing import Dict, Any
 
 from abc import ABC, abstractmethod
 
 
 class ExternalContext(ABC):
-
     @abstractmethod
     def define(self, data: Dict[str, Any]) -> None:
         pass
@@ -30,7 +28,6 @@ class ExternalContext(ABC):
 
 
 class ImmutableExternalContext(ExternalContext):
-
     def __init__(self):
         self._context_var_store = {}
 
@@ -47,7 +44,7 @@ class ImmutableExternalContext(ExternalContext):
         try:
             result = self._context_var_store[key]
             return result
-        except KeyError as e:
+        except KeyError:
             if default is not None:
                 return default
             raise
@@ -57,7 +54,7 @@ class ImmutableExternalContext(ExternalContext):
         key: str,
         value: Any,
     ):
-        raise ImmutableContextError(f"Cannot set values. This context is immutable.")
+        raise ImmutableContextError("Cannot set values. This context is immutable.")
 
 
 class ImmutableContextError(RuntimeError):
