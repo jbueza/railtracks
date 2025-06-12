@@ -107,8 +107,14 @@ class Tool:
         # Parse the docstring to get parameter descriptions
         arg_descriptions = parse_docstring_args(func.__doc__ or "")
 
-        # Get the function signature
-        signature = inspect.signature(func)
+        try:
+            # Get the function signature
+            signature = inspect.signature(func)
+        except ValueError:
+                raise RuntimeError(
+                    "Cannot convert kwargs for builtin functions. "
+                    "Please use a custom function."
+                )
 
         # Create parameter handlers
         handlers: List[ParameterHandler] = [
