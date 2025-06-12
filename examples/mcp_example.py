@@ -1,27 +1,25 @@
 import asyncio
-import os
-
+#%%
 import requestcompletion as rc
+#%%
 from mcp import StdioServerParameters
 
-from requestcompletion.nodes.library.mcp_tool import async_from_mcp_server
-from requestcompletion.utils.mcp_utils import MCPHttpParams
+from requestcompletion.nodes.library.mcp_tool import async_from_mcp_server, from_mcp_server
 
 #%%
 # Install mcp_server_time for time tools:
-MCP_COMMAND = "npx"
-MCP_ARGS = ["mcp-remote", "https://mcp.paypal.com/sse"]
+MCP_COMMAND = "uv"
+MCP_ARGS = ["--directory", r"C:\Users\Levi\Documents\MCP\node\node_server.py", "run", "node_server.py"]
 # Airbnb MCP server requires Node.js and the `npx` command to run.
 
 
 #%%
 # Discover all tools
-fetch_tools = asyncio.run(async_from_mcp_server(MCPHttpParams(url="https://remote.mcpservers.org/fetch/mcp")))
-paypal_tools = asyncio.run(async_from_mcp_server(MCPHttpParams(url="https://mcp.paypal.com/sse")))
+fetch_tools = from_mcp_server(StdioServerParameters(command=MCP_COMMAND, args=MCP_ARGS))
 
 #%%
 parent_tool = rc.library.tool_call_llm(
-    connected_nodes={*paypal_tools},
+    connected_nodes={*fetch_tools},
     pretty_name="Parent Tool",
     system_message=rc.llm.SystemMessage("Provide a response using the tool when asked."),
     model=rc.llm.OpenAILLM("gpt-4o"),
