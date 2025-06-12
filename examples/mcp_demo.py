@@ -2,7 +2,7 @@ import streamlit as st
 import asyncio
 import requestcompletion as rc
 from requestcompletion.nodes.library.mcp_tool import async_from_mcp_server
-from requestcompletion.utils.mcp_utils import MCPHttpParams
+from requestcompletion.mcp.main import MCPHttpParams
 
 # MCP server URL
 urls = [

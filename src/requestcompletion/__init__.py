@@ -14,6 +14,7 @@ __all__ = [
     "call",
     "stream",
     "batch",
+    "mcp"
     "ExecutionInfo",
     "ExecutorConfig",
     "llm",
@@ -21,7 +22,7 @@ __all__ = [
     "set_streamer",
 ]
 
-
+from . import mcp
 from .nodes import library
 from .nodes.nodes import Node
 from .interaction.call import call

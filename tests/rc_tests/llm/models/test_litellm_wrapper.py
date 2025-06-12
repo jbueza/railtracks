@@ -184,7 +184,7 @@ def test_litellm_wrapper_str(model_name, expected_str, mock_litellm_wrapper):
 
 
 def test_litellm_wrapper_invoke_with_empty_messages(mock_litellm_wrapper):
-    empty_history = MessageHistory(messages=[])
+    empty_history = MessageHistory([])
     litellm_model = mock_litellm_wrapper(model_name="mock-model")
     result = litellm_model._invoke(empty_history)
     # Validate that the structure of the returned result is correct
