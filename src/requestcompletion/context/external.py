@@ -32,7 +32,7 @@ class ExternalContext(ABC):
 class ImmutableExternalContext(ExternalContext):
 
     def __init__(self):
-        self._context_var_store: Dict[str, contextvars.ContextVar] = {}
+        self._context_var_store = {}
 
     def define(self, data: Dict[str, Any]) -> None:
         if len(self._context_var_store) > 0:
@@ -41,28 +41,23 @@ class ImmutableExternalContext(ExternalContext):
             )
 
         for key, value in data.items():
-            context_var = contextvars.ContextVar(key)
-            context_var.set(value)
-            self._context_var_store[key] = context_var
+            self._context_var_store[key] = value
 
     def get(self, key: str, *, default: Any | None = None):
         try:
-            result = self._context_var_store[key].get()
+            result = self._context_var_store[key]
             return result
-        except LookupError:
+        except KeyError as e:
             if default is not None:
                 return default
-            else:
-                raise KeyError(f"Key '{key}' is not in context object.") from None
+            raise
 
     def put(
         self,
         key: str,
         value: Any,
     ):
-        raise ImmutableContextError(
-            f"Cannot set values. This context is immutable."
-        )
+        raise ImmutableContextError(f"Cannot set values. This context is immutable.")
 
 
 class ImmutableContextError(RuntimeError):

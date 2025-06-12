@@ -2,7 +2,7 @@ from typing import ParamSpec, Callable, TypeVar, Union
 from types import FunctionType
 
 from ..run import Runner
-from ..context.internal import get_globals
+from ..context.central import get_globals
 from ..pubsub.messages import (
     RequestCreation,
     RequestCompletionMessage,

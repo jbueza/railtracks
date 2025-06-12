@@ -1,21 +1,9 @@
 from __future__ import annotations
 
-import contextvars
-import warnings
 from typing import TYPE_CHECKING
-
 
 if TYPE_CHECKING:
     from requestcompletion.pubsub.publisher import RCPublisher
-    from requestcompletion.config import ExecutorConfig
-
-
-config: contextvars.ContextVar[ExecutorConfig | None] = contextvars.ContextVar(
-    "executor_config", default=None
-)
-thread_context: contextvars.ContextVar[InternalContext | None] = contextvars.ContextVar(
-    "thread_context", default=None
-)
 
 
 class InternalContext:
@@ -61,42 +49,3 @@ class InternalContext:
             publisher=self._publisher,
             parent_id=new_parent_id,
         )
-
-
-def get_globals() -> InternalContext:
-    """
-    Get the global variables for the current thread.
-    """
-    if thread_context.get() is None:
-        raise KeyError("No global variable set")
-
-    return thread_context.get()
-
-
-def register_globals(global_var: InternalContext):
-    """
-    Register the global variables for the current thread.
-    """
-    # TODO modify this to fail fast.
-    if thread_context.get():
-        warnings.warn("Overwriting previous global variable")
-
-    thread_context.set(global_var)
-
-
-def update_parent_id(new_parent_id: str):
-    """
-    Update the parent ID of the current thread's global variables.
-    """
-    current_context = thread_context.get()
-
-    if current_context is None:
-        raise KeyError("No global variable set")
-
-    new_context = current_context.prepare_new(new_parent_id)
-
-    thread_context.set(new_context)
-
-
-def delete_globals():
-    thread_context.set(None)

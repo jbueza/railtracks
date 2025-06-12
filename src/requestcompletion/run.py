@@ -3,6 +3,13 @@ import warnings
 from typing import TypeVar, ParamSpec, Callable, Coroutine, Dict, Any
 
 from .config import ExecutorConfig
+from .context.central import (
+    external_context,
+    config,
+    get_globals,
+    register_globals,
+    delete_globals,
+)
 from .exceptions import GlobalTimeOutError
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
@@ -26,14 +33,9 @@ from .info import (
 from .state.state import RCState
 
 from .context.internal import (
-    config,
-    register_globals,
     InternalContext,
-    get_globals,
-    delete_globals,
 )
 
-from .context.user_facing import protected_context
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -86,8 +88,9 @@ class Runner:
 
         if context is None:
             context = {}
-
-        protected_context.define(context)
+        context_global = external_context.get()
+        context_global.define(context)
+        external_context.set(context_global)
 
         # TODO see issue about logger
         prepare_logger(

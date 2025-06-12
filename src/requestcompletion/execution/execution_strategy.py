@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING
 
 from ..pubsub.messages import RequestSuccess, RequestFailure
 
-from ..context.internal import get_globals, register_globals, InternalContext
+from ..context.internal import InternalContext
+from ..context.central import get_globals, register_globals
 from ..nodes.nodes import NodeState
 
 if TYPE_CHECKING:
