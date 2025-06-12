@@ -1,4 +1,4 @@
-from ...llm import MessageHistory, ModelBase, Message
+from ...llm import MessageHistory, ModelBase
 from ..nodes import Node
 from abc import ABC
 from copy import deepcopy
