@@ -196,7 +196,6 @@ class LiteLLMWrapper(ModelBase):
         except Exception as e:
             raise LLMError(
                 reason="Structured LLM call failed",
-                exception_message=e,
                 message_history=messages,
             ) from e
 
