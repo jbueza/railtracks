@@ -2,6 +2,7 @@ from abc import abstractmethod
 import json
 from typing import List, Dict, Type, Optional, Any, Generator, Union, Set
 from pydantic import BaseModel, ValidationError
+from ...exceptions.errors import LLMError, NodeInvocationError
 import litellm
 from litellm.utils import ModelResponse, CustomStreamWrapper
 
@@ -72,11 +73,15 @@ def _parameters_to_json_schema(
     if isinstance(parameters, set):
         return _handle_set_of_parameters(parameters)
 
-    raise TypeError(
-        "Tool.parameters must be either:\n"
-        "  • a dict,\n"
-        "  • a subclass of pydantic.BaseModel, or\n"
-        "  • a set of Parameter instances"
+    raise NodeInvocationError(
+        message="Unable to parse Tool.parameters. Please check the documentation for Tool.parameters.",
+        fatal=True,
+        notes=[
+            "Tool.parameters must be either:",
+            "  • a dict,",
+            "  • a subclass of pydantic.BaseModel, or",
+            "  • a set of Parameter instances",
+        ],
     )
 
 
@@ -189,7 +194,9 @@ class LiteLLMWrapper(ModelBase):
         except ValidationError as ve:
             raise ValueError(f"Schema validation failed: {ve}") from ve
         except Exception as e:
-            raise RuntimeError(f"Structured LLM call failed: {e}") from e
+            raise LLMError(reason="Structured LLM call failed",
+                           exception_message=e,
+                           message_history=messages) from e
 
     def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         stream_iter = self._invoke(messages, stream=True, **kwargs)

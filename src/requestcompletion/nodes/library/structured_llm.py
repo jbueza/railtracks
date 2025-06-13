@@ -3,6 +3,7 @@ from copy import deepcopy
 from ...llm import MessageHistory, ModelBase
 from ..nodes import Node
 from ...exceptions.node_invocation.validation import check_message_history
+from ...exceptions import LLMError
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
 
@@ -44,13 +45,15 @@ class StructuredLLM(Node[_TOutput], ABC):
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
             if cont is None:
-                raise RuntimeError("ModelLLM returned None content")
+                raise LLMError(reason="ModelLLM returned None content", message_history=self.message_hist)
             if isinstance(cont, self.output_model()):
                 return cont
-            raise RuntimeError(
-                "The LLM returned content does not match the expected return type"
+            raise LLMError(
+                reason="The LLM returned content does not match the expected return type",
+                message_history=self.message_hist
             )
 
-        raise RuntimeError(
-            "ModelLLM returned an unexpected message type.",
+        raise LLMError(
+            reason="ModelLLM returned an unexpected message type.",
+            message_history=self.message_hist
         )

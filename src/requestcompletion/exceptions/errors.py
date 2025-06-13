@@ -63,7 +63,6 @@ class LLMError(RCError):
         message_history: MessageHistory = None,
     ):
         self.reason = reason
-        self.exception_message = exception_message
         self.message_history = message_history
 
         message = f"{self._color('LLM Error: ', self.BOLD_RED)}{self._color(reason, self.RED)}"
@@ -72,8 +71,6 @@ class LLMError(RCError):
     def __str__(self):
         base = super().__str__()
         details = []
-        if self.exception_message:
-            details.append(f"{self._color('Exception message: ', self.BOLD_GREEN)}{self._color(self.exception_message, self.GREEN)}")
         if self.message_history:
             mh_str = str(self.message_history)
             indented_mh = "\n".join("    " + line for line in mh_str.splitlines())      # 2 indents (2-spaces) per indent
@@ -94,7 +91,11 @@ class GlobalTimeOutError(RCError):
     """
 
     def __init__(self, timeout: float):
-        super().__init__(f"Execution timed out after {timeout} seconds")
+        self.message = f"Execution timed out after {timeout} seconds"
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self._color(self.message, self.RED)
 
 
 class FatalError(RCError):
@@ -112,6 +113,5 @@ if __name__ == "__main__":
     )
     raise LLMError(
         reason="Model returned malformed response",
-        exception_message=str(e),
         message_history=history,
     )

@@ -3,6 +3,7 @@ from ..nodes import Node
 from abc import ABC
 from copy import deepcopy
 from ...exceptions.node_invocation.validation import check_message_history
+from ...exceptions import LLMError
 
 
 class TerminalLLM(Node[str], ABC):
@@ -27,10 +28,26 @@ class TerminalLLM(Node[str], ABC):
         Returns:
             (TerminalLLM.Output): The response message from the model
         """
-
-        returned_mess = self.model.chat(self.message_hist)
+        try:
+            returned_mess = self.model.chat(self.message_hist)
+        except Exception as e:
+            raise LLMError(
+                reason=f"Exception during model chat: {str(e)}",
+                message_history=self.message_hist,
+                exception_message=str(e),
+            )
 
         self.message_hist.append(returned_mess.message)
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
+            if cont is None:
+                raise LLMError(
+                    reason="ModelLLM returned None content",
+                    message_history=self.message_hist,
+                )
             return cont
+
+        raise LLMError(
+            reason="ModelLLM returned an unexpected message type.",
+            message_history=self.message_hist,
+        )

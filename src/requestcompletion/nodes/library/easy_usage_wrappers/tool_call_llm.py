@@ -18,6 +18,7 @@ from ....nodes.nodes import Node
 from ....llm.message import Role
 
 from typing_extensions import Self
+from ....exceptions import NodeCreationError
 from ....exceptions.node_creation.validation import validate_tool_metadata
 from ....exceptions.node_invocation.validation import check_model, check_message_history
 from inspect import isclass, isfunction
@@ -52,15 +53,17 @@ def tool_call_llm(  # noqa: C901
     for elem in connected_nodes:
         if isclass(elem):
             if not issubclass(elem, Node):
-                raise TypeError(
-                    f"Tools must be of type Node or FunctionType but got {type(elem)}"
+                raise NodeCreationError(
+                    message=f"Tools must be of type Node or FunctionType but got {type(elem)}",
+                    notes=["Please make sure you are passing in a function or a Node object to connected_nodes"] 
                 )
         elif isfunction(elem):
             connected_nodes.remove(elem)
             connected_nodes.add(from_function(elem))
         else:
-            raise TypeError(
-                f"Tools must be of type Node or FunctionType but got {type(elem)}"
+            raise NodeCreationError(
+                message=f"Tools must be of type Node or FunctionType but got {type(elem)}",
+                notes=["Please make sure you are passing in a function or a Node object to connected_nodes"] 
             )
 
     class ToolCallLLM(OutputLessToolCallLLM[OutputType]):

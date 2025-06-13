@@ -12,7 +12,7 @@ from ...llm import (
 )
 from ...interaction.call import call
 from abc import ABC, abstractmethod
-from ...exceptions import FatalError
+from ...exceptions import NodeCreationError, LLMError
 from ...exceptions.node_invocation.validation import check_message_history
 
 _T = TypeVar("_T")
@@ -51,10 +51,12 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         """
         node = [x for x in self.connected_nodes() if x.tool_info().name == tool_name]
         if node == []:
-            raise RuntimeError(f"Tool {tool_name} cannot be create a node")
+            raise LLMError(reason=f" Error creating a node from tool {tool_name}. The tool_name given by the LLM doesn't match any of the tool names in the connected nodes.",
+                           message_history=self.message_hist)
         if len(node) > 1:
-            raise FatalError(
-                f"Tool {tool_name} has multiple nodes, this is not allowed. Current Node include {[x.tool_info().name for x in self.connected_nodes()]}",
+            raise NodeCreationError(
+                message=f"Tool {tool_name} has multiple nodes, this is not allowed. Current Node include {[x.tool_info().name for x in self.connected_nodes()]}",
+                notes=["Please check the tool names in the connected nodes."]
             )
         return node[0].prepare_tool(arguments)
 
@@ -73,8 +75,9 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 len([m for m in self.message_hist if isinstance(m, ToolMessage)])
                 >= self.max_tool_calls
             ):
-                raise RuntimeError(
-                    f"Maximum number of tool calls ({self.max_tool_calls}) exceeded.\nMessage History:\n{self.message_hist}"
+                raise LLMError(
+                    reason=f"Maximum number of tool calls ({self.max_tool_calls}) exceeded.",
+                    message_history=self.message_hist
                 )
 
             # collect the response from the model
@@ -131,8 +134,9 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     break
             else:
                 # the message is malformed from the model
-                raise RuntimeError(
-                    "ModelLLM returned an unexpected message type.",
+                raise LLMError(
+                    reason="ModelLLM returned an unexpected message type.",
+                    message_history=self.message_hist
                 )
 
         if self.structured_resp_node:
@@ -144,8 +148,11 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     ),
                 )
             except Exception as e:
-                self.structured_output = ValueError(
-                    f"Failed to parse assistant response into structured output: {e}"
+                # will be raised in the return_output method in StructuredToolCallLLM
+                self.structured_output = LLMError(
+                    reason=f"Failed to parse assistant response into structured output.",
+                    message_history=self.message_hist,
+                    exception_message=str(e)
                 )
 
         return self.return_output()

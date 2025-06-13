@@ -45,7 +45,7 @@ def check_connected_nodes(node_set, node: type) -> None:
             notes=get_notes(ExceptionMessageKey.CONNECTED_NODES_EMPTY_NOTES),
         )
     elif not all(
-        (isinstance(x, type) and issubclass(x, node)) or callable(x) for x in node_set
+        (isinstance(x, type) and issubclass(x, node)) for x in node_set
     ):
         raise NodeCreationError(
             message=get_message(ExceptionMessageKey.CONNECTED_NODES_TYPE_MSG),

@@ -3,7 +3,7 @@ import requests
 from typing import Literal
 
 import litellm
-
+from ....exceptions.errors import LLMError
 from .._litellm_wrapper import LiteLLMWrapper
 from ....utils.logging.create import get_rc_logger
 
@@ -11,8 +11,9 @@ LOGGER_NAME = "OLLAMA"
 DEFAULT_DOMAIN = "http://localhost:11434"
 
 
-class OllamaError(Exception):
-    pass
+class OllamaError(LLMError):
+    def __init__(self, reason: str):
+        super().__init__(reason=reason)
 
 
 class OllamaLLM(LiteLLMWrapper):
@@ -95,8 +96,8 @@ class OllamaLLM(LiteLLMWrapper):
 
     def chat_with_tools(self, messages, tools, **kwargs):
         if not litellm.supports_function_calling(model=self._model_name):
-            raise RuntimeError(
-                f"Model '{self.model_name}' does not support function calling."
+            raise LLMError(
+                reason=f"Model '{self.model_name}' does not support function calling."
             )
 
         return super().chat_with_tools(messages, tools, **kwargs)

@@ -3,7 +3,7 @@ import warnings
 from typing import TypeVar, ParamSpec, Callable, Coroutine
 
 from .config import ExecutorConfig
-from .exceptions import GlobalTimeOutError
+from .exceptions import GlobalTimeOutError, NodeInvocationError
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
 from .pubsub.messages import (
@@ -133,8 +133,9 @@ class Runner:
         await self.prepare()
 
         if not self.rc_state.is_empty:
-            raise RuntimeError(
-                "The run function can only be used to start not in the middle of a run."
+            raise NodeInvocationError(
+                "The run function can only be used to start not in the middle of a run.",
+                fatal=True,
             )
 
         start_request_id = "START"
