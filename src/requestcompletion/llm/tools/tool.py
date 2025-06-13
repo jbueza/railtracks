@@ -165,9 +165,12 @@ class Tool:
         input_schema = getattr(tool, "inputSchema", None)
         if not input_schema or input_schema["type"] != "object":
             from ...exceptions.errors import NodeCreationError
+
             raise NodeCreationError(
                 message="The inputSchema for an MCP Tool must be 'object'. ",
-                notes=["If an MCP tool has a different schema, create a GitHub issue and support will be added."]
+                notes=[
+                    "If an MCP tool has a different schema, create a GitHub issue and support will be added."
+                ],
             )
 
         properties = input_schema.get("properties", {})

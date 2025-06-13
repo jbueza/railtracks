@@ -4,6 +4,7 @@ from requestcompletion.llm.models._litellm_wrapper import (
     _to_litellm_tool,
     _to_litellm_message,
 )
+from requestcompletion.exceptions import NodeInvocationError, LLMError
 from requestcompletion.llm.message import AssistantMessage
 from requestcompletion.llm.history import MessageHistory
 from pydantic import BaseModel
@@ -102,7 +103,7 @@ def test_parameters_to_json_schema_invalid_input():
     """
     Test _parameters_to_json_schema with invalid input.
     """
-    with pytest.raises(TypeError):
+    with pytest.raises(NodeInvocationError):
         _parameters_to_json_schema(123)
 
 
@@ -232,7 +233,7 @@ def test_litellm_wrapper_structured_invalid_json(mock_litellm_wrapper, message_h
     litellm_model = mock_litellm_wrapper(model_name="mock-model")
     litellm_model._invoke = _invoke_override
 
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(LLMError) as exc_info:
         litellm_model.structured(message_history, ExampleSchema)
     assert "Structured LLM call failed" in str(exc_info.value)
 

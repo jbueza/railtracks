@@ -56,13 +56,14 @@ def test_error_handler():
 
 
 def test_error_handler_wo_retry():
-    with pytest.raises(NodeInvocationError):
+    with pytest.raises(TestError):
         with rc.Runner(
             executor_config=rc.ExecutorConfig(
                 end_on_error=True, logging_setting="NONE"
             ),
         ) as run:
             result = run.run_sync(ErrorHandler)
+            print(result)
 
 
 async def error_handler_with_retry(retries: int):

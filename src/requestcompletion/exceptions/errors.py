@@ -1,5 +1,5 @@
 from .base import RCError
-from ..llm import MessageHistory, Message
+from ..llm import MessageHistory
 
 
 class NodeInvocationError(RCError):
@@ -59,7 +59,6 @@ class LLMError(RCError):
     def __init__(
         self,
         reason: str,
-        exception_message: str = None,
         message_history: MessageHistory = None,
     ):
         self.reason = reason
@@ -73,13 +72,18 @@ class LLMError(RCError):
         details = []
         if self.message_history:
             mh_str = str(self.message_history)
-            indented_mh = "\n".join("    " + line for line in mh_str.splitlines())      # 2 indents (2-spaces) per indent
-            details.append(self._color('Message History:\n', self.BOLD_GREEN) + self._color(indented_mh, self.GREEN))
+            indented_mh = "\n".join(
+                "    " + line for line in mh_str.splitlines()
+            )  # 2 indents (2-spaces) per indent
+            details.append(
+                self._color("Message History:\n", self.BOLD_GREEN)
+                + self._color(indented_mh, self.GREEN)
+            )
         if details:
             notes_str = (
                 "\n"
                 + self._color("Details:\n", self.BOLD_GREEN)
-                + "\n".join(f"  {d}" for d in details)    # 
+                + "\n".join(f"  {d}" for d in details)
             )
             return f"\n{self._color(base, self.RED)}{notes_str}"
         return self._color(base, self.RED)
@@ -100,18 +104,3 @@ class GlobalTimeOutError(RCError):
 
 class FatalError(RCError):
     pass
-
-
-if __name__ == "__main__":
-    e = Exception("This is an exception")
-    history = MessageHistory(
-        [
-            Message(role="system", content="You are a helpful assistant."),
-            Message(role="user", content="Hello"),
-            Message(role="assistant", content="Hello"),
-        ]
-    )
-    raise LLMError(
-        reason="Model returned malformed response",
-        message_history=history,
-    )

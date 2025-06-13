@@ -24,6 +24,6 @@ class ProviderLLMWrapper(LiteLLMWrapper):
     def chat_with_tools(self, messages, tools, **kwargs):
         if not litellm.supports_function_calling(model=self._model_name):
             raise LLMError(
-                reason = f"Model {self._model_name} does not support function calling. Chat with tools is not supported."
+                reason=f"Model {self._model_name} does not support function calling. Chat with tools is not supported."
             )
         return super().chat_with_tools(messages, tools, **kwargs)

@@ -194,9 +194,11 @@ class LiteLLMWrapper(ModelBase):
         except ValidationError as ve:
             raise ValueError(f"Schema validation failed: {ve}") from ve
         except Exception as e:
-            raise LLMError(reason="Structured LLM call failed",
-                           exception_message=e,
-                           message_history=messages) from e
+            raise LLMError(
+                reason="Structured LLM call failed",
+                exception_message=e,
+                message_history=messages,
+            ) from e
 
     def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         stream_iter = self._invoke(messages, stream=True, **kwargs)

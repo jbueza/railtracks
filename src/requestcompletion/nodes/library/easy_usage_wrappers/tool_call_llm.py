@@ -55,7 +55,9 @@ def tool_call_llm(  # noqa: C901
             if not issubclass(elem, Node):
                 raise NodeCreationError(
                     message=f"Tools must be of type Node or FunctionType but got {type(elem)}",
-                    notes=["Please make sure you are passing in a function or a Node object to connected_nodes"] 
+                    notes=[
+                        "Please make sure you are passing in a function or a Node object to connected_nodes"
+                    ],
                 )
         elif isfunction(elem):
             connected_nodes.remove(elem)
@@ -63,7 +65,9 @@ def tool_call_llm(  # noqa: C901
         else:
             raise NodeCreationError(
                 message=f"Tools must be of type Node or FunctionType but got {type(elem)}",
-                notes=["Please make sure you are passing in a function or a Node object to connected_nodes"] 
+                notes=[
+                    "Please make sure you are passing in a function or a Node object to connected_nodes"
+                ],
             )
 
     class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
@@ -83,7 +87,9 @@ def tool_call_llm(  # noqa: C901
             llm_model: ModelBase | None = None,
             max_tool_calls: int | None = 30,
         ):
-            check_message_history(message_history)               # raises NodeInvocationError if any of the checks fail
+            check_message_history(
+                message_history
+            )  # raises NodeInvocationError if any of the checks fail
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
                 if len([x for x in message_history_copy if x.role == Role.system]) > 0:
@@ -103,7 +109,9 @@ def tool_call_llm(  # noqa: C901
                         "You have provided a model as a parameter and as a class variable. We will use the parameter."
                     )
             else:
-                check_model(model)                               # raises NodeInvocationError if any of the checks fail
+                check_model(
+                    model
+                )  # raises NodeInvocationError if any of the checks fail
                 llm_model = model
 
             super().__init__(

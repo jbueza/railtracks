@@ -366,7 +366,9 @@ class RCState:
             return Failure(exception)
 
         # fatal exceptions should only be thrown if there is something seriously wrong. At the moment only NodeInvocatioErrors have 'fatal' flags
-        if (isinstance(exception, NodeInvocationError) and exception.fatal) or isinstance(exception, FatalError):
+        if (
+            isinstance(exception, NodeInvocationError) and exception.fatal
+        ) or isinstance(exception, FatalError):
             self.logger.critical(node_exception_action.to_logging_msg())
             await self.publisher.publish(FatalFailure(error=exception))
             return Failure(exception)

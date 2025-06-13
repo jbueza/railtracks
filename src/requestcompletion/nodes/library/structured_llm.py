@@ -45,15 +45,18 @@ class StructuredLLM(Node[_TOutput], ABC):
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
             if cont is None:
-                raise LLMError(reason="ModelLLM returned None content", message_history=self.message_hist)
+                raise LLMError(
+                    reason="ModelLLM returned None content",
+                    message_history=self.message_hist,
+                )
             if isinstance(cont, self.output_model()):
                 return cont
             raise LLMError(
                 reason="The LLM returned content does not match the expected return type",
-                message_history=self.message_hist
+                message_history=self.message_hist,
             )
 
         raise LLMError(
             reason="ModelLLM returned an unexpected message type.",
-            message_history=self.message_hist
+            message_history=self.message_hist,
         )
