@@ -20,6 +20,7 @@ __all__ = [
     "llm",
     "set_config",
     "set_streamer",
+    "context",
 ]
 
 from . import mcp
@@ -31,6 +32,7 @@ from .interaction.batch import batch
 from .run import Runner, ExecutionInfo, set_config, set_streamer
 from .config import ExecutorConfig
 from . import llm
+from . import context
 
 
 load_dotenv()
