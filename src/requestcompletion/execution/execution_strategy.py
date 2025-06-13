@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING
 
 from ..pubsub.messages import RequestSuccess, RequestFailure
 
-from ..context import get_globals, register_globals, ThreadContext
+from ..context.internal import InternalContext
+from ..context.central import get_globals, register_globals
 from ..nodes.nodes import NodeState
 
 if TYPE_CHECKING:
@@ -89,7 +90,7 @@ class ConcurrentFuturesExecutor(TaskExecutionStrategy):
 
         publisher = parent_global_variables.publisher
 
-        def wrapped_invoke(global_vars: ThreadContext):
+        def wrapped_invoke(global_vars: InternalContext):
             register_globals(
                 global_vars.prepare_new(
                     new_parent_id=task.node.uuid,

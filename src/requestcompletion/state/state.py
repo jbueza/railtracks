@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-import warnings
 from collections import deque
 
 
@@ -11,7 +10,7 @@ from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKIN
 
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
-from ..context import register_globals, ThreadContext
+from ..context.central import update_parent_id
 from ..execution.coordinator import Coordinator
 from ..pubsub.publisher import RCPublisher
 from ..execution.task import Task
@@ -93,13 +92,7 @@ class RCState:
         if isinstance(item, RequestFinishedBase):
             await self.handle_result(item)
         if isinstance(item, RequestCreation):
-            # TODO fix this logic. It works but it is far from clean. Trace the line of context to make this work better.
-            register_globals(
-                ThreadContext(
-                    parent_id=item.current_node_id,
-                    publisher=self.publisher,
-                )
-            )
+            update_parent_id(item.current_node_id)
 
             assert item.new_request_id not in self._request_heap.heap().keys()
 
@@ -273,14 +266,8 @@ class RCState:
         if request_ids is None:
             request_ids = [None] * len(children)
 
-        if parent_node is None and any(x is not None for x in request_ids):
-            # TODO get rid of this logic. It should be injected instead of hardcoded
-            warnings.warn(
-                "This is an insertion request and you provided identifier this will be overwritten"
-            )
-
         parent_node_name = (
-            self._node_heap.id_type_mapping[parent_node]
+            self._node_heap.id_type_mapping[parent_node].pretty_name()
             if parent_node is not None
             else "START"
         )
@@ -288,7 +275,7 @@ class RCState:
         request_ids = list(
             map(
                 self._request_heap.create,
-                [r_id if parent_node else "START" for r_id in request_ids],
+                request_ids,
                 [parent_node] * len(children),
                 children,
                 input_args,

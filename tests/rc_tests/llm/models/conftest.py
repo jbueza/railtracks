@@ -116,7 +116,7 @@ def message_history(user_message, assistant_message):
     """
     Fixture to provide a MessageHistory instance.
     """
-    return MessageHistory(messages=[user_message, assistant_message])
+    return MessageHistory([user_message, assistant_message])
 # ====================================== END Message Fixtures ======================================
 
 # ======================================= START Mock LiteLLMWrapper ======================================
