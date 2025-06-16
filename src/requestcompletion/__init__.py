@@ -20,6 +20,8 @@ __all__ = [
     "ExecutorConfig",
     "llm",
     "context",
+    "set_config",
+    "set_streamer",
 ]
 
 

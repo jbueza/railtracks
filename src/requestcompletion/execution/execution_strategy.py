@@ -11,11 +11,8 @@ from ..pubsub.messages import RequestSuccess, RequestFailure
 
 from ..context.internal import InternalContext
 from ..context.central import (
-    get_globals,
-    register_globals,
     get_publisher,
     update_parent_id,
-    get_parent_id,
 )
 from ..nodes.nodes import NodeState
 
@@ -83,7 +80,6 @@ class ConcurrentFuturesExecutor(TaskExecutionStrategy):
             self.executor = None
 
     def execute(self, task: Task):
-
         if inspect.iscoroutine(task.invoke):
 
             def non_async_wrapper():

@@ -1,4 +1,4 @@
-from ..context.central import get_globals, get_publisher, get_parent_id
+from ..context.central import get_publisher, get_parent_id
 from ..pubsub.messages import Streaming
 
 

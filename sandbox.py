@@ -1,8 +1,5 @@
-import asyncio
 import concurrent.futures
-import time
 
-import requestcompletion as rc
 
 #
 #

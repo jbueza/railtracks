@@ -19,7 +19,6 @@ class InternalContext:
         publisher: RCPublisher | None = None,
         parent_id: str | None = None,
     ):
-
         self._parent_id: str | None = parent_id
         self._publisher: RCPublisher | None = publisher
 
@@ -44,12 +43,10 @@ class InternalContext:
 
     @property
     def publisher(self):
-
         return self._publisher
 
     @publisher.setter
     def publisher(self, value: RCPublisher):
-
         self._publisher = value
 
     def prepare_new(self, new_parent_id: str) -> InternalContext:
