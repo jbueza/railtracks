@@ -118,6 +118,7 @@ def _check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
             get_message(ExceptionMessageKey.MISSING_PRETTY_NAME_MSG)
         )
 
+
 def _check_system_message(system_message: SystemMessage | str | None) -> None:
     """
     Validate that system_message is an instance of SystemMessageType if provided.
@@ -127,10 +128,13 @@ def _check_system_message(system_message: SystemMessage | str | None) -> None:
     Raises:
         NodeCreationError: If system_message is not of the correct type.
     """
-    if system_message is not None and not isinstance(system_message, (SystemMessage, str)):
+    if system_message is not None and not isinstance(
+        system_message, (SystemMessage, str)
+    ):
         raise NodeCreationError(
             get_message(ExceptionMessageKey.INVALID_SYSTEM_MESSAGE_MSG),
         )
+
 
 def _check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
     """
