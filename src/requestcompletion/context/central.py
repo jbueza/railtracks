@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import contextvars
 import warnings
-from typing import Any
+from typing import Any, Callable
+
 
 from requestcompletion.context.external import ImmutableExternalContext, ExternalContext
 
 
 from requestcompletion.config import ExecutorConfig
 from requestcompletion.context.internal import InternalContext
-
+from requestcompletion.pubsub.publisher import RCPublisher
 
 external_context: contextvars.ContextVar[ExternalContext] = contextvars.ContextVar(
     "external_context", default=ImmutableExternalContext()
@@ -26,21 +27,102 @@ def get_globals() -> InternalContext:
     """
     Get the global variables for the current thread.
     """
-    if thread_context.get() is None:
-        raise KeyError("No global variable set")
-
     return thread_context.get()
 
 
-def register_globals(global_var: InternalContext):
+def is_context_present():
+    return thread_context.get() is not None
+
+
+def is_context_active():
+    """
+    Check if the global variables for the current thread are active.
+
+    Returns:
+        bool: True if the global variables are active, False otherwise.
+    """
+    context = thread_context.get()
+    return context is not None and context.is_active
+
+
+def get_publisher() -> RCPublisher:
+    """
+    Get the publisher for the current thread's global variables.
+
+    Returns:
+        RCPublisher: The publisher associated with the current thread's global variables.
+
+    Raises:
+        RuntimeError: If the global variables have not been registered.
+    """
+    context = thread_context.get()
+    if context is None:
+        raise RuntimeError(
+            "Global variables have not been registered. Call `register_globals()` first."
+        )
+    return context.publisher
+
+
+def get_parent_id() -> str | None:
+    """
+    Get the parent ID of the current thread's global variables.
+
+    Returns:
+        str | None: The parent ID associated with the current thread's global variables, or None if not set.
+
+    Raises:
+        RuntimeError: If the global variables have not been registered.
+    """
+    context = thread_context.get()
+    if context is None:
+        raise RuntimeError(
+            "Global variables have not been registered. Call `register_globals()` first."
+        )
+    return context.parent_id
+
+
+def register_globals():
     """
     Register the global variables for the current thread.
     """
-    # TODO modify this to fail fast.
-    if thread_context.get():
-        warnings.warn("Overwriting previous global variable")
+    thread_context.set(InternalContext())
 
-    thread_context.set(global_var)
+
+async def activate_publisher():
+    """
+    Activate the publisher for the current thread's global variables.
+
+    This function should be called to ensure that the publisher is running and can be used to publish messages.
+    """
+    context = thread_context.get()
+    assert context is not None
+
+    assert not context.publisher.is_running()
+
+    await context.publisher.start()
+
+
+async def shutdown_publisher():
+    """
+    Shutdown the publisher for the current thread's global variables.
+
+    This function should be called to stop the publisher and clean up resources.
+    """
+    context = thread_context.get()
+    assert context is not None
+
+    assert context.publisher.is_running()
+    await context.publisher.shutdown()
+
+
+def get_config() -> ExecutorConfig | None:
+    """
+    Get the executor configuration for the current thread's global variables.
+
+    Returns:
+        ExecutorConfig | None: The executor configuration associated with the current thread's global variables, or None if not set.
+    """
+    return config.get()
 
 
 def update_parent_id(new_parent_id: str):
@@ -50,7 +132,7 @@ def update_parent_id(new_parent_id: str):
     current_context = thread_context.get()
 
     if current_context is None:
-        raise KeyError("No global variable set")
+        raise RuntimeError("No global variable set")
 
     new_context = current_context.prepare_new(new_parent_id)
 
@@ -94,3 +176,33 @@ def put(
     """
     context = external_context.get()
     context.put(key, value)
+
+
+def set_config(executor_config: ExecutorConfig):
+    """
+    Sets the executor config for the current runner.
+    """
+
+    if is_context_active():
+        warnings.warn(
+            "The executor config is being set after the runner has been created, this is not recomended"
+        )
+        # TODO figure out what happens when you do this.
+
+    config.set(executor_config)
+
+
+def set_streamer(subscriber: Callable[[str], None]):
+    """
+    Sets the data streamer for the current runner.
+    """
+
+    if is_context_active():
+        warnings.warn(
+            "The data streamer is being set after the runner has been created, this is not recomended"
+        )
+        # TODO figure out what happens when you do this.
+
+    executor_config = config.get()
+    executor_config.subscriber = subscriber
+    config.set(executor_config)
