@@ -5,6 +5,7 @@ import random
 
 import pytest
 import requestcompletion as rc
+from requestcompletion.exceptions import GlobalTimeOutError, NodeInvocationError
 from typing_extensions import Self
 
 
@@ -158,7 +159,7 @@ def test_multiple_runs():
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as run:
         result = run.run_sync(RNGNode)
         assert 0 < result.answer < 1
-        with pytest.raises(RuntimeError):
+        with pytest.raises(NodeInvocationError):
             run.run_sync(RNGNode)
 
 
@@ -177,7 +178,7 @@ def test_timeout():
     with rc.Runner(
         executor_config=rc.ExecutorConfig(logging_setting="NONE", timeout=0.1)
     ) as run:
-        with pytest.raises(rc.exceptions.execution.GlobalTimeOutError):
+        with pytest.raises(GlobalTimeOutError):
             run.run_sync(TimeoutNode, 0.3)
 
 

@@ -2,7 +2,8 @@ from typing import TypeVar, Type
 from copy import deepcopy
 from ...llm import MessageHistory, ModelBase
 from ..nodes import Node
-
+from ...exceptions.node_invocation.validation import check_message_history
+from ...exceptions import LLMError
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
 
@@ -23,10 +24,10 @@ class StructuredLLM(Node[_TOutput], ABC):
         """
         super().__init__()
         self.model = model
+        check_message_history(
+            message_history
+        )  # raises NodeInvocationError if any of the checks fail
         self.message_hist = deepcopy(message_history)
-
-        if self.output_model() is None or len(self.output_model().model_fields) == 0:
-            raise ValueError("Output model cannot be empty")
 
     async def invoke(self) -> _TOutput:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
@@ -44,13 +45,18 @@ class StructuredLLM(Node[_TOutput], ABC):
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
             if cont is None:
-                raise RuntimeError("ModelLLM returned None content")
+                raise LLMError(
+                    reason="ModelLLM returned None content",
+                    message_history=self.message_hist,
+                )
             if isinstance(cont, self.output_model()):
                 return cont
-            raise RuntimeError(
-                "The LLM returned content does not match the expected return type"
+            raise LLMError(
+                reason="The LLM returned content does not match the expected return type",
+                message_history=self.message_hist,
             )
 
-        raise RuntimeError(
-            "ModelLLM returned an unexpected message type.",
+        raise LLMError(
+            reason="ModelLLM returned an unexpected message type.",
+            message_history=self.message_hist,
         )

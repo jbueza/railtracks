@@ -1,8 +1,9 @@
-from ...llm import MessageHistory, ModelBase, Message
+from ...llm import MessageHistory, ModelBase
 from ..nodes import Node
 from abc import ABC
 from copy import deepcopy
-from ...exceptions import NodeCreationError
+from ...exceptions.node_invocation.validation import check_message_history
+from ...exceptions import LLMError
 
 
 class TerminalLLM(Node[str], ABC):
@@ -16,26 +17,9 @@ class TerminalLLM(Node[str], ABC):
         """
         super().__init__()
         self.model = model
-
-        # ========= Creation Exceptions =========
-        if any(not isinstance(m, Message) for m in message_history):
-            raise NodeCreationError(
-                message="Message history must be a list of Message objects",
-                notes=[
-                    "System messages must be of type rc.llm.SystemMessage (not string)",
-                    "User messages must be of type rc.llm.UserMessage (not string)",
-                ],
-            )
-        elif len(message_history) == 0:
-            raise NodeCreationError(
-                message="Message history must contain at least one message",
-                notes=["No messages provided"],
-            )
-        elif message_history[0].role != "system":
-            raise NodeCreationError(
-                message="Missing SystemMessage: The first message in the message history must be a system message"
-            )
-        # ========= End Creation Exceptions =========
+        check_message_history(
+            message_history
+        )  # raises NodeInvocationError if any of the checks fail
         self.message_hist = deepcopy(message_history)
 
     async def invoke(self) -> str | None:
@@ -44,10 +28,26 @@ class TerminalLLM(Node[str], ABC):
         Returns:
             (TerminalLLM.Output): The response message from the model
         """
-
-        returned_mess = self.model.chat(self.message_hist)
+        try:
+            returned_mess = self.model.chat(self.message_hist)
+        except Exception as e:
+            raise LLMError(
+                reason=f"Exception during model chat: {str(e)}",
+                message_history=self.message_hist,
+                exception_message=str(e),
+            )
 
         self.message_hist.append(returned_mess.message)
         if returned_mess.message.role == "assistant":
             cont = returned_mess.message.content
+            if cont is None:
+                raise LLMError(
+                    reason="ModelLLM returned None content",
+                    message_history=self.message_hist,
+                )
             return cont
+
+        raise LLMError(
+            reason="ModelLLM returned an unexpected message type.",
+            message_history=self.message_hist,
+        )

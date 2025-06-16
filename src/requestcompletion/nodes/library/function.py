@@ -25,7 +25,7 @@ from typing import (
 from ..nodes import Node
 import inspect
 from pydantic import BaseModel
-
+from ...exceptions import NodeCreationError
 from ...llm.tools.parameter_handlers import UnsupportedParameterError
 
 _TOutput = TypeVar("_TOutput")
@@ -58,8 +58,12 @@ def from_function(  # noqa: C901
                 result = func(*self.args, **self.kwargs)
                 if asyncio.iscoroutine(result):
                     # TODO: connect with item #91
-                    raise RuntimeError(
-                        "The function you provided was a coroutine in the clothing of a sync context. Please label it as an async function."
+                    raise NodeCreationError(
+                        message="The function you provided was a coroutine in the clothing of a sync context. Please label it as an async function.",
+                        notes=[
+                            "If your function returns a coroutine (e.g., calls async functions inside), refactor it to be async.",
+                            "If you see this error unexpectedly, check if any library function you call is async.",
+                        ],
                     )
                 return result
 
