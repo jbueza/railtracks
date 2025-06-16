@@ -6,7 +6,6 @@ import pytest
 import random
 
 import requestcompletion as rc
-from requestcompletion.exceptions import NodeInvocationError
 from requestcompletion.state.request import Failure
 
 RNGNode = rc.library.from_function(random.random)

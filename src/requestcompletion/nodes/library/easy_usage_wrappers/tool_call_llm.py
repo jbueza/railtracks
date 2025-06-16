@@ -29,7 +29,7 @@ def tool_call_llm(  # noqa: C901
     connected_nodes: Set[Union[Type[Node], Callable]],
     pretty_name: str | None = None,
     model: ModelBase | None = None,
-    system_message: SystemMessage | None = None,
+    system_message: SystemMessage | str | None = None,
     output_type: Literal["MessageHistory", "LastMessage"] = "LastMessage",
     output_model: BaseModel | None = None,
     tool_details: str | None = None,
@@ -88,7 +88,7 @@ def tool_call_llm(  # noqa: C901
             max_tool_calls: int | None = 30,
         ):
             check_message_history(
-                message_history
+                message_history, system_message
             )  # raises NodeInvocationError if any of the checks fail
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
@@ -159,5 +159,9 @@ def tool_call_llm(  # noqa: C901
             return cls(message_hist)
 
     validate_tool_metadata(tool_params, tool_details, system_message, pretty_name)
+    if system_message is not None and isinstance(
+        system_message, str
+    ):  # system_message is a string, (tackled at the time of node creation)
+        system_message = SystemMessage(system_message)
 
     return ToolCallLLM

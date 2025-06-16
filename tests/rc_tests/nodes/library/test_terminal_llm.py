@@ -73,17 +73,6 @@ def test_terminal_llm_class_based_run(model , encoder_system_message):
 # ================================================ START terminal_llm Exception testing =========================================================== 
 # =================== START Easy Usage Node Creation ===================
 @pytest.mark.asyncio
-async def test_system_message_is_a_string_easy_usage(model):
-    with pytest.raises(NodeCreationError, match="Message history must be a list of Message objects"):
-        encoder_agent = rc.library.terminal_llm(
-            pretty_name="Encoder",
-            system_message="You are a helpful assistant that can encode text into bytes.",
-            model=model,
-        )
-
-
-
-@pytest.mark.asyncio
 async def test_terminal_llm_missing_tool_details_easy_usage(model, encoder_system_message):
     # Test case where tool_params is given but tool_details is not
     encoder_tool_params = {
@@ -270,7 +259,8 @@ async def test_no_message_history_class_based(model):
         _ = await rc.call(Encoder, message_history=rc.llm.MessageHistory([]))
     
 @pytest.mark.asyncio
-async def test_system_message_is_a_string_class_based(model):
+async def test_system_message_as_a_string_class_based(model):
+    # if a string is provided as system_message in a class based initialization, we are throwing an error
     class Encoder(rc.library.TerminalLLM): 
         def __init__(
                 self,
