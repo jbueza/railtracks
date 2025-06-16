@@ -2,7 +2,6 @@ from .exception_messages import ExceptionMessageKey, get_message, get_notes
 from typing import Any, Iterable
 from ..errors import NodeCreationError
 from pydantic import BaseModel
-from ...llm import SystemMessage
 
 
 def check_classmethod(method: Any, method_name: str) -> None:
@@ -117,6 +116,7 @@ def _check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
         raise NodeCreationError(
             get_message(ExceptionMessageKey.MISSING_PRETTY_NAME_MSG)
         )
+
 
 def _check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
     """

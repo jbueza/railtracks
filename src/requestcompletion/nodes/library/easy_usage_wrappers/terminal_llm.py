@@ -10,7 +10,7 @@ from ....exceptions.node_invocation.validation import check_model, check_message
 
 def terminal_llm(  # noqa: C901
     pretty_name: str | None = None,
-    system_message: SystemMessage |str | None = None,
+    system_message: SystemMessage | str | None = None,
     model: ModelBase | None = None,
     tool_details: str | None = None,
     tool_params: set[Parameter] | None = None,
@@ -76,6 +76,8 @@ def terminal_llm(  # noqa: C901
                 return cls(message_hist)
 
     validate_tool_metadata(tool_params, tool_details, pretty_name)
-    if system_message is not None and isinstance(system_message, str):  # system_message is a string, (tackled at the time of node creation)
+    if system_message is not None and isinstance(
+        system_message, str
+    ):  # system_message is a string, (tackled at the time of node creation)
         system_message = SystemMessage(system_message)
     return TerminalLLMNode
