@@ -3,7 +3,6 @@ from typing import Literal, Generic, TypeVar
 
 from .content import Content, ToolResponse
 
-
 _T = TypeVar("_T", bound=Content)
 
 
@@ -118,6 +117,6 @@ class ToolMessage(Message[ToolResponse]):
     def __init__(self, content: ToolResponse):
         if not isinstance(content, ToolResponse):
             raise TypeError(
-                f"A {self.__class__.__name__} needs a ToolResponse but got {type(content)}"
+                f"A {self.__class__.__name__} needs a ToolResponse but got {type(content)}. Check the invoke function of the OutputLessToolCallLLM node. That is the only place to return a ToolMessage."
             )
         super().__init__(content=content, role="tool")

@@ -32,10 +32,9 @@ from ..utils.logging.action import (
 
 if TYPE_CHECKING:
     from .. import ExecutorConfig
-from ..exceptions import FatalError
 from ..nodes.nodes import Node
 from ..info import ExecutionInfo
-from ..exceptions import NodeInvocationError
+from ..exceptions import NodeInvocationError, FatalError
 from ..utils.profiling import Stamp
 from ..utils.logging.create import get_rc_logger
 
@@ -350,19 +349,15 @@ class RCState:
 
         if self.executor_config.end_on_error:
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = NodeInvocationError(
-                message=node_exception_action.to_logging_msg(),
-            )
-            await self.publisher.publish(FatalFailure(error=ee))
+            await self.publisher.publish(FatalFailure(error=exception))
             return Failure(exception)
 
-        # fatal exceptions should only be thrown if there is something seriously wrong.
-        if isinstance(exception, FatalError):
+        # fatal exceptions should only be thrown if there is something seriously wrong. At the moment only NodeInvocatioErrors have 'fatal' flags
+        if (
+            isinstance(exception, NodeInvocationError) and exception.fatal
+        ) or isinstance(exception, FatalError):
             self.logger.critical(node_exception_action.to_logging_msg())
-            ee = NodeInvocationError(
-                message=node_exception_action.to_logging_msg(),
-            )
-            await self.publisher.publish(FatalFailure(error=ee))
+            await self.publisher.publish(FatalFailure(error=exception))
             return Failure(exception)
 
         # for any other error we want it to bubble up so the user can handle.

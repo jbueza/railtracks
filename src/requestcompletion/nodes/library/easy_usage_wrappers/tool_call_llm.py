@@ -18,9 +18,9 @@ from ....nodes.nodes import Node
 from ....llm.message import Role
 
 from typing_extensions import Self
-from ....exceptions.node_creation.validation import (
-    validate_tool_metadata,
-)
+from ....exceptions import NodeCreationError
+from ....exceptions.node_creation.validation import validate_tool_metadata
+from ....exceptions.node_invocation.validation import check_model, check_message_history
 from inspect import isclass, isfunction
 from ....nodes.library.function import from_function
 
@@ -53,15 +53,21 @@ def tool_call_llm(  # noqa: C901
     for elem in connected_nodes:
         if isclass(elem):
             if not issubclass(elem, Node):
-                raise TypeError(
-                    f"Tools must be of type Node or FunctionType but got {type(elem)}"
+                raise NodeCreationError(
+                    message=f"Tools must be of type Node or FunctionType but got {type(elem)}",
+                    notes=[
+                        "Please make sure you are passing in a function or a Node object to connected_nodes"
+                    ],
                 )
         elif isfunction(elem):
             connected_nodes.remove(elem)
             connected_nodes.add(from_function(elem))
         else:
-            raise TypeError(
-                f"Tools must be of type Node or FunctionType but got {type(elem)}"
+            raise NodeCreationError(
+                message=f"Tools must be of type Node or FunctionType but got {type(elem)}",
+                notes=[
+                    "Please make sure you are passing in a function or a Node object to connected_nodes"
+                ],
             )
 
     class ToolCallLLM(OutputLessToolCallLLM[OutputType]):
@@ -81,6 +87,9 @@ def tool_call_llm(  # noqa: C901
             llm_model: ModelBase | None = None,
             max_tool_calls: int | None = 30,
         ):
+            check_message_history(
+                message_history
+            )  # raises NodeInvocationError if any of the checks fail
             message_history_copy = deepcopy(message_history)
             if system_message is not None:
                 if len([x for x in message_history_copy if x.role == Role.system]) > 0:
@@ -100,10 +109,9 @@ def tool_call_llm(  # noqa: C901
                         "You have provided a model as a parameter and as a class variable. We will use the parameter."
                     )
             else:
-                if model is None:
-                    raise RuntimeError(
-                        "You must provide a model to the ToolCallLLM class"
-                    )
+                check_model(
+                    model
+                )  # raises NodeInvocationError if any of the checks fail
                 llm_model = model
 
             super().__init__(
@@ -134,8 +142,6 @@ def tool_call_llm(  # noqa: C901
 
         @classmethod
         def tool_info(cls):
-            if not tool_details:
-                raise ValueError("Tool details are not provided.")
             return Tool(
                 name=cls.pretty_name().replace(" ", "_"),
                 detail=tool_details,

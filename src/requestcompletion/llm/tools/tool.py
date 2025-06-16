@@ -11,7 +11,6 @@ from typing import Callable, Optional, Union, Type, Set, Dict, Any, List
 
 from typing_extensions import Self
 from pydantic import BaseModel
-
 from .parameter import Parameter
 from .schema_parser import convert_params_to_model_recursive
 from .docstring_parser import parse_docstring_args, extract_main_description
@@ -165,9 +164,13 @@ class Tool:
         """
         input_schema = getattr(tool, "inputSchema", None)
         if not input_schema or input_schema["type"] != "object":
-            raise ValueError(
-                "The inputSchema for an MCP Tool must be 'object'. "
-                "If an MCP tool has a different schema, create a GitHub issue and support will be added."
+            from ...exceptions.errors import NodeCreationError
+
+            raise NodeCreationError(
+                message="The inputSchema for an MCP Tool must be 'object'. ",
+                notes=[
+                    "If an MCP tool has a different schema, create a GitHub issue and support will be added."
+                ],
             )
 
         properties = input_schema.get("properties", {})
