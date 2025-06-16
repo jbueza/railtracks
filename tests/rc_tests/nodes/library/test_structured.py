@@ -98,6 +98,16 @@ async def test_easy_usage_system_message_as_a_string(simple_output_model):
     assert all(isinstance(m, rc.llm.Message) for m in node.message_hist)
     assert node.message_hist[0].role == "system"
 
+
+@pytest.mark.asyncio
+async def test_system_message_as_a_user_message(simple_output_model):
+    with pytest.raises(NodeCreationError, match="system_message must be a SystemMessage object or a string, not any other type."):
+        _ = rc.library.structured_llm(
+            output_model=simple_output_model,
+            system_message=rc.llm.UserMessage("You are a helpful assistant that can structure the response into a structured output."),
+            model=rc.llm.OpenAILLM("gpt-4o"),
+            pretty_name="Structured ToolCallLLM",
+        )
 # =================== END Easy Usage Node Creation ===================
 
 # =================== START Class Based Node Creation ===================

@@ -16,6 +16,8 @@ DUPLICATE_PARAMETER_NAMES_MSG: "Duplicate parameter names are not allowed."
 DUPLICATE_PARAMETER_NAMES_NOTES:
   - "Parameter names in tool_params must be unique."
 
+INVALID_SYSTEM_MESSAGE_MSG: "system_message must be a SystemMessage object or a string, not any other type."
+
 MISSING_PRETTY_NAME_MSG: "You must provide a pretty_name when using this node as a tool, as this is used to identify the tool."
 
 MISSING_TOOL_DETAILS_MSG: "Tool parameters are provided, but tool details are missing."

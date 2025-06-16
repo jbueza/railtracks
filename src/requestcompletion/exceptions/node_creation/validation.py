@@ -2,6 +2,7 @@ from .exception_messages import ExceptionMessageKey, get_message, get_notes
 from typing import Any, Iterable
 from ..errors import NodeCreationError
 from pydantic import BaseModel
+from ...llm import SystemMessage
 
 
 def check_classmethod(method: Any, method_name: str) -> None:
@@ -118,6 +119,21 @@ def _check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
         )
 
 
+def _check_system_message(system_message: SystemMessage | str | None) -> None:
+    """
+    Validate that system_message is an instance of SystemMessageType if provided.
+    Args:
+        system_message: The system message to check.
+        SystemMessageType: The expected type for system_message.
+    Raises:
+        NodeCreationError: If system_message is not of the correct type.
+    """
+    if system_message is not None and not isinstance(system_message, SystemMessage):
+        raise NodeCreationError(
+            get_message(ExceptionMessageKey.INVALID_SYSTEM_MESSAGE_MSG),
+        )
+
+
 def _check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
     """
     Ensure tool_details are provided if tool_params exist.
@@ -139,6 +155,7 @@ def _check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
 def validate_tool_metadata(
     tool_params: Any,
     tool_details: Any,
+    system_message: Any,
     pretty_name: str | None,
 ) -> None:
     """
@@ -155,6 +172,7 @@ def validate_tool_metadata(
     """
     _check_tool_params_and_details(tool_params, tool_details)
     _check_duplicate_param_names(tool_params or [])
+    _check_system_message(system_message)
     _check_pretty_name(pretty_name, tool_details)
 
 
