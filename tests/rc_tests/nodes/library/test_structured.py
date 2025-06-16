@@ -86,17 +86,15 @@ async def test_easy_usage_duplicate_parameter_names(simple_output_model):
 
 
 @pytest.mark.asyncio
-async def test_easy_usage_system_message_is_a_string(simple_output_model):
-    with pytest.raises(
-        NodeCreationError,
-        match="system_message must be a SystemMessage object, not a string or any other type.",
-    ):
-        _ = rc.library.structured_llm(
-            output_model=simple_output_model,
-            system_message="You are a helpful assistant that can strucure the response into a structured output.",
-            model=rc.llm.OpenAILLM("gpt-4o"),
-            pretty_name="Structured ToolCallLLM",
-        )
+async def test_easy_usage_system_message_as_a_string(simple_output_model):
+    simple_agent = rc.library.structured_llm(
+        output_model=simple_output_model,
+        system_message="You are a helpful assistant that can strucure the response into a structured output.",
+        model=rc.llm.OpenAILLM("gpt-4o"),
+        pretty_name="Structured ToolCallLLM",
+    )
+    assert all(isinstance(m, rc.llm.Message) for m in simple_agent.message_hist)
+    assert simple_agent.message_hist[0].role == "system"
 
 # =================== END Easy Usage Node Creation ===================
 
