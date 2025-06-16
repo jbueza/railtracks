@@ -1,5 +1,7 @@
 from .base import RCError
-from ..llm import MessageHistory
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..llm.history import MessageHistory
 
 
 class NodeInvocationError(RCError):
@@ -59,7 +61,7 @@ class LLMError(RCError):
     def __init__(
         self,
         reason: str,
-        message_history: MessageHistory = None,
+        message_history: "MessageHistory" = None,
     ):
         self.reason = reason
         self.message_history = message_history
