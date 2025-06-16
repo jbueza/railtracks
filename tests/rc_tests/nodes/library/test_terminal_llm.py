@@ -260,6 +260,7 @@ async def test_no_message_history_class_based(model):
     
 @pytest.mark.asyncio
 async def test_system_message_as_a_string_class_based(model):
+    # if a string is provided as system_message in a class based initialization, we are throwing an error
     class Encoder(rc.library.TerminalLLM): 
         def __init__(
                 self,
@@ -276,10 +277,8 @@ async def test_system_message_as_a_string_class_based(model):
         def pretty_name(cls) -> str:
             return "Simple Node"
 
-    encoder = Encoder(message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
-    assert all(isinstance(m, rc.llm.Message) for m in encoder.message_hist)
-    assert encoder.message_hist[0].role == "system"
-
+    with pytest.raises(NodeInvocationError, match="Message history must be a list of Message objects"):
+        response = await rc.call(Encoder, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
 # =================== END invocation exceptions =====================
 # ================================================ END terminal_llm Exception testing ===========================================================
 
