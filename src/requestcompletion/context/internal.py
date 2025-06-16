@@ -15,12 +15,13 @@ class InternalContext:
 
     def __init__(
         self,
+        *,
         publisher: RCPublisher | None = None,
         parent_id: str | None = None,
     ):
 
-        self._parent_id: str | None = None
-        self._publisher: RCPublisher | None = None
+        self._parent_id: str | None = parent_id
+        self._publisher: RCPublisher | None = publisher
 
     # Not super pythonic but it allows us to slap in debug statements on the getters and setters with ease
     @property
@@ -32,6 +33,9 @@ class InternalContext:
         """
         Check if the internal context has been defined.
         """
+        if self._publisher is None:
+            return False
+
         return self._publisher.is_running()
 
     @parent_id.setter

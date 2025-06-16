@@ -1,7 +1,8 @@
 import inspect
 from typing import List
 
-from mcp.server import FastMCP
+
+from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.tools import Tool as MCPTool
 from mcp.server.fastmcp.utilities.func_metadata import func_metadata
 
@@ -10,7 +11,13 @@ from ..run import Runner
 from ..nodes.nodes import Node
 
 
-def create_tool_function(node_cls: Node, node_info, executor_config: ExecutorConfig = ExecutorConfig(logging_setting="QUIET", timeout=1000)):
+def create_tool_function(
+    node_cls: Node,
+    node_info,
+    executor_config: ExecutorConfig = ExecutorConfig(
+        logging_setting="QUIET", timeout=1000
+    ),
+):
     type_map = {
         "integer": int,
         "number": float,
@@ -22,32 +29,38 @@ def create_tool_function(node_cls: Node, node_info, executor_config: ExecutorCon
 
     params = []
     args_doc = []
-    params_schema = node_info.parameters.model_json_schema() if node_info.parameters is not None else {}
+    params_schema = (
+        node_info.parameters.model_json_schema()
+        if node_info.parameters is not None
+        else {}
+    )
     for param_name, param_info in params_schema.get("properties", {}).items():
         required = param_name in params_schema.get("required", [])
         param_type = param_info.get("type", "any")
         annotation = type_map.get(param_type, str)
         if required:
-            params.append(inspect.Parameter(
-                param_name,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=annotation
-            ))
+            params.append(
+                inspect.Parameter(
+                    param_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=annotation,
+                )
+            )
         else:
-            params.append(inspect.Parameter(
-                param_name,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=None,
-                annotation=annotation
-            ))
+            params.append(
+                inspect.Parameter(
+                    param_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=annotation,
+                )
+            )
 
         param_desc = param_info.get("description", "")
         args_doc.append(f"    {param_name}: {param_desc}")
 
     async def tool_function(**kwargs):
-        with Runner(
-                executor_config=executor_config
-        ) as runner:
+        with Runner(executor_config=executor_config) as runner:
             response = await runner.run(node_cls.prepare_tool, kwargs)
             return response.answer
 
@@ -56,10 +69,12 @@ def create_tool_function(node_cls: Node, node_info, executor_config: ExecutorCon
 
 
 def create_mcp_server(
-        nodes: List[Node],
-        server_name: str = "MCP Server",
-        fastmcp: FastMCP = None,
-        executor_config: ExecutorConfig = ExecutorConfig(logging_setting="QUIET", timeout=200)
+    nodes: List[Node],
+    server_name: str = "MCP Server",
+    fastmcp: FastMCP = None,
+    executor_config: ExecutorConfig = ExecutorConfig(
+        logging_setting="QUIET", timeout=200
+    ),
 ):
     """
     Create a FastMCP server that can be used to run nodes as MCP tools.
@@ -88,7 +103,11 @@ def create_mcp_server(
             fn=func,
             name=node_info.name,
             description=node_info.detail,
-            parameters=node_info.parameters.model_json_schema() if node_info.parameters is not None else {},
+            parameters=(
+                node_info.parameters.model_json_schema()
+                if node_info.parameters is not None
+                else {}
+            ),
             fn_metadata=func_metadata(func, []),
             is_async=True,
             context_kwarg=None,

@@ -16,7 +16,7 @@ external_context: contextvars.ContextVar[ExternalContext] = contextvars.ContextV
     "external_context", default=ImmutableExternalContext()
 )
 config: contextvars.ContextVar[ExecutorConfig | None] = contextvars.ContextVar(
-    "executor_config", default=None
+    "executor_config", default=ExecutorConfig()
 )
 thread_context: contextvars.ContextVar[InternalContext | None] = contextvars.ContextVar(
     "thread_context", default=None
@@ -31,7 +31,8 @@ def get_globals() -> InternalContext:
 
 
 def is_context_present():
-    return thread_context.get() is not None
+    t_c = thread_context.get()
+    return t_c is not None
 
 
 def is_context_active():
@@ -81,11 +82,14 @@ def get_parent_id() -> str | None:
     return context.parent_id
 
 
-def register_globals():
+def register_globals(
+    rc_publisher: RCPublisher | None = None, parent_id: str | None = None
+):
     """
     Register the global variables for the current thread.
     """
-    thread_context.set(InternalContext())
+    i_c = InternalContext(publisher=rc_publisher, parent_id=parent_id)
+    thread_context.set(i_c)
 
 
 async def activate_publisher():
@@ -97,7 +101,7 @@ async def activate_publisher():
     context = thread_context.get()
     assert context is not None
 
-    assert not context.publisher.is_running()
+    assert context.publisher is not None
 
     await context.publisher.start()
 
@@ -123,6 +127,18 @@ def get_config() -> ExecutorConfig | None:
         ExecutorConfig | None: The executor configuration associated with the current thread's global variables, or None if not set.
     """
     return config.get()
+
+
+def set_global_config(
+    executor_config: ExecutorConfig,
+):
+    """
+    Set the executor configuration for the current thread's global variables.
+
+    Args:
+        executor_config (ExecutorConfig): The executor configuration to set.
+    """
+    config.set(executor_config)
 
 
 def update_parent_id(new_parent_id: str):

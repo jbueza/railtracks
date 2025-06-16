@@ -13,7 +13,7 @@ from requestcompletion.context.central import (
     get_parent_id,
 )
 from requestcompletion.exceptions import GlobalTimeOutError
-from ..nodes.library.function import from_function
+
 from requestcompletion.pubsub.messages import (
     RequestCompletionMessage,
     RequestFinishedBase,
@@ -53,12 +53,14 @@ async def call(
     """
     if isinstance(node, FunctionType):
         # If a function is passed, we will convert it to a node
+        from ..nodes.library.function import from_function
+
         node = from_function(node)
 
     node: Callable[_P, Node[_TOutput]]
 
     # if the context is none then we will need to create a wrapper for the state object to work with.
-    if is_context_present():
+    if not is_context_present():
         from requestcompletion.run import Runner
 
         with Runner():

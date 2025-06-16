@@ -259,7 +259,7 @@ async def async_add_many(pairs: list[float]):
     """An asynchronous function that adds many numbers."""
     total = 0
     for i in range(len(pairs)):
-        total = rc.call_sync(AddNode, total, pairs[i])
+        total = await rc.call(AddNode, total, pairs[i])
     return total
 
 

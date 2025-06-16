@@ -2,13 +2,15 @@ import asyncio
 import warnings
 from typing import TypeVar, ParamSpec, Callable, Dict, Any
 
+
 from .interaction.call import call
 from .config import ExecutorConfig
 from .context.central import (
     external_context,
-    config,
     register_globals,
     delete_globals,
+    get_config,
+    set_global_config,
 )
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
@@ -68,11 +70,10 @@ class Runner:
     ):
         # first lets read from defaults if nessecary for the provided input config
         if executor_config is None:
-            saved_config = config.get()
-            if saved_config is None:
-                executor_config = ExecutorConfig()
-            else:
-                executor_config = saved_config
+            executor_config = get_config()
+        else:
+            # if we have a config, we will set it as the global config
+            set_global_config(executor_config)
 
         self.executor_config = executor_config
 
@@ -98,7 +99,7 @@ class Runner:
 
         self.coordinator.start(self.publisher)
         self.setup_subscriber()
-        register_globals()
+        register_globals(self.publisher)
 
     def __enter__(self):
         return self
@@ -117,7 +118,7 @@ class Runner:
                 name="Streaming Subscriber",
             )
 
-    @warnings.deprecated("run_sync is deprecated, use `rc.call_sync`")
+    # @warnings.deprecated("run_sync is deprecated, use `rc.call_sync`")
     def run_sync(
         self,
         start_node: Callable[_P, Node] | None = None,
@@ -154,7 +155,7 @@ class Runner:
     ):
         return await call(node, *args, **kwargs)
 
-    @warnings.deprecated("run_sync is deprecated, use `rc.call_sync`")
+    # @warnings.deprecated("run_sync is deprecated, use `rc.call_sync`")
     async def run(
         self,
         start_node: Callable[_P, Node] | None = None,
@@ -163,7 +164,9 @@ class Runner:
     ):
         """Runs the rc framework with the given start node and provided arguments."""
 
-        return await self.call(start_node, *args, **kwargs)
+        await self.call(start_node, *args, **kwargs)
+
+        return self.rc_state.info
 
     async def cancel(self, node_id: str):
         raise NotImplementedError(
