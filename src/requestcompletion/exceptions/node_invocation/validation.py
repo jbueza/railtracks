@@ -33,7 +33,7 @@ def check_message_history(message_history: MessageHistory) -> None:
 def check_model(model: ModelBase):
     if model is None:
         raise NodeInvocationError(
-            message="You must provide a moddel to this node.",
+            message="You must provide a model to this node.",
             notes=[
                 "You can provide the model during the time of node creation using easy_usage_wrappers. \nEg:\n_ = rc.library.terminal_llm(..., model=rc.llm.OpenAILLM('gpt-4o'))",
                 "You can insert the model during the time of node invocation using the 'model' parameter. \nEg:\n_ = rc.call(node, model=rc.llm.OpenAILLM('gpt-4o'))",

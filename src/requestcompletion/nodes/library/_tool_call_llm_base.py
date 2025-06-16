@@ -154,7 +154,6 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 self.structured_output = LLMError(
                     reason="Failed to parse assistant response into structured output.",
                     message_history=self.message_hist,
-                    exception_message=str(e),
                 )
 
         return self.return_output()

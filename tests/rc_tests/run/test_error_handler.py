@@ -63,7 +63,6 @@ def test_error_handler_wo_retry():
             ),
         ) as run:
             result = run.run_sync(ErrorHandler)
-            print(result)
 
 
 async def error_handler_with_retry(retries: int):
