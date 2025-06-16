@@ -1,5 +1,6 @@
 from .base import RCError
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from ..llm.history import MessageHistory
 
