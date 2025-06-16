@@ -149,7 +149,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                         [UserMessage(str(self.message_hist))]
                     ),
                 )
-            except Exception as e:
+            except Exception:
                 # will be raised in the return_output method in StructuredToolCallLLM
                 self.structured_output = LLMError(
                     reason="Failed to parse assistant response into structured output.",
