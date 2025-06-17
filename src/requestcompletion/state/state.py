@@ -375,7 +375,9 @@ class RCState:
         )
 
     def get_info(self, ids: List[str] | str) -> ExecutionInfo:
-        filtered_nodes, filtered_requests = create_sub_state_info(self._node_heap.heap(), self._request_heap.heap(), ids)
+        filtered_nodes, filtered_requests = create_sub_state_info(
+            self._node_heap.heap(), self._request_heap.heap(), ids
+        )
         return ExecutionInfo(
             node_heap=filtered_nodes,
             request_heap=filtered_requests,
