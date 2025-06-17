@@ -160,8 +160,8 @@ class RequestTemplate(AbstractLinkedObject):
 
 class RequestForest(Forest[RequestTemplate]):
     def __init__(
-            self,
-            request_heap: Dict[str, RequestTemplate] | None = None,
+        self,
+        request_heap: Dict[str, RequestTemplate] | None = None,
     ):
         """
         Creates a new instance of a request heap with no objects present.
@@ -480,7 +480,6 @@ class RequestForest(Forest[RequestTemplate]):
                 )
                 return upstreams[0].identifier
             return None
-
 
     @property
     def insertion_request(self):

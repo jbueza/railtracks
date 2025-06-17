@@ -55,7 +55,11 @@ class NodeForest(Forest[LinkedNode]):
         super().__init__(node_heap)
 
         self._hard_revert_list = set()
-        self.id_type_mapping: Dict[str, Type[Node]] = {node.identifier: type(node.node) for node in node_heap.values()} if node_heap else {}
+        self.id_type_mapping: Dict[str, Type[Node]] = (
+            {node.identifier: type(node.node) for node in node_heap.values()}
+            if node_heap
+            else {}
+        )
         self.registration_details = None
 
     def __getitem__(self, item):

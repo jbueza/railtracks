@@ -90,7 +90,6 @@ class Forest(Generic[T]):
 
         return full_data
 
-
     def heap(self):
         """
         Returns a passed by value dictionary of all the data in the heap.

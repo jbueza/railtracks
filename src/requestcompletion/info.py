@@ -72,7 +72,6 @@ class ExecutionInfo:
         """A convenience method to access all the insertion requests of the run."""
         return self.request_heap.insertion_request
 
-
     def get_info(self, ids: List[str] | str | None = None) -> ExecutionInfo:
         if ids is None:
             return self
