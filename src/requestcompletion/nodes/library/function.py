@@ -32,6 +32,11 @@ _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
 
 
+def to_node(func):
+    """Decorator to convert a function into a Node using from_function."""
+    return from_function(func)
+
+
 def from_function(  # noqa: C901
     func: Callable[[_P], Coroutine[None, None, _TOutput] | _TOutput],
 ):
