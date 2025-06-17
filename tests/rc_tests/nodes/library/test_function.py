@@ -8,12 +8,13 @@ This module tests the ability to create nodes from functions with various parame
 """
 
 import pytest
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union
 from pydantic import BaseModel, Field
 import time
 
 from requestcompletion.state.request import Failure
 import requestcompletion as rc
+from requestcompletion.exceptions import NodeCreationError
 
 # ===== Test Models =====
 
@@ -37,6 +38,52 @@ def test_to_node():
     assert issubclass(secret_phrase, rc.Node)
     assert secret_phrase.pretty_name() == "secret_phrase Node"
 
+# ===== Test Errors =====
+DICT_ERROR_FROM_FUNCTION_MSG = r"Parameter '.*' contains a dictionary type at .*, which is not allowed\."
+
+def test_dict_parameter():
+    """Test that a function with a dict parameter raises an error."""
+    def secret_function(fruits: dict[str, str]) -> str:
+        return fruits.get("secret", "")
+    
+    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
+        _ = rc.library.from_function(secret_function)
+        
+
+def test_nested_dict_parameter():
+    """Test that a function with a nested dict parameter raises an error."""
+    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
+        @rc.to_node
+        def secret_function(fruits: list[Union[str, list[dict[str, str]]]]) -> str:
+            return "test"
+
+
+def test_bmodel_with_dict_param():
+    """Test that a BaseModel with a dict field raises an error when used as a function parameter."""
+    class MyModel(BaseModel):
+        name: str
+        age: int
+        data: dict[str, str]
+
+    def secret_function(model: MyModel) -> str:
+        pass
+    
+    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
+        _ = rc.library.from_function(secret_function)
+       
+
+def test_bmodel_with_nested_dict_param():
+    """Test that a BaseModel with a nested dict field raises an error when used as a function parameter."""
+    class InnerModel(BaseModel):
+        info: dict
+
+    class OuterModel(BaseModel):
+        inner: InnerModel
+
+    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
+        @rc.to_node
+        def secret_function(model: OuterModel) -> str:
+            pass
 
 # ===== Test Classes =====
 class TestPrimitiveInputTypes:

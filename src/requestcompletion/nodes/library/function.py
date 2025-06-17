@@ -26,6 +26,7 @@ from ..nodes import Node
 import inspect
 from pydantic import BaseModel
 from ...exceptions import NodeCreationError
+from ...exceptions.node_creation.validation import validate_function
 from ...llm.tools.parameter_handlers import UnsupportedParameterError
 
 _TOutput = TypeVar("_TOutput")
@@ -43,6 +44,8 @@ def from_function(  # noqa: C901
     """
     A function to create a node from a function
     """
+
+    validate_function(func)  # checks for dict or Dict parameters
 
     # TODO figure out how to type this properly
     class DynamicFunctionNode(Node[_TOutput], Generic[_P, _TOutput]):
