@@ -38,11 +38,13 @@ def validate_function(func: Callable) -> None:
                     check_for_nested_dict(
                         field, param_name, f"{path or param_name}.{field_name}"
                     )
-        except AttributeError:  # Only swallow attribute errors (e.g., __annotations__ missing)
+        except (
+            AttributeError
+        ):  # Only swallow attribute errors (e.g., __annotations__ missing)
             pass
         except Exception as e:  # if a nested error is caught, pass it along (includes passing up NodeCreationError)
             raise e
-        
+
         args = getattr(annotation, "__args__", None)
         if args:
             for idx, arg in enumerate(args):
