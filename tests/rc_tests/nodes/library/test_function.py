@@ -8,13 +8,22 @@ This module tests the ability to create nodes from functions with various parame
 """
 
 import pytest
-from typing import Tuple, List, Dict
+from typing import List, Dict
 from pydantic import BaseModel, Field
 import time
+import asyncio
+from types import FunctionType
+from requestcompletion.nodes.nodes import Node
+from requestcompletion.llm.tools.parameter_handlers import UnsupportedParameterError
 
 from requestcompletion.state.request import Failure
 import requestcompletion as rc
 from requestcompletion.nodes.library import from_function
+
+class PydanticModel(BaseModel):
+    """A simple Pydantic model for testing."""
+    name: str
+    value: int
 
 simple_test_inputs = [
     ("5", type("5")),
@@ -33,8 +42,8 @@ arg_test_inputs =   [
 ]
 
 kwarg_test_inputs = [
-    ({"first": "5", "second": 5, "third": 5.0}, [type("5"), type(5), type(5.0)]),
-    ({"first": ["5", "5"], "second": {"key": "value"}, "third": (1, 2, 3)}, [type(["5", "5"]), type({"key": "value"}), type((1, 2, 3))]),
+    ({"zeroth" : None, "first": "5", "second": 5, "third": 5.0}, [type(None),type("5"), type(5), type(5.0)]),
+    ({"zeroth" : [None], "first": ["5", "5"], "second": {"key": "value"}, "third": (1, 2, 3)}, [type([None]), type(["5", "5"]), type({"key": "value"}), type((1, 2, 3))]),
 ]
 
 def func_type(arg):
@@ -43,13 +52,25 @@ def func_type(arg):
 def func_multiple_types(*args):
     return [type(arg) for arg in args]
 
-def func_multiple_ktypes(**kwargs):
-    return [type(kwargs[kwarg]) for kwarg in kwargs]
+async def func_multiple_ktypes_coroutine(zeroth = None, first : int = 5, second : PydanticModel = PydanticModel, third = [1,2], **kwargs):
+    await asyncio.sleep(1)  
+    return [type(zeroth), type(first), type(second), type(third)] + [type(kwargs[kwarg]) for kwarg in kwargs]
 
-# ===== Test Models =====
+def func_kwarg_auto(zeroth = None, first : int = 5, second : PydanticModel = PydanticModel, third : List[int] = [1,2], fourth: List = [1,2]):  
+    return [zeroth, first, second, third, fourth] 
 
-# Define model providers to test with
-MODEL_PROVIDERS = ["openai"]
+def func_kwarg_error_dict(dict: Dict[str, int] = {"first" : 5}):
+    return
+
+def func_kwarg_error_pydantic(PydanticModel: PydanticModel = PydanticModel(name="name", value=5)):
+    return
+
+def func_buggy():
+    async def corout():
+        asyncio.sleep(1)
+        return "This is a coroutine function."
+    return corout()
+
 
 # ===== Test Classes =====
 class TestPrimitiveInputTypes:
@@ -74,21 +95,6 @@ class TestPrimitiveInputTypes:
         with rc.Runner() as run:
             assert run.run_sync(testNode, input).answer == expected_output
 
-    @pytest.mark.parametrize("model_provider", MODEL_PROVIDERS)
-    def test_builtin_function_raises_error(self, model_provider, create_top_level_node):
-        """Test that a builtin function raises error before attempting to interface with LLM."""
-
-        with pytest.raises(ValueError):
-            agent = create_top_level_node(time.sleep, model_provider=model_provider)
-            with rc.Runner(rc.ExecutorConfig(logging_setting="NONE")) as run:
-                response = run.run_sync(
-                    agent,
-                    rc.llm.MessageHistory(
-                        [rc.llm.UserMessage("Try to run this function")]
-                    ),
-                )
-
-
 class TestSequenceInputTypes:
     @pytest.mark.parametrize("input, expected_output", arg_test_inputs)
     def test_multi_arg_input(self, input, expected_output):
@@ -100,6 +106,49 @@ class TestSequenceInputTypes:
     @pytest.mark.parametrize("input, expected_output", kwarg_test_inputs)
     def test_multi_kwarg_input(self, input, expected_output):
         """Test that a function with multiple kwarg parameters works correctly."""
-        testNode = from_function(func_multiple_ktypes)
+        testNode = from_function(func_multiple_ktypes_coroutine)
         with rc.Runner() as run:
             assert run.run_sync(testNode, **input).answer == expected_output
+
+class TestfunctionMethods:
+    def test_prepare_tools(self):
+        """Test that tools are prepared properly when called."""
+        testNodeA = from_function(func_kwarg_auto)
+        testNodeB = from_function(func_kwarg_auto)
+        testParentNode = from_function(func_multiple_types)
+        child_toolA = testNodeA.prepare_tool({"zeroth" : None, "first" : 5,"second": {"name": "name", "value" : 5}, "third" : [1,2,3]})
+        child_toolB = testNodeA.prepare_tool({ "third" : (1,2,3,4), "fourth" : "[1,2]"})
+        child_toolC = testNodeA.prepare_tool({ "third" : "1,2,3,4"})
+        parent_tool = testParentNode.prepare_tool({"nodeA": testNodeA, "nodeB": testNodeB, "first" : 5,"second": {"name": "name", "value" : 5}, "third": 5.0, "fourth": None})
+        assert child_toolA.kwargs == {"zeroth": None, "first": 5, "second": PydanticModel(name="name", value=5), "third": [1, 2, 3]}
+        assert child_toolB.kwargs == {"third": [1,2,3,4], "fourth": ["[1,2]"]}
+        assert child_toolC.kwargs == {"third": ['Tool call parameter type conversion failed.']}
+        assert parent_tool.kwargs == {}
+
+        
+
+class TestRaiseErrors:
+    def test_builtin_function_raises_error(self):
+        """Test that a builtin function raises error"""
+        with pytest.raises(RuntimeError):
+            testNode = from_function(time.sleep)
+            tool = testNode.prepare_tool({"seconds": 5})
+
+    def test_func_buggy_raises_error(self):
+        """Test edge case where a function that returns a coroutine raises an error."""
+        testNode = from_function(func_buggy)
+        with pytest.raises(RuntimeError):
+            with rc.Runner() as run:
+                run.run_sync(testNode)
+
+    def test_dict_for_kwarg_raises_error(self):
+        """Test that passing a dict for a kwarg raises an error since we don't support dicts as kwargs yet"""
+        with pytest.raises(UnsupportedParameterError):
+            testNode = from_function(func_kwarg_error_dict)
+            tool = testNode.prepare_tool({"dict" : {"first": 5}})
+
+    def test_pydantic_for_kwarg_raises_error(self):
+        """Test that passing a dict for a kwarg raises an error since we don't support dicts as kwargs yet"""
+        with pytest.raises(UnsupportedParameterError):
+            testNode = from_function(func_kwarg_error_pydantic)
+            tool = testNode.prepare_tool({"PydanticModel" : ("name", 5)})
