@@ -22,7 +22,7 @@ def validate_function(func: Callable) -> None:
     def check_for_nested_dict(annotation, param_name, path=""):
         origin = get_origin(annotation)
         # Direct dict or typing.Dict
-        if annotation is dict or origin is dict or origin is Dict:
+        if annotation is dict or origin in (dict, Dict):
             notes = get_notes(ExceptionMessageKey.DICT_PARAMETER_NOT_ALLOWED_NOTES)
             notes[0] = notes[0].format(param_name=param_name, path=path)
             raise NodeCreationError(
@@ -38,10 +38,11 @@ def validate_function(func: Callable) -> None:
                     check_for_nested_dict(
                         field, param_name, f"{path or param_name}.{field_name}"
                     )
-        except NodeCreationError as e:  # if a nested error is caught, pass it along
-            raise e
-        except Exception:
+        except AttributeError:  # Only swallow attribute errors (e.g., __annotations__ missing)
             pass
+        except Exception as e:  # if a nested error is caught, pass it along (includes passing up NodeCreationError)
+            raise e
+        
         args = getattr(annotation, "__args__", None)
         if args:
             for idx, arg in enumerate(args):
