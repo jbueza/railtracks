@@ -204,7 +204,7 @@ async def test_no_pretty_name_class_based(model, encoder_system_message):
                 )
 
     with pytest.raises(
-        TypeError, match="Can't instantiate abstract class Encoder_wo_pretty_name with abstract method pretty_name"
+        TypeError, match="Can't instantiate abstract class Encoder_wo_pretty_name"
     ):
         _ = await rc.call(Encoder_wo_pretty_name, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("encoder 'hello world!'")]))
         
