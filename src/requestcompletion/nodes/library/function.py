@@ -106,7 +106,7 @@ def from_function(  # noqa: C901
             Returns:
                 The converted value
             """
-            # If the value is None or the target_type is Any, return as is
+            # If the value is None or the target_type is one of Any or inspect._empty, return as is since there is nothing to convert to
             if value is None or target_type is Any or target_type is inspect._empty:
                 return value
 
