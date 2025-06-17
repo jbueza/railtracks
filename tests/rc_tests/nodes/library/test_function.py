@@ -21,6 +21,23 @@ import requestcompletion as rc
 MODEL_PROVIDERS = ["openai"]
 
 
+# ===== Unit Tests =====
+def test_to_node():
+    """Test that to_node decorator works correctly."""
+    @rc.to_node
+    def secret_phrase() -> str:
+        """
+        Function that returns a secret phrase.
+
+        Returns:
+            str: The secret phrase.
+        """
+        return "Constantinople"
+
+    assert issubclass(secret_phrase, rc.Node)
+    assert secret_phrase.pretty_name() == "secret_phrase Node"
+
+
 # ===== Test Classes =====
 class TestPrimitiveInputTypes:
     @pytest.mark.parametrize("model_provider", MODEL_PROVIDERS)
