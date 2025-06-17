@@ -14,12 +14,13 @@ __all__ = [
     "call",
     "stream",
     "batch",
-    "mcp"
+    "mcp",
     "ExecutionInfo",
     "ExecutorConfig",
     "llm",
     "set_config",
     "set_streamer",
+    "context",
 ]
 
 from . import mcp
@@ -28,10 +29,10 @@ from .nodes.nodes import Node
 from .interaction.call import call
 from .interaction.stream import stream
 from .interaction.batch import batch
-from .run import Runner, ExecutionInfo, set_config, set_streamer
+from .run import Runner, set_config, set_streamer
 from .config import ExecutorConfig
 from . import llm
-
+from . import context
 
 load_dotenv()
 # Only change the MAJOR.MINOR if you need to. Do not change the PATCH. (vMAJOR.MINOR.PATCH).

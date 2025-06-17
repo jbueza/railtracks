@@ -1,9 +1,16 @@
 import asyncio
 import warnings
-from typing import TypeVar, ParamSpec, Callable, Coroutine
+from typing import TypeVar, ParamSpec, Callable, Coroutine, Dict, Any
 
 from .config import ExecutorConfig
-from .exceptions import GlobalTimeOutError
+from .context.central import (
+    external_context,
+    config,
+    get_globals,
+    register_globals,
+    delete_globals,
+)
+from .exceptions import GlobalTimeOutError, NodeInvocationError
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
 from .pubsub.messages import (
@@ -12,6 +19,7 @@ from .pubsub.messages import (
     RequestFinishedBase,
     FatalFailure,
 )
+
 from .pubsub.publisher import RCPublisher
 from .pubsub.subscriber import stream_subscriber
 from .pubsub.utils import output_mapping
@@ -24,13 +32,10 @@ from .info import (
 )
 from .state.state import RCState
 
-from .context import (
-    config,
-    register_globals,
-    ThreadContext,
-    get_globals,
-    delete_globals,
+from .context.internal import (
+    InternalContext,
 )
+
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -69,8 +74,7 @@ class Runner:
     _instance = None
 
     def __init__(
-        self,
-        executor_config: ExecutorConfig = None,
+        self, executor_config: ExecutorConfig = None, context: Dict[str, Any] = None
     ):
         # first lets read from defaults if nessecary for the provided input config
         if executor_config is None:
@@ -82,13 +86,19 @@ class Runner:
 
         self.executor_config = executor_config
 
+        if context is None:
+            context = {}
+        context_global = external_context.get()
+        context_global.define(context)
+        external_context.set(context_global)
+
         # TODO see issue about logger
         prepare_logger(
             setting=executor_config.logging_setting,
         )
         self.publisher: RCPublisher[RequestCompletionMessage] = RCPublisher()
 
-        register_globals(ThreadContext(publisher=self.publisher, parent_id=None))
+        register_globals(InternalContext(publisher=self.publisher, parent_id=None))
 
         executor_info = ExecutionInfo.create_new()
         self.coordinator = Coordinator(
@@ -133,8 +143,9 @@ class Runner:
         await self.prepare()
 
         if not self.rc_state.is_empty:
-            raise RuntimeError(
-                "The run function can only be used to start not in the middle of a run."
+            raise NodeInvocationError(
+                "The run function can only be used to start not in the middle of a run.",
+                fatal=True,
             )
 
         start_request_id = "START"

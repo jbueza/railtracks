@@ -6,7 +6,6 @@ import pytest
 import random
 
 import requestcompletion as rc
-from requestcompletion.exceptions import NodeInvocationError
 from requestcompletion.state.request import Failure
 
 RNGNode = rc.library.from_function(random.random)
@@ -56,7 +55,7 @@ def test_error_handler():
 
 
 def test_error_handler_wo_retry():
-    with pytest.raises(NodeInvocationError):
+    with pytest.raises(TestError):
         with rc.Runner(
             executor_config=rc.ExecutorConfig(
                 end_on_error=True, logging_setting="NONE"

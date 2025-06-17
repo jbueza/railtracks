@@ -1,6 +1,6 @@
 from .exception_messages import ExceptionMessageKey, get_message, get_notes
 from typing import Any, Iterable
-from ..fatal import NodeCreationError
+from ..errors import NodeCreationError
 from pydantic import BaseModel
 from ...llm import SystemMessage
 
@@ -44,9 +44,7 @@ def check_connected_nodes(node_set, node: type) -> None:
             message=get_message(ExceptionMessageKey.CONNECTED_NODES_EMPTY_MSG),
             notes=get_notes(ExceptionMessageKey.CONNECTED_NODES_EMPTY_NOTES),
         )
-    elif not all(
-        (isinstance(x, type) and issubclass(x, node)) or callable(x) for x in node_set
-    ):
+    elif not all((isinstance(x, type) and issubclass(x, node)) for x in node_set):
         raise NodeCreationError(
             message=get_message(ExceptionMessageKey.CONNECTED_NODES_TYPE_MSG),
             notes=get_notes(ExceptionMessageKey.CONNECTED_NODES_TYPE_NOTES),
@@ -121,21 +119,20 @@ def _check_pretty_name(pretty_name: str | None, tool_details: Any) -> None:
         )
 
 
-def _check_system_message(system_message: Any) -> None:
+def _check_system_message(system_message: SystemMessage | str | None) -> None:
     """
     Validate that system_message is an instance of SystemMessageType if provided.
-
     Args:
         system_message: The system message to check.
         SystemMessageType: The expected type for system_message.
-
     Raises:
         NodeCreationError: If system_message is not of the correct type.
     """
-    if system_message is not None and not isinstance(system_message, SystemMessage):
+    if system_message is not None and not isinstance(
+        system_message, (SystemMessage, str)
+    ):
         raise NodeCreationError(
             get_message(ExceptionMessageKey.INVALID_SYSTEM_MESSAGE_MSG),
-            notes=get_notes(ExceptionMessageKey.INVALID_SYSTEM_MESSAGE_NOTES),
         )
 
 

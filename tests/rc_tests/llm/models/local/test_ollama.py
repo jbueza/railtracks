@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock
 import litellm
 
 from requestcompletion.llm.models.local.ollama import OllamaLLM, OllamaError
+from requestcompletion.exceptions import LLMError
 from requestcompletion.llm.history import MessageHistory
 from requestcompletion.llm.message import UserMessage
 
@@ -88,7 +89,7 @@ def test_chat_with_tools_unsupported(mock_response):
             messages = MessageHistory([UserMessage(content="test message")])
             tools = []
 
-            with pytest.raises(RuntimeError) as exc_info:
+            with pytest.raises(LLMError) as exc_info:
                 ollama.chat_with_tools(messages, tools)
             assert "does not support function calling" in str(exc_info.value)
 

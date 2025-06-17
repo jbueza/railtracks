@@ -35,5 +35,5 @@ class StructuredToolCallLLM(OutputLessToolCallLLM[str], ABC):
     def return_output(self) -> BaseModel:
         # Return the structured output or raise the exception if it was an error
         if isinstance(self.structured_output, Exception):
-            raise self.structured_output
+            raise self.structured_output from self.structured_output
         return self.structured_output

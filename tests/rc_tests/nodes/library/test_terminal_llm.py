@@ -1,7 +1,7 @@
 import pytest
 import requestcompletion as rc
 from pydantic import BaseModel
-from requestcompletion.exceptions import NodeCreationError
+from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
 
 class CapitalizeText(rc.Node[str]):
     def __init__(self, string: str):
@@ -73,17 +73,6 @@ def test_terminal_llm_class_based_run(model , encoder_system_message):
 # ================================================ START terminal_llm Exception testing =========================================================== 
 # =================== START Easy Usage Node Creation ===================
 @pytest.mark.asyncio
-async def test_system_message_is_a_string_easy_usage(model):
-    with pytest.raises(NodeCreationError, match="Message history must be a list of Message objects"):
-        encoder_agent = rc.library.terminal_llm(
-            pretty_name="Encoder",
-            system_message="You are a helpful assistant that can encode text into bytes.",
-            model=model,
-        )
-
-
-
-@pytest.mark.asyncio
 async def test_terminal_llm_missing_tool_details_easy_usage(model, encoder_system_message):
     # Test case where tool_params is given but tool_details is not
     encoder_tool_params = {
@@ -121,8 +110,6 @@ async def test_terminal_llm_no_pretty_name_with_tool_easy_usage(model, encoder_s
                 tool_details=encoder_tool_details,
                 tool_params=encoder_tool_params,
             )
-
-
 
 @pytest.mark.timeout(30)
 @pytest.mark.asyncio
@@ -189,27 +176,6 @@ async def test_terminal_llm_tool_duplicate_parameter_names_easy_usage(
         )
 # =================== END Easy Usage Node Creation ===================
 # =================== START Class Based Node Creation ===================
-@pytest.mark.asyncio
-async def test_system_message_is_a_string_class_based(model):
-    class Encoder(rc.library.TerminalLLM): 
-        def __init__(
-                self,
-                message_history: rc.llm.MessageHistory,
-                model: rc.llm.ModelBase = model,
-            ):
-                message_history = [x for x in message_history if x.role != "system"]
-                message_history.insert(0, "You are a helpful assistant that can encode text into bytes.")
-                super().__init__(
-                    message_history=message_history,
-                    model=model,
-                )
-        @classmethod
-        def pretty_name(cls) -> str:
-            return "Simple Node"
-
-    with pytest.raises(NodeCreationError, match="Message history must be a list of Message objects"):
-        response = await rc.call(Encoder, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
-
 
 @pytest.mark.asyncio
 async def test_no_pretty_name_class_based(model, encoder_system_message):
@@ -268,6 +234,52 @@ async def test_tool_info_not_classmethod(model, encoder_system_message):
                 )
         
 # =================== END Class Based Node Creation ===================
+# =================== START invocation exceptions =====================
+@pytest.mark.asyncio
+async def test_no_message_history_easy_usage(model, encoder_system_message):
+    simple_agent = rc.library.terminal_llm(
+            pretty_name="Encoder",
+            model=model,
+        )
+    
+    with pytest.raises(NodeInvocationError, match="Message history must contain at least one message"):
+        await rc.call(simple_agent, message_history=rc.llm.MessageHistory([]))
+
+@pytest.mark.asyncio
+async def test_no_message_history_class_based(model):
+    class Encoder(rc.library.TerminalLLM):
+        def __init__(self, message_history: rc.llm.MessageHistory, model: rc.llm.ModelBase = None):
+            super().__init__(message_history=message_history, model=model)
+
+        @classmethod 
+        def pretty_name(cls) -> str:
+            return "Encoder"
+
+    with pytest.raises(NodeInvocationError, match="Message history must contain at least one message"):
+        _ = await rc.call(Encoder, message_history=rc.llm.MessageHistory([]))
+    
+@pytest.mark.asyncio
+async def test_system_message_as_a_string_class_based(model):
+    # if a string is provided as system_message in a class based initialization, we are throwing an error
+    class Encoder(rc.library.TerminalLLM): 
+        def __init__(
+                self,
+                message_history: rc.llm.MessageHistory,
+                model: rc.llm.ModelBase = model,
+            ):
+                message_history = [x for x in message_history if x.role != "system"]
+                message_history.insert(0, "You are a helpful assistant that can encode text into bytes.")
+                super().__init__(
+                    message_history=message_history,
+                    model=model,
+                )
+        @classmethod
+        def pretty_name(cls) -> str:
+            return "Simple Node"
+
+    with pytest.raises(NodeInvocationError, match="Message history must be a list of Message objects"):
+        response = await rc.call(Encoder, message_history=rc.llm.MessageHistory([rc.llm.UserMessage("hello world")]))
+# =================== END invocation exceptions =====================
 # ================================================ END terminal_llm Exception testing ===========================================================
 
 # ================================================ START terminal_llm as tools =========================================================== 
