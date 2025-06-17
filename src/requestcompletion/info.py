@@ -78,8 +78,8 @@ class ExecutionInfo:
             return self
         else:
             new_node_forest, new_request_forest = create_sub_state_info(
-                self.node_heap,
-                self.request_heap,
+                self.node_heap.heap(),
+                self.request_heap.heap(),
                 ids,
             )
             return ExecutionInfo(
