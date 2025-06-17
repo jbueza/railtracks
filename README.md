@@ -101,9 +101,9 @@ TextAnalyzer = rc.library.tool_call_llm(
 ### Step 3: Run your Application
 
 ```python
-import requestcompletion.interaction.call
+import requestcompletion as rc
 
-result = await requestcompletion.interaction.call.call(
+result = await rc.call(
     TextAnalyzer,
     rc.llm.MessageHistory([rc.llm.UserMessage("Hello world! This is a test of the Request Completion framework.")])
 )
