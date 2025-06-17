@@ -1,3 +1,6 @@
+import random
+import asyncio
+
 import pytest
 from typing import List
 from pydantic import BaseModel, Field
@@ -179,19 +182,27 @@ def terminal_nodes(request, model, terminal_llms_system_messages):
     system_rng, system_rng_operation, system_math_genius = terminal_llms_system_messages
 
     if fixture_name == "easy_wrapper":
-        rng_node = rc.library.terminal_llm(pretty_name="RNG Node", system_message=system_rng, model=model)
+        rng_node = rc.library.terminal_llm(
+            pretty_name="RNG Node", system_message=system_rng, model=model
+        )
         rng_operation_node = rc.library.terminal_llm(
-            pretty_name="RNG Operation Node", system_message=system_rng_operation, model=model
+            pretty_name="RNG Operation Node",
+            system_message=system_rng_operation,
+            model=model,
         )
         math_detective_node = rc.library.terminal_llm(
-            pretty_name="Math Detective Node", system_message=system_math_genius, model=model
+            pretty_name="Math Detective Node",
+            system_message=system_math_genius,
+            model=model,
         )
 
         return rng_node, rng_operation_node, math_detective_node
 
     elif fixture_name == "class_based":
 
-        def make_terminal_llm_class_version(pretty_name: str, system_message: rc.llm.SystemMessage):
+        def make_terminal_llm_class_version(
+            pretty_name: str, system_message: rc.llm.SystemMessage
+        ):
             class TerminalLLMNode(rc.library.TerminalLLM):
                 def __init__(
                     self,
@@ -202,14 +213,21 @@ def terminal_nodes(request, model, terminal_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
-                def pretty_name(self) -> str:
+                @classmethod
+                def pretty_name(cls) -> str:
                     return pretty_name
 
             return TerminalLLMNode
 
-        rng_node = make_terminal_llm_class_version("RNG Node", system_message=system_rng)
-        rng_operation_node = make_terminal_llm_class_version("RNG Operation Node", system_message=system_rng_operation)
-        math_detective_node = make_terminal_llm_class_version("Math Detective Node", system_message=system_math_genius)
+        rng_node = make_terminal_llm_class_version(
+            "RNG Node", system_message=system_rng
+        )
+        rng_operation_node = make_terminal_llm_class_version(
+            "RNG Operation Node", system_message=system_rng_operation
+        )
+        math_detective_node = make_terminal_llm_class_version(
+            "Math Detective Node", system_message=system_math_genius
+        )
 
         return rng_node, rng_operation_node, math_detective_node
 
@@ -229,8 +247,12 @@ def structured_nodes(request, model, structured_llms_system_messages):
         proof: str = Field(description="The mathematical proof of the statement")
 
     class GradingSchema(BaseModel):
-        overall_score: float = Field(description="The grade on the proof on a scale of 0 to 100")
-        feedback: str = Field(description="Any suggestions on improving the proof or reason for the grade")
+        overall_score: float = Field(
+            description="The grade on the proof on a scale of 0 to 100"
+        )
+        feedback: str = Field(
+            description="Any suggestions on improving the proof or reason for the grade"
+        )
 
     if fixture_name == "easy_wrapper":
         math_undergrad_student_node = rc.library.structured_llm(
@@ -240,7 +262,10 @@ def structured_nodes(request, model, structured_llms_system_messages):
             model=model,
         )
         math_professor_node = rc.library.structured_llm(
-            pretty_name="Math Professor Node", output_model=GradingSchema, system_message=system_professor, model=model
+            pretty_name="Math Professor Node",
+            output_model=GradingSchema,
+            system_message=system_professor,
+            model=model,
         )
 
         return math_undergrad_student_node, math_professor_node
@@ -248,7 +273,9 @@ def structured_nodes(request, model, structured_llms_system_messages):
     elif fixture_name == "class_based":
 
         def make_structured_llm_class_version(
-            pretty_name: str, system_message: rc.llm.SystemMessage, output_model: BaseModel
+            pretty_name: str,
+            system_message: rc.llm.SystemMessage,
+            output_model: BaseModel,
         ):
             class StructuredLLMNode(rc.library.StructuredLLM):
                 def __init__(
@@ -260,7 +287,8 @@ def structured_nodes(request, model, structured_llms_system_messages):
                     message_history.insert(0, system_message)
                     super().__init__(message_history=message_history, model=llm_model)
 
-                def output_model(self) -> BaseModel:
+                @classmethod
+                def output_model(cls) -> BaseModel:
                     return output_model
 
                 @classmethod
@@ -270,10 +298,14 @@ def structured_nodes(request, model, structured_llms_system_messages):
             return StructuredLLMNode
 
         math_undergrad_student_node = make_structured_llm_class_version(
-            "Math Undergraduate Student Node", output_model=ProofModel, system_message=system_undergrad_student
+            "Math Undergraduate Student Node",
+            output_model=ProofModel,
+            system_message=system_undergrad_student,
         )
         math_professor_node = make_structured_llm_class_version(
-            "Math Professor Node", output_model=GradingSchema, system_message=system_professor
+            "Math Professor Node",
+            output_model=GradingSchema,
+            system_message=system_professor,
         )
 
         return math_undergrad_student_node, math_professor_node
@@ -283,7 +315,13 @@ def structured_nodes(request, model, structured_llms_system_messages):
 
 
 @pytest.fixture
-def tool_calling_nodes(request, model, tool_call_llm_system_messages, currency_converter_tools, travel_planner_tools):
+def tool_calling_nodes(
+    request,
+    model,
+    tool_call_llm_system_messages,
+    currency_converter_tools,
+    travel_planner_tools,
+):
     """
     Returns the appropriate nodes based on the parametrized fixture name.
     """
@@ -316,7 +354,9 @@ def tool_calling_nodes(request, model, tool_call_llm_system_messages, currency_c
     elif fixture_name == "class_based":
 
         def make_tool_call_llm_class_version(
-            pretty_name: str, system_message: rc.llm.SystemMessage, connected_nodes: List[rc.Node]
+            pretty_name: str,
+            system_message: rc.llm.SystemMessage,
+            connected_nodes: List[rc.Node],
         ):
             class ToolCallLLMNode(rc.library.ToolCallLLM):
                 def __init__(
@@ -352,6 +392,25 @@ def tool_calling_nodes(request, model, tool_call_llm_system_messages, currency_c
 
     else:
         raise ValueError(f"Unknown node fixture: {fixture_name}")
+
+
+@pytest.fixture
+def parallel_node():
+    """
+    A simple node that runs a function in parallel a specified number of times.
+    """
+
+    async def sleep(timeout_len: float) -> float:
+        """A simple function that sleeps for a given time."""
+        await asyncio.sleep(timeout_len)
+        return timeout_len
+
+    TimeoutNode = rc.library.from_function(sleep)
+
+    async def parallel_function(timeout_config: List[float]):
+        return await rc.batch(TimeoutNode, timeout_config)
+
+    return rc.library.from_function(parallel_function)
 
 
 # ====================================== End Nodes ======================================

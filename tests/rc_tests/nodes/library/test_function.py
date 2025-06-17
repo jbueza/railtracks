@@ -15,8 +15,7 @@ import asyncio
 from types import FunctionType
 from requestcompletion.nodes.nodes import Node
 from requestcompletion.llm.tools.parameter_handlers import UnsupportedParameterError
-
-from requestcompletion.state.request import Failure
+from requestcompletion.exceptions.errors import NodeCreationError
 import requestcompletion as rc
 from requestcompletion.nodes.library import from_function
 
@@ -134,10 +133,10 @@ class TestRaiseErrors:
             testNode = from_function(time.sleep)
             tool = testNode.prepare_tool({"seconds": 5})
 
-    def test_func_buggy_raises_error(self):
+    def test_nested_async_func_raises_error(self):
         """Test edge case where a function that returns a coroutine raises an error."""
         testNode = from_function(func_buggy)
-        with pytest.raises(RuntimeError):
+        with pytest.raises(NodeCreationError):
             with rc.Runner() as run:
                 run.run_sync(testNode)
 
