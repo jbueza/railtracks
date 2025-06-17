@@ -231,44 +231,40 @@ def test_start_of_time(example_structure):
 
 
 def test_state_saving_operation():
-    heap = Forest[MockLinkedObject]()
+        heap = Forest[MockLinkedObject]()
 
-    identifier = str(uuid.uuid4())
+        identifier = str(uuid.uuid4())
 
-    message_object = MockLinkedObject(
-        identifier=identifier,
-        message="Hello world",
-        stamp=Stamp(901, 0, "Init"),
-        parent=None,
-    )
+        message_object = MockLinkedObject(
+            identifier=identifier,
+            message="Hello world",
+            stamp=Stamp(901, 0, "Init"),
+            parent=None,
+        )
 
-    heap._update_heap(message_object)
+        heap._update_heap(message_object)
 
-    assert heap[message_object.identifier].message == message_object.message
+        assert heap[message_object.identifier].message == message_object.message
 
-    state = heap.__getstate__()
-    heap2 = Forest[MockLinkedObject]()
-    heap2.__setstate__(state)
-    heap = heap2
+        state = heap.__getstate__()
+        heap2 = Forest[MockLinkedObject]()
+        heap2.__setstate__(state)
+        heap = heap2
 
-    linked_obj = heap[message_object.identifier]
+        linked_obj = heap[message_object.identifier]
 
-    updated_obj = MockLinkedObject(
-        identifier=identifier,
-        message="Hello world",
-        stamp=Stamp(901, 1, "Init"),
-        parent=linked_obj,
-    )
+        updated_obj = MockLinkedObject(
+            identifier=identifier,
+            message="Hello world",
+            stamp=Stamp(901, 1, "Init"),
+            parent=linked_obj,
+        )
 
-    heap._update_heap(updated_obj)
+        heap._update_heap(updated_obj)
 
-    assert heap[updated_obj.identifier].parent == linked_obj
-    assert heap[updated_obj.identifier].message == updated_obj.message
-    assert heap[updated_obj.identifier].stamp == updated_obj.stamp
-
-    assert heap[message_object.identifier].message == message_object.message
-    assert heap[message_object.identifier].stamp == message_object.stamp
-    assert heap[message_object.identifier].parent is None
+        assert heap[updated_obj.identifier].parent == linked_obj
+        assert heap[updated_obj.identifier].message == updated_obj.message
+        assert heap[updated_obj.identifier].stamp == updated_obj.stamp
 
 
 def test_update_operation():

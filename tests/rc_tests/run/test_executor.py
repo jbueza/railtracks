@@ -122,7 +122,8 @@ def nested_many_calls_tester(num_calls: int, parallel_calls: int, depth: int):
     assert all([0 < x < 1 for x in ans])
 
     r_h = finished_result.request_heap
-    child_requests = r_h.children(r_h.insertion_request.sink_id)
+    assert len(r_h.insertion_request) ==  1
+    child_requests = r_h.children(r_h.insertion_request[0].sink_id)
 
     assert len(child_requests) == num_calls * parallel_calls
     for r in child_requests:
@@ -162,11 +163,12 @@ def test_multiple_runs():
         assert 0 < result.answer < 1
 
         result = run.run_sync(RNGNode)
-        assert isinstance(result.answer, List)
-        assert 0 < result.answer[0] < 1
-        assert 0 < result.answer[1] < 1
+
 
         info = run.info
+        assert isinstance(info.answer, List)
+        assert 0 < info.answer[0] < 1
+        assert 0 < info.answer[1] < 1
 
         insertion_requests = info.request_heap.insertion_request
 
