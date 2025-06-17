@@ -22,6 +22,8 @@ from .parameter_handlers import (
     DefaultParameterHandler,
 )
 
+from ...exceptions import NodeCreationError
+
 
 class Tool:
     """
@@ -110,9 +112,9 @@ class Tool:
             # Get the function signature
             signature = inspect.signature(func)
         except ValueError:
-            raise RuntimeError(
-                "Cannot convert kwargs for builtin functions. "
-                "Please use a custom function."
+            raise NodeCreationError(
+                message="Cannot convert kwargs for builtin functions. ",
+                notes=["Please use a custom function."],
             )
 
         # Create parameter handlers
