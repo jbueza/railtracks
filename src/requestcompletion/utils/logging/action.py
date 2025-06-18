@@ -14,7 +14,7 @@ class RequestCreationAction(RCAction):
         self,
         parent_node_name: str,
         child_node_name: str,
-        input_args: Tuple[Any],
+        input_args: Tuple[Any, ...],
         input_kwargs: Dict[str, Any],
     ):
         self.parent_node_name = parent_node_name
@@ -49,7 +49,7 @@ class RequestFailureAction(RCAction):
         self.exception = exception
 
     def to_logging_msg(self) -> str:
-        return f"{self.node_name} FAILED {type(self.exception)}"
+        return f"{self.node_name} FAILED"
 
 
 def arg_kwarg_logging_str(args, kwargs):

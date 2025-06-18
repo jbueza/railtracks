@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 
 from .messages import RequestCompletionMessage
@@ -39,7 +40,7 @@ class Subscriber(Generic[_T]):
             logger.debug(msg=f"Error in {self.name}", exc_info=e)
 
 
-class RCPublisher(Generic[_T]):
+class Publisher(Generic[_T]):
     """
     A simple publisher object with some basic functionality to publish and suvbscribe to messages.
 
@@ -89,6 +90,7 @@ class RCPublisher(Generic[_T]):
         # logger.debug(f"Publishing message: {message}")
         if not self._running:
             raise RuntimeError("Publisher is not currently running.")
+
 
         await self._queue.put(message)
 
@@ -232,3 +234,14 @@ class RCPublisher(Generic[_T]):
             bool: True if the publisher is running, False otherwise.
         """
         return self._running
+
+
+class RCPublisher(Publisher[RequestCompletionMessage]):
+    def __init__(self):
+        super().__init__()
+        self.subscribe(self.logging_sub)
+
+    @classmethod
+    async def logging_sub(cls, message: RequestCompletionMessage):
+        """ Logs the provided message as a debug message. """
+        logger.debug(message.log_message())

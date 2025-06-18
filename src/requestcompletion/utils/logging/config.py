@@ -8,6 +8,7 @@ allowable_log_levels = Literal["VERBOSE", "REGULAR", "QUIET", "NONE"]
 # the temporary name for the logger that RC will use.
 rc_logger_name = "RC"
 rc_logger = logging.getLogger(rc_logger_name)
+rc_logger.setLevel(logging.INFO)
 
 _default_format_string = "%(timestamp_color)s[+%(relative_seconds)-7ss] %(level_color)s%(name)-12s: %(levelname)-8s - %(message)s%(default_color)s"
 
@@ -21,9 +22,10 @@ class ColorfulFormatter(logging.Formatter):
         super().__init__(fmt, datefmt)
         self.level_colors = {
             logging.INFO: Fore.WHITE,  # White for logger.info
-            logging.ERROR: Fore.RED,  # Red for logger.exception or logger.error
+            logging.ERROR: Fore.LIGHTRED_EX,  # Red for logger.exception or logger.error
             logging.WARNING: Fore.YELLOW,
             logging.DEBUG: Fore.CYAN,
+            logging.CRITICAL: Fore.RED,
         }
         self.keyword_colors = {
             "FAILED": Fore.RED,
@@ -57,6 +59,14 @@ class ColorfulFormatter(logging.Formatter):
         return super().format(record)
 
 
+
+def level_filter(value: int):
+    def filter_func(record: logging.LogRecord):
+        return record.levelno >= value
+
+    return filter_func
+
+
 def setup_verbose_logger_config():
     console_handler = logging.StreamHandler()
     # in the verbose case we would like to use the debug level.
@@ -69,13 +79,15 @@ def setup_verbose_logger_config():
     console_handler.setFormatter(verbose_formatter)
 
     logger = logging.getLogger(rc_logger_name)
-    logger.setLevel(logging.DEBUG)
     logger.addHandler(console_handler)
+    # only in verbose do we want to handle the debugging logs
+    logger.setLevel(logging.DEBUG)
 
 
 def setup_regular_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
+
 
     regular_formatter = ColorfulFormatter(
         fmt=_default_format_string,
@@ -85,12 +97,13 @@ def setup_regular_logger_config():
 
     logger = logging.getLogger(rc_logger_name)
     logger.addHandler(console_handler)
-    logger.setLevel(logging.INFO)
+
 
 
 def setup_quiet_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.WARNING)
+
 
     quiet_formatter = ColorfulFormatter(fmt=_default_format_string)
 
@@ -98,7 +111,7 @@ def setup_quiet_logger_config():
 
     logger = logging.getLogger(rc_logger_name)
     logger.addHandler(console_handler)
-    logger.setLevel(logging.WARNING)
+
 
 
 def setup_none_logger_config():
@@ -107,7 +120,8 @@ def setup_none_logger_config():
     """
     # set up a logger which does not do anything.
     logger = logging.getLogger(rc_logger_name)
-    logger.setLevel(logging.CRITICAL)
+    # a slightly hacky way to get it so nothing makes it through
+    logger.addFilter(lambda x: False)
     logger.addHandler(logging.NullHandler())
 
 
@@ -122,8 +136,7 @@ def setup_file_handler(
     | logging.CRITICAL = logging.INFO,
 ):
     file_handler = logging.FileHandler(file_name)
-    logging_level = logging.DEBUG if file_logging_level else file_logging_level
-    file_handler.setLevel(logging_level)
+    file_handler.setLevel(file_logging_level)
 
     # date format include milliseconds for better resolution
 
@@ -136,6 +149,8 @@ def setup_file_handler(
     # we want to add this file handler to the root logger is it is propagated
     logger = logging.getLogger(rc_logger_name)
     logger.addHandler(file_handler)
+
+
 
 
 # TODO fill out the rest of the logic
@@ -158,7 +173,6 @@ def prepare_logger(
         setup_none_logger_config()
     else:
         raise ValueError("Invalid log level setting")
-    # setup_none_logger_config()
 
 
 def detach_logging_handlers():

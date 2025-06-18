@@ -227,13 +227,18 @@ class RCState:
                 kwargs=kwargs,
             )
         except Exception as e:
-            # if there was an error creating the node we want to handle it here.
+            # TODO improve this so we know the name of the node trying to be created in the case of a tool call llm.
+            rfa = RequestFailureAction(
+                node_name=node.pretty_name() if hasattr(node, "pretty_name") else node.__name__,
+                exception=e,
+            )
             await self.publisher.publish(
                 RequestCreationFailure(
                     request_id=request_id,
                     error=e,
                 )
             )
+            self.logger.exception(rfa.to_logging_msg(), exc_info=e)
             raise e
         # you have to run this in a task so it isn't blocking other completions
         outputs = asyncio.create_task(self._run_request(request_id))
