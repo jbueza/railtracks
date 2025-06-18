@@ -9,8 +9,6 @@ class RCAction(ABC):
         pass
 
 
-
-
 class RequestCreationAction(RCAction):
     def __init__(
         self,

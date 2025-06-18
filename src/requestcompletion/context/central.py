@@ -63,6 +63,7 @@ def get_publisher() -> RCPublisher:
         )
     return context.publisher
 
+
 def get_runner_id() -> str:
     """
     Get the runner ID of the current thread's global variables.
@@ -100,12 +101,16 @@ def get_parent_id() -> str | None:
 
 
 def register_globals(
-    runner_id: str, rc_publisher: RCPublisher | None = None, parent_id: str | None = None
+    runner_id: str,
+    rc_publisher: RCPublisher | None = None,
+    parent_id: str | None = None,
 ):
     """
     Register the global variables for the current thread.
     """
-    i_c = InternalContext(publisher=rc_publisher, parent_id=parent_id, runner_id=runner_id)
+    i_c = InternalContext(
+        publisher=rc_publisher, parent_id=parent_id, runner_id=runner_id
+    )
     thread_context.set(i_c)
 
 

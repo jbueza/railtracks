@@ -1,7 +1,5 @@
 import logging
 import os
-import pathlib
-import warnings
 from typing import Literal
 import re
 from colorama import Fore, init
@@ -16,7 +14,6 @@ _default_format_string = "%(timestamp_color)s[+%(relative_seconds)-7ss] %(level_
 _file_format_string = "%(asctime)s %(levelname)s - %(message)s"
 # Initialize colorama
 init(autoreset=True)
-
 
 
 class ColorfulFormatter(logging.Formatter):
@@ -124,8 +121,6 @@ def setup_file_handler(
     | logging.ERROR
     | logging.CRITICAL = logging.INFO,
 ):
-
-
     file_handler = logging.FileHandler(file_name)
     logging_level = logging.DEBUG if file_logging_level else file_logging_level
     file_handler.setLevel(logging_level)
@@ -133,8 +128,8 @@ def setup_file_handler(
     # date format include milliseconds for better resolution
 
     default_formatter = logging.Formatter(
-            fmt=_file_format_string,
-        )
+        fmt=_file_format_string,
+    )
 
     file_handler.setFormatter(default_formatter)
 
@@ -172,6 +167,3 @@ def detach_logging_handlers():
     """
     # Get the root logger
     rc_logger.handlers.clear()
-
-
-

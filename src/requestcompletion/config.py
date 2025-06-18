@@ -18,7 +18,7 @@ class ExecutorConfig:
         subscriber: (
             Callable[[str], None] | Callable[[str], Coroutine[None, None, None]] | None
         ) = None,
-        run_identifier: str | None = None
+        run_identifier: str | None = None,
     ):
         """
         ExecutorConfig is special configuration object designed to allow customization of the executor in the RC system.

@@ -1,13 +1,9 @@
 import asyncio
 
-from typing import TypeVar, ParamSpec, Callable, Dict, Any
-
 
 from .interaction.call import call
 
-import uuid
-import warnings
-from typing import TypeVar, ParamSpec, Callable, Coroutine, Dict, Any
+from typing import TypeVar, ParamSpec, Callable, Dict, Any
 
 
 from .config import ExecutorConfig
@@ -95,14 +91,11 @@ class Runner:
         # TODO see issue about logger
         prepare_logger(
             setting=executor_config.logging_setting,
-            path= executor_config.log_file,
+            path=executor_config.log_file,
         )
         self.publisher: RCPublisher[RequestCompletionMessage] = RCPublisher()
 
-
         self._identifier = executor_config.run_identifier
-
-
 
         executor_info = ExecutionInfo.create_new()
         self.coordinator = Coordinator(
@@ -112,15 +105,11 @@ class Runner:
             executor_info, executor_config, self.coordinator, self.publisher
         )
 
-
         self.coordinator.start(self.publisher)
         self.setup_subscriber()
         register_globals(runner_id=self._identifier, rc_publisher=self.publisher)
 
         logger.debug("Runner %s is initialized" % self._identifier)
-
-
-
 
     def __enter__(self):
         return self

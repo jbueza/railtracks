@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 from collections import deque
-from sys import exc_info
 
 from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING
 
@@ -189,9 +188,8 @@ class RCState:
             input_args=[args],
             input_kwargs=[kwargs],
             stamp=stamp,
-            request_ids=[request_id]
+            request_ids=[request_id],
         )
-
 
         self.logger.info(request_creation_obj.to_logging_msg())
         # 4. Return the request id of the node that was created.
@@ -273,11 +271,6 @@ class RCState:
         if request_ids is None:
             request_ids = [None] * len(children)
 
-        parent_node_name = (
-            self._node_heap.id_type_mapping[parent_node].pretty_name()
-            if parent_node is not None
-            else "START"
-        )
         # to simplify we are going to create a new request for each child node with the parent as its source.
         request_ids = list(
             map(
@@ -287,10 +280,7 @@ class RCState:
                 children,
                 input_args,
                 input_kwargs,
-                [
-                    stamp
-                    for _ in children
-                ],
+                [stamp for _ in children],
             )
         )
 
@@ -353,7 +343,9 @@ class RCState:
         )
 
         if self.executor_config.end_on_error:
-            self.logger.critical(node_exception_action.to_logging_msg(), exc_info=exception)
+            self.logger.critical(
+                node_exception_action.to_logging_msg(), exc_info=exception
+            )
             await self.publisher.publish(FatalFailure(error=exception))
             return Failure(exception)
 
@@ -361,12 +353,16 @@ class RCState:
         if (
             isinstance(exception, NodeInvocationError) and exception.fatal
         ) or isinstance(exception, FatalError):
-            self.logger.critical(node_exception_action.to_logging_msg(), exc_info=exception)
+            self.logger.critical(
+                node_exception_action.to_logging_msg(), exc_info=exception
+            )
             await self.publisher.publish(FatalFailure(error=exception))
             return Failure(exception)
 
         # for any other error we want it to bubble up so the user can handle.
-        self.logger.exception(node_exception_action.to_logging_msg(), exc_info=exception)
+        self.logger.exception(
+            node_exception_action.to_logging_msg(), exc_info=exception
+        )
         return Failure(exception)
 
     @property
