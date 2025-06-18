@@ -62,7 +62,6 @@ class AsyncioExecutionStrategy(TaskExecutionStrategy):
                 request_id=task.request_id, node_state=NodeState(task.node), error=e
             )
         finally:
-
             await publisher.publish(response)
 
         return response

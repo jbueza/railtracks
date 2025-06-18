@@ -59,7 +59,6 @@ class ColorfulFormatter(logging.Formatter):
         return super().format(record)
 
 
-
 def level_filter(value: int):
     def filter_func(record: logging.LogRecord):
         return record.levelno >= value
@@ -88,7 +87,6 @@ def setup_regular_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
 
-
     regular_formatter = ColorfulFormatter(
         fmt=_default_format_string,
     )
@@ -99,11 +97,9 @@ def setup_regular_logger_config():
     logger.addHandler(console_handler)
 
 
-
 def setup_quiet_logger_config():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.WARNING)
-
 
     quiet_formatter = ColorfulFormatter(fmt=_default_format_string)
 
@@ -111,7 +107,6 @@ def setup_quiet_logger_config():
 
     logger = logging.getLogger(rc_logger_name)
     logger.addHandler(console_handler)
-
 
 
 def setup_none_logger_config():
@@ -149,8 +144,6 @@ def setup_file_handler(
     # we want to add this file handler to the root logger is it is propagated
     logger = logging.getLogger(rc_logger_name)
     logger.addHandler(file_handler)
-
-
 
 
 # TODO fill out the rest of the logic

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from typing import Type, ParamSpec, Literal, TypeVar, Any
 
@@ -22,6 +22,7 @@ class RequestCompletionMessage(ABC):
     """
     The base class for all messages on the request completion system.
     """
+
     def log_message(self) -> str:
         return repr(self)
 

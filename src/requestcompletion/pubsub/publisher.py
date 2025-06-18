@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import uuid
 
 from .messages import RequestCompletionMessage
@@ -90,7 +89,6 @@ class Publisher(Generic[_T]):
         # logger.debug(f"Publishing message: {message}")
         if not self._running:
             raise RuntimeError("Publisher is not currently running.")
-
 
         await self._queue.put(message)
 
@@ -243,5 +241,5 @@ class RCPublisher(Publisher[RequestCompletionMessage]):
 
     @classmethod
     async def logging_sub(cls, message: RequestCompletionMessage):
-        """ Logs the provided message as a debug message. """
+        """Logs the provided message as a debug message."""
         logger.debug(message.log_message())

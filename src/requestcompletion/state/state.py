@@ -229,7 +229,9 @@ class RCState:
         except Exception as e:
             # TODO improve this so we know the name of the node trying to be created in the case of a tool call llm.
             rfa = RequestFailureAction(
-                node_name=node.pretty_name() if hasattr(node, "pretty_name") else node.__name__,
+                node_name=node.pretty_name()
+                if hasattr(node, "pretty_name")
+                else node.__name__,
                 exception=e,
             )
             await self.publisher.publish(
