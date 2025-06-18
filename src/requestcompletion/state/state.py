@@ -7,9 +7,9 @@ from collections import deque
 
 from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING
 
-
 # all the things we need to import from RC directly.
 from .request import Cancelled, Failure
+from .utils import create_sub_state_info
 from ..context.central import update_parent_id
 from ..execution.coordinator import Coordinator
 from ..pubsub.publisher import RCPublisher
@@ -370,6 +370,17 @@ class RCState:
         return ExecutionInfo(
             node_heap=self._node_heap,
             request_heap=self._request_heap,
+            stamper=self._stamper,
+            exception_history=list(self.exception_history),
+        )
+
+    def get_info(self, ids: List[str] | str) -> ExecutionInfo:
+        filtered_nodes, filtered_requests = create_sub_state_info(
+            self._node_heap.heap(), self._request_heap.heap(), ids
+        )
+        return ExecutionInfo(
+            node_heap=filtered_nodes,
+            request_heap=filtered_requests,
             stamper=self._stamper,
             exception_history=list(self.exception_history),
         )
