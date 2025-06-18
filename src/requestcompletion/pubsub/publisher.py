@@ -13,7 +13,7 @@ from ..utils.logging.create import get_rc_logger
 _T = TypeVar("_T")
 _TOutput = TypeVar("_TOutput")
 
-logger = get_rc_logger(__name__)
+logger = get_rc_logger("Publisher")
 
 
 class Subscriber(Generic[_T]):
@@ -35,8 +35,8 @@ class Subscriber(Generic[_T]):
             result = self.callback(message)
             if asyncio.iscoroutine(result):
                 await result
-        except Exception as e:  # TODO: deal with this during logging task
-            logger.exception(msg=f"Error in {self.name}", exc_info=e)
+        except Exception as e:
+            logger.debug(msg=f"Error in {self.name}", exc_info=e)
 
 
 class RCPublisher(Generic[_T]):
