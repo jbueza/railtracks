@@ -44,7 +44,9 @@ def from_function(  # noqa: C901
     """
     A function to create a node from a function
     """
-    if not isinstance(func, types.BuiltinFunctionType):  # we don't require dict validation for builtin functions, that is handled separately.
+    if not isinstance(
+        func, types.BuiltinFunctionType
+    ):  # we don't require dict validation for builtin functions, that is handled separately.
         validate_function(func)  # checks for dict or Dict parameters
 
     # TODO figure out how to type this properly
