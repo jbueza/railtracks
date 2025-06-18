@@ -114,8 +114,8 @@ def from_function(  # noqa: C901
             Returns:
                 The converted value
             """
-            # If the value is None or the target_type is Any, return as is
-            if value is None or target_type is Any:
+            # If the value is None or the target_type is one of Any or inspect._empty, return as is since there is nothing to convert to
+            if value is None or target_type is Any or target_type is inspect._empty:
                 return value
 
             # Handle Pydantic models
@@ -155,9 +155,7 @@ def from_function(  # noqa: C901
             """Convert a value to a Pydantic model."""
             if isinstance(value, dict):
                 return model_class(**value)
-            elif hasattr(value, "__dict__"):
-                return model_class(**value.__dict__)
-            return value
+            raise UnsupportedParameterError(str(value), str(type(value)))
 
         @classmethod
         def _convert_to_sequence(
