@@ -36,6 +36,7 @@ if __name__ == "__main__":
     with rc.Runner(executor_config=ExecutorConfig(log_file=".logs/example.log")) as run:
         result = rc.call_sync(Calc, MessageHistory([UserMessage("What is 2^3 * 4 * 5 + (15^2)")]))
 
-        print("\n".join([str(x) for x in run.info.all_stamps]))
+        result_2 = rc.call_sync(Calc, MessageHistory([UserMessage("What is 2^3 * 4 * 5 + (15^2) + 100")]))
 
-        print(run.info.request_heap.heap())
+
+

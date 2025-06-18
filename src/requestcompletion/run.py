@@ -34,6 +34,9 @@ from .info import (
     ExecutionInfo,
 )
 from .state.state import RCState
+from .utils.logging.create import get_rc_logger
+
+logger = get_rc_logger("Runner")
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -113,6 +116,10 @@ class Runner:
         self.coordinator.start(self.publisher)
         self.setup_subscriber()
         register_globals(runner_id=self._identifier, rc_publisher=self.publisher)
+
+        logger.debug("Runner %s is initialized" % self._identifier)
+
+
 
 
     def __enter__(self):
