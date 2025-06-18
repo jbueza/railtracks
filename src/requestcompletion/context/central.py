@@ -63,6 +63,23 @@ def get_publisher() -> RCPublisher:
         )
     return context.publisher
 
+def get_runner_id() -> str:
+    """
+    Get the runner ID of the current thread's global variables.
+
+    Returns:
+        str: The runner ID associated with the current thread's global variables.
+
+    Raises:
+        RuntimeError: If the global variables have not been registered.
+    """
+    context = thread_context.get()
+    if context is None:
+        raise RuntimeError(
+            "Global variables have not been registered. Call `register_globals()` first."
+        )
+    return context.runner_id
+
 
 def get_parent_id() -> str | None:
     """
@@ -83,12 +100,12 @@ def get_parent_id() -> str | None:
 
 
 def register_globals(
-    rc_publisher: RCPublisher | None = None, parent_id: str | None = None
+    runner_id: str, rc_publisher: RCPublisher | None = None, parent_id: str | None = None
 ):
     """
     Register the global variables for the current thread.
     """
-    i_c = InternalContext(publisher=rc_publisher, parent_id=parent_id)
+    i_c = InternalContext(publisher=rc_publisher, parent_id=parent_id, runner_id=runner_id)
     thread_context.set(i_c)
 
 

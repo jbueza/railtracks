@@ -1,8 +1,16 @@
 import asyncio
+<<<<<<< Updated upstream
 from typing import TypeVar, ParamSpec, Callable, Dict, Any
 
 
 from .interaction.call import call
+=======
+import uuid
+import warnings
+from typing import TypeVar, ParamSpec, Callable, Coroutine, Dict, Any
+
+from examples.mcp_example import runner
+>>>>>>> Stashed changes
 from .config import ExecutorConfig
 from .context.central import (
     external_context,
@@ -88,6 +96,13 @@ class Runner:
         )
         self.publisher: RCPublisher[RequestCompletionMessage] = RCPublisher()
 
+<<<<<<< Updated upstream
+=======
+        self._identifier = str(uuid.uuid4())
+
+        register_globals(InternalContext(publisher=self.publisher, parent_id=None, runner_id=self._identifier))
+
+>>>>>>> Stashed changes
         executor_info = ExecutionInfo.create_new()
         self.coordinator = Coordinator(
             execution_modes={"async": AsyncioExecutionStrategy()}
@@ -96,9 +111,12 @@ class Runner:
             executor_info, executor_config, self.coordinator, self.publisher
         )
 
+<<<<<<< Updated upstream
         self.coordinator.start(self.publisher)
         self.setup_subscriber()
         register_globals(self.publisher)
+=======
+>>>>>>> Stashed changes
 
     def __enter__(self):
         return self
