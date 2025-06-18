@@ -5,7 +5,7 @@ import asyncio
 from typing_extensions import Self
 
 from ...llm.tools import Tool
-
+import types
 from typing import (
     Any,
     TypeVar,
@@ -44,8 +44,8 @@ def from_function(  # noqa: C901
     """
     A function to create a node from a function
     """
-
-    validate_function(func)  # checks for dict or Dict parameters
+    if not isinstance(func, types.BuiltinFunctionType):  # we don't require dict validation for builtin functions, that is handled separately.
+        validate_function(func)  # checks for dict or Dict parameters
 
     # TODO figure out how to type this properly
     class DynamicFunctionNode(Node[_TOutput], Generic[_P, _TOutput]):

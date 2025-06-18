@@ -86,53 +86,6 @@ def test_to_node():
     assert issubclass(secret_phrase, rc.Node)
     assert secret_phrase.pretty_name() == "secret_phrase Node"
 
-# ===== Test Errors =====
-DICT_ERROR_FROM_FUNCTION_MSG = r"Parameter '.*' contains a dictionary type at .*, which is not allowed\."
-
-def test_dict_parameter():
-    """Test that a function with a dict parameter raises an error."""
-    def secret_function(fruits: dict[str, str]) -> str:
-        return fruits.get("secret", "")
-    
-    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
-        _ = rc.library.from_function(secret_function)
-        
-
-def test_nested_dict_parameter():
-    """Test that a function with a nested dict parameter raises an error."""
-    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
-        @rc.to_node
-        def secret_function(fruits: list[Union[str, list[dict[str, str]]]]) -> str:
-            return "test"
-
-
-def test_bmodel_with_dict_param():
-    """Test that a BaseModel with a dict field raises an error when used as a function parameter."""
-    class MyModel(BaseModel):
-        name: str
-        age: int
-        data: dict[str, str]
-
-    def secret_function(model: MyModel) -> str:
-        pass
-    
-    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
-        _ = rc.library.from_function(secret_function)
-       
-
-def test_bmodel_with_nested_dict_param():
-    """Test that a BaseModel with a nested dict field raises an error when used as a function parameter."""
-    class InnerModel(BaseModel):
-        info: dict
-
-    class OuterModel(BaseModel):
-        inner: InnerModel
-
-    with pytest.raises(NodeCreationError, match=DICT_ERROR_FROM_FUNCTION_MSG):
-        @rc.to_node
-        def secret_function(model: OuterModel) -> str:
-            pass
-
 # ===== Test Classes =====
 class TestPrimitiveInputTypes:
     def test_empty_function(self):
@@ -188,6 +141,8 @@ class TestfunctionMethods:
 
 
 class TestRaiseErrors:
+    DICT_ERROR_FROM_FUNCTION_MSG = r"Parameter '.*' contains a dictionary type at .*, which is not allowed\."
+
     def test_builtin_function_raises_error(self):
         """Test that a builtin function raises error"""
         with pytest.raises(RuntimeError):
@@ -201,11 +156,50 @@ class TestRaiseErrors:
             with rc.Runner() as run:
                 run.run_sync(test_node)
 
-    def test_dict_for_kwarg_raises_error(self):
-        """Test that passing a dict for a kwarg raises an error since we don't support dicts as kwargs yet"""
-        with pytest.raises(UnsupportedParameterError):
-            test_node = from_function(func_kwarg_error_dict)
-            test_node.prepare_tool({"dict" : {"first": 5}})
+    def test_dict_parameter(self):
+        """Test that a function with a dict parameter raises an error."""
+        def secret_function(fruits: dict[str, str]) -> str:
+            return fruits.get("secret", "")
+        
+        with pytest.raises(NodeCreationError, match=self.DICT_ERROR_FROM_FUNCTION_MSG):
+            _ = rc.library.from_function(secret_function)
+            
+
+    def test_nested_dict_parameter(self):
+        """Test that a function with a nested dict parameter raises an error."""
+        with pytest.raises(NodeCreationError, match=self.DICT_ERROR_FROM_FUNCTION_MSG):
+            @rc.to_node
+            def secret_function(fruits: list[Union[str, list[dict[str, str]]]]) -> str:
+                return "test"
+
+
+    def test_bmodel_with_dict_param(self):
+        """Test that a BaseModel with a dict field raises an error when used as a function parameter."""
+        class MyModel(BaseModel):
+            name: str
+            age: int
+            data: dict[str, str]
+
+        def secret_function(model: MyModel) -> str:
+            pass
+        
+        with pytest.raises(NodeCreationError, match=self.DICT_ERROR_FROM_FUNCTION_MSG):
+            _ = rc.library.from_function(secret_function)
+        
+
+    def test_bmodel_with_nested_dict_param(self):
+        """Test that a BaseModel with a nested dict field raises an error when used as a function parameter."""
+        class InnerModel(BaseModel):
+            info: dict
+
+        class OuterModel(BaseModel):
+            inner: InnerModel
+
+        with pytest.raises(NodeCreationError, match=self.DICT_ERROR_FROM_FUNCTION_MSG):
+            @rc.to_node
+            def secret_function(model: OuterModel) -> str:
+                pass
+
 
     def test_pydantic_for_kwarg_raises_error(self):
         """Test that passing a dict for a kwarg raises an error since we don't support dicts as kwargs yet"""
