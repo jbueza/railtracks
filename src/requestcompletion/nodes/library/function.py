@@ -5,7 +5,7 @@ import asyncio
 from typing_extensions import Self
 
 from ...llm.tools import Tool
-
+import types
 from typing import (
     Any,
     TypeVar,
@@ -26,6 +26,7 @@ from ..nodes import Node
 import inspect
 from pydantic import BaseModel
 from ...exceptions import NodeCreationError
+from ...exceptions.node_creation.validation import validate_function
 from ...llm.tools.parameter_handlers import UnsupportedParameterError
 
 _TOutput = TypeVar("_TOutput")
@@ -43,6 +44,10 @@ def from_function(  # noqa: C901
     """
     A function to create a node from a function
     """
+    if not isinstance(
+        func, types.BuiltinFunctionType
+    ):  # we don't require dict validation for builtin functions, that is handled separately.
+        validate_function(func)  # checks for dict or Dict parameters
 
     # TODO figure out how to type this properly
     class DynamicFunctionNode(Node[_TOutput], Generic[_P, _TOutput]):
@@ -111,8 +116,8 @@ def from_function(  # noqa: C901
             Returns:
                 The converted value
             """
-            # If the value is None or the target_type is Any, return as is
-            if value is None or target_type is Any:
+            # If the value is None or the target_type is one of Any or inspect._empty, return as is since there is nothing to convert to
+            if value is None or target_type is Any or target_type is inspect._empty:
                 return value
 
             # Handle Pydantic models
@@ -152,9 +157,7 @@ def from_function(  # noqa: C901
             """Convert a value to a Pydantic model."""
             if isinstance(value, dict):
                 return model_class(**value)
-            elif hasattr(value, "__dict__"):
-                return model_class(**value.__dict__)
-            return value
+            raise UnsupportedParameterError(str(value), str(type(value)))
 
         @classmethod
         def _convert_to_sequence(
