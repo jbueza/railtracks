@@ -215,12 +215,13 @@ def call_sync(
 
     except RuntimeError:
         # If there is no running loop, we need to create one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
+        pass
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
             task = loop.create_task(call(node, *args, **kwargs))
             result = loop.run_until_complete(task)
-        finally:
+    finally:
             loop.close()
 
     return result

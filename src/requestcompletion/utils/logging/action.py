@@ -3,13 +3,12 @@ from typing import Tuple, Any, Dict
 
 
 class RCAction(ABC):
-    # TODO add different configuration modes for logging styles
     @abstractmethod
     def to_logging_msg(self) -> str:
         """Creates a string representation of this action designed to be logged"""
         pass
 
-    # TODO consider from an enacapsulation perspective if it would be better to handle the logging in this module or just return the message as normal
+
 
 
 class RequestCreationAction(RCAction):
@@ -26,10 +25,10 @@ class RequestCreationAction(RCAction):
         self.kwargs = input_kwargs
 
     def to_logging_msg(self) -> str:
-        return f"{self.parent_node_name} CREATED {self.child_node_name} - {arg_kwarg_logging_str(self.args, self.kwargs)}"
+        return f"{self.parent_node_name} CREATED {self.child_node_name}"
 
 
-class RequestCompletionAction(RCAction):
+class RequestSuccessAction(RCAction):
     def __init__(
         self,
         child_node_name: str,
@@ -39,10 +38,10 @@ class RequestCompletionAction(RCAction):
         self.output = output
 
     def to_logging_msg(self) -> str:
-        return f"{self.child_node_name} DONE {self.output}"
+        return f"{self.child_node_name} DONE"
 
 
-class NodeExceptionAction(RCAction):
+class RequestFailureAction(RCAction):
     def __init__(
         self,
         node_name: str,
@@ -52,7 +51,7 @@ class NodeExceptionAction(RCAction):
         self.exception = exception
 
     def to_logging_msg(self) -> str:
-        return f"{self.node_name} FAILED {self.exception}"
+        return f"{self.node_name} FAILED {type(self.exception)}"
 
 
 def arg_kwarg_logging_str(args, kwargs):

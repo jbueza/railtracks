@@ -1,4 +1,6 @@
 import logging
+import os
+import pathlib
 import warnings
 from typing import Literal
 import re
@@ -11,8 +13,10 @@ rc_logger = logging.getLogger(rc_logger_name)
 
 _default_format_string = "%(timestamp_color)s[+%(relative_seconds)-7ss] %(level_color)s%(name)-12s: %(levelname)-8s - %(message)s%(default_color)s"
 
+_file_format_string = "%(asctime)s %(levelname)s - %(message)s"
 # Initialize colorama
 init(autoreset=True)
+
 
 
 class ColorfulFormatter(logging.Formatter):
@@ -112,28 +116,27 @@ def setup_none_logger_config():
 
 # TODO Complete the file integration.
 def setup_file_handler(
-    file_name: str,
-    file_logging_config: dict | None,
+    *,
+    file_name: str | os.PathLike,
     file_logging_level: logging.DEBUG
     | logging.INFO
     | logging.WARNING
     | logging.ERROR
-    | logging.CRITICAL,
+    | logging.CRITICAL = logging.INFO,
 ):
+
+
     file_handler = logging.FileHandler(file_name)
     logging_level = logging.DEBUG if file_logging_level else file_logging_level
     file_handler.setLevel(logging_level)
 
     # date format include milliseconds for better resolution
-    if file_logging_config is not None:
-        user_provided_format = logging.Formatter(**file_logging_config)
-        file_handler.setFormatter(user_provided_format)
-    else:
-        default_formatter = logging.Formatter(
-            fmt="%(asctime)s - %(name)s - %(levelname)s - %(threadName)s %(message)s",
+
+    default_formatter = logging.Formatter(
+            fmt=_file_format_string,
         )
 
-        file_handler.setFormatter(default_formatter)
+    file_handler.setFormatter(default_formatter)
 
     # we want to add this file handler to the root logger is it is propagated
     logger = logging.getLogger(rc_logger_name)
@@ -142,28 +145,12 @@ def setup_file_handler(
 
 # TODO fill out the rest of the logic
 def prepare_logger(
+    *,
     setting: allowable_log_levels,
-    file_name: str | None = None,
-    file_logging_config: dict | None = None,
-    file_logging_level: (
-        logging.DEBUG
-        | logging.INFO
-        | logging.WARNING
-        | logging.ERROR
-        | logging.CRITICAL
-    ) = logging.DEBUG,
+    path: str | os.PathLike | None = None,
 ):
-    # the file injection will happen no matter what.
-    if file_name is not None:
-        setup_file_handler(file_name, file_logging_config, file_logging_level)
-    # We should raise a warning if the file logging config was provided
-    else:
-        if file_logging_config is not None:
-            warnings.warn(
-                "File logging config provided but no file was provided. The file logging config will be ignored"
-            )
-
-    # TODO: write logic to figure out how to check to make sure a logger has not already been created.
+    if path is not None:
+        setup_file_handler(file_name=path, file_logging_level=logging.INFO)
 
     # now for each of our predefined settings we will set up the logger.
     if setting == "VERBOSE":
@@ -184,7 +171,7 @@ def detach_logging_handlers():
     Shuts down the logging system and detaches all logging handlers.
     """
     # Get the root logger
-    for handler in logging.getLogger(rc_logger_name).handlers[:]:
-        # Remove all handlers from the logger
-        logging.getLogger(rc_logger_name).removeHandler(handler)
-        handler.close()
+    rc_logger.handlers.clear()
+
+
+

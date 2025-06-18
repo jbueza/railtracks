@@ -20,3 +20,5 @@ venv
 .venv
 
 .ruff_cache
+
+.logs
