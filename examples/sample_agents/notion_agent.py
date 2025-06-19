@@ -39,7 +39,6 @@ def notion_agent(  # noqa: C901
     notion_api_token: str | None = None,
     pretty_name: str | None = None,
     model: ModelBase | None = None,
-    check_in: int | None = None,
     system_message: SystemMessage | str | None = SYSTEM_MESSAGE,
     output_type: Literal["MessageHistory", "LastMessage"] = "LastMessage",
     output_model: BaseModel | None = None,
