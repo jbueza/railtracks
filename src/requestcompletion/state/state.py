@@ -367,9 +367,7 @@ class RCState:
             return Failure(exception)
 
         # for any other error we want it to bubble up so the user can handle.
-        self.logger.error(
-            node_exception_action.to_logging_msg(), exc_info=exception
-        )
+        self.logger.error(node_exception_action.to_logging_msg(), exc_info=exception)
         return Failure(exception)
 
     @property
