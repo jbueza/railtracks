@@ -99,6 +99,7 @@ class TestPrimitiveInputTypes:
         test_node = from_function(empty_function)
         with rc.Runner() as run:
             result = run.run_sync(test_node).answer
+
         assert "This is an empty function." == result
 
 
