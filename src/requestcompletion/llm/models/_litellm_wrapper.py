@@ -11,7 +11,7 @@ from ..message import Message
 from ..response import Response
 from ..history import MessageHistory
 from ..message import AssistantMessage, ToolMessage
-from ..content import ToolCall
+from ..content import ToolCall, ToolCallList, BaseModelContent
 from ..tools import Tool, Parameter
 import warnings
 
@@ -115,8 +115,8 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
         base["tool_call_id"] = msg.content.identifier
         base["content"] = msg.content.result
     # only time this is true is tool calls, need to return litellm.utils.Message
-    elif isinstance(msg.content, list):
-        assert all(isinstance(t_c, ToolCall) for t_c in msg.content)
+    elif isinstance(msg.content, ToolCallList):
+        assert all(isinstance(t_c, ToolCall) for t_c in msg.content.to_llm)
         base["content"] = ""
         base["tool_calls"] = [
             litellm.utils.ChatCompletionMessageToolCall(
@@ -126,10 +126,10 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
                 id=tool_call.identifier,
                 type="function",
             )
-            for tool_call in msg.content
+            for tool_call in msg.content.to_llm
         ]
     else:
-        base["content"] = msg.content
+        base["content"] = msg.content.to_llm
     return base
 
 
@@ -190,7 +190,7 @@ class LiteLLMWrapper(ModelBase):
             raw = self._invoke(messages, response_format=schema, **kwargs)
             content_str = raw["choices"][0]["message"]["content"]
             parsed = schema(**json.loads(content_str))
-            return Response(message=AssistantMessage(content=parsed))
+            return Response(message=AssistantMessage(content=BaseModelContent(parsed)))
         except ValidationError as ve:
             raise ValueError(f"Schema validation failed: {ve}") from ve
         except Exception as e:
@@ -243,7 +243,7 @@ class LiteLLMWrapper(ModelBase):
                 ToolCall(identifier=tc.id, name=tc.function.name, arguments=args)
             )
 
-        return Response(message=AssistantMessage(content=calls))
+        return Response(message=AssistantMessage(content=ToolCallList(calls)))
 
     def __str__(self) -> str:
         parts = self._model_name.split("/", 1)
