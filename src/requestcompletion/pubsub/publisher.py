@@ -55,7 +55,7 @@ class RCPublisher(Generic[_T]):
     def __init__(
         self,
     ):
-        self._queue: asyncio.Queue[_T] = asyncio.Queue()
+        self._queue: asyncio.Queue[_T] | None = None
         self._subscribers: List[Subscriber[_T]] = []
 
         self._running = False
@@ -70,6 +70,7 @@ class RCPublisher(Generic[_T]):
     async def start(self):
         # you must set the kill variables first or the publisher loop will early exit.
         self._running = True
+        self._queue = asyncio.Queue()
         self.pub_loop = asyncio.create_task(
             self._published_data_loop(), name="Publisher Loop"
         )
