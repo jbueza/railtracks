@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 
-from .messages import RequestCompletionMessage
+from .messages import RequestCompletionMessage, RequestCreationFailure, RequestFailure
 
 from typing import List, Callable, TypeVar, Generic, Coroutine
 
@@ -242,4 +242,7 @@ class RCPublisher(Publisher[RequestCompletionMessage]):
     @classmethod
     async def logging_sub(cls, message: RequestCompletionMessage):
         """Logs the provided message as a debug message."""
-        logger.debug(message.log_message())
+        if isinstance(message, (RequestCreationFailure, RequestFailure)):
+            logger.debug(message.log_message(), exc_info=message.error)
+        else:
+            logger.debug(message.log_message())
