@@ -73,9 +73,32 @@ class ExecutionInfo:
         return self.request_heap.insertion_request
 
     def get_info(self, ids: List[str] | str | None = None) -> ExecutionInfo:
+        """
+        Gets a subset of the current state based on the provided node ids. It will contain all the children of the provided node ids
+
+        Note: If no ids are provided, the full state is returned.
+
+        Args:
+            ids (List[str] | str | None): A list of node ids to filter the state by. If None, the full state is returned.
+
+        Returns:
+            ExecutionInfo: A new instance of ExecutionInfo containing only the children of the provided ids.
+
+        """
         if ids is None:
             return self
         else:
+            # firstly lets
+            if isinstance(ids, str):
+                ids = [ids]
+
+            # we need to quickly check to make sure these ids are valid
+            for identifier in ids:
+                if identifier not in self.node_heap:
+                    raise ValueError(
+                        f"Identifier '{identifier}' not found in the current state."
+                    )
+
             new_node_forest, new_request_forest = create_sub_state_info(
                 self.node_heap.heap(),
                 self.request_heap.heap(),
