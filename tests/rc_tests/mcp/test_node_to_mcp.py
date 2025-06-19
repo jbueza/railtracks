@@ -14,6 +14,8 @@ from mcp.server import FastMCP
 
 import socket
 import pytest
+
+
 # --------------------------------------------------------------------------- #
 #                         Helper: get the next free port                      #
 # --------------------------------------------------------------------------- #
@@ -32,6 +34,7 @@ def get_free_port(start_from: int = 8000, upper_bound: int = 50_000) -> int:
                 port += 1
     raise RuntimeError("Could not find a free port in the requested range")
 
+
 if __name__ == "__main__":
     # Example usage
     try:
@@ -48,8 +51,8 @@ def add_nums(num1: int, num2: int, print_s: str):
 
 node = rc_library.from_function(add_nums)
 
-FAST_MCP_PORT = get_free_port(8000)  
-print(f"FastMCP port: {FAST_MCP_PORT}")
+FAST_MCP_PORT = get_free_port(8000)
+
 
 def run_server():
     """
