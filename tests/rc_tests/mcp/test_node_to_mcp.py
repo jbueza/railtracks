@@ -1,57 +1,44 @@
 import asyncio
-import sys
-import subprocess
+import pytest
 import time
+import threading
 
 import requestcompletion as rc
-import tempfile
-import os
-import textwrap
-
-import pytest
+from requestcompletion.mcp.to_node import create_mcp_server
 from requestcompletion.mcp import MCPHttpParams
 from requestcompletion.nodes.library import from_mcp_server
 
+# ---- Node and MCP server setup as normal ----
 
-def make_server_script():
-    # Write a minimal server script to a temp file
-    script = textwrap.dedent("""
-        import sys
-        import requestcompletion as rc
-        from requestcompletion.mcp.to_node import create_mcp_server
+def add_nums(num1: int, num2: int, print_s: str):
+    return num1 + num2 + 10
 
-        def add_nums(num1: int, num2: int, print_s: str):
-            return num1 + num2 + 10
+node = rc.library.from_function(add_nums)
 
-        node = rc.library.from_function(add_nums)
-
-        if __name__ == "__main__":
-            mcp = create_mcp_server([node])
-            mcp.run(transport='streamable-http')
-    """)
-    fd, path = tempfile.mkstemp(suffix=".py")
-    with os.fdopen(fd, "w") as f:
-        f.write(script)
-    return path
-
+def run_server():
+    """Runs MCP server in current thread (blocking)."""
+    mcp = create_mcp_server([node])
+    # streamable-http uses asyncio.run() inside, so just call .run()
+    mcp.run(transport="streamable-http")
 
 @pytest.fixture(scope="module")
 def mcp_server():
-    script_path = make_server_script()
-    proc = subprocess.Popen([sys.executable, script_path])
-    # Wait for server to start
+    # Run the server in a background thread
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+    # Wait for server to be ready
     time.sleep(3)
     yield
-    proc.terminate()
-    proc.wait()
-    os.remove(script_path)
-
 
 def test_add_nums_tool(mcp_server):
     tools = from_mcp_server(MCPHttpParams(url="http://127.0.0.1:8000/mcp"))
     assert len(tools) == 1
 
-    with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)) as runner:
+    with rc.Runner(
+        executor_config=rc.ExecutorConfig(logging_setting="QUIET", timeout=1000)
+    ) as runner:
         response = asyncio.run(runner.run(tools[0], num1=1, num2=3, print_s="Hello"))
 
-    assert response.answer[0].text == "14", f"Expected 14, got {response.answer[0].text}"
+    assert (
+        response.answer[0].text == "14"
+    ), f"Expected 14, got {response.answer[0].text}"
