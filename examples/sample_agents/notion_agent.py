@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from mcp import StdioServerParameters
 import warnings
 from copy import deepcopy
@@ -21,30 +23,46 @@ from requestcompletion.llm.message import Role
 from typing_extensions import Self
 from requestcompletion.exceptions import NodeCreationError
 from requestcompletion.exceptions.node_creation.validation import validate_tool_metadata
-from requestcompletion.exceptions.node_invocation.validation import check_model, check_message_history
-from inspect import isclass, isfunction
-from requestcompletion.nodes.library.function import from_function
+from requestcompletion.exceptions.node_invocation.validation import (
+    check_model,
+    check_message_history,
+)
 import requestcompletion as rc
 
-
+load_dotenv()
 MCP_COMMAND = "npx"
 MCP_ARGS = ["-y", "@notionhq/notion-mcp-server"]
-SYSTEM_MESSAGE = """You are a master notion page designer. You love creating beautiful and well-structured Notion pages and .
-    If you are asked to do anything in notion, always use the page `Agent Demo Root` as the parent page and
-    make sure everything is formatted correctly."""
-
+SYSTEM_MESSAGE = """You are a master notion page designer. You love creating beautiful and well-structured Notion pages and make sure that everything is correctly formatted."""
 
 
 def notion_agent(  # noqa: C901
-    notion_api_token: str,
+    notion_api_token: str | None = None,
     pretty_name: str | None = None,
     model: ModelBase | None = None,
-    system_message: SystemMessage | str | None = None,
+    check_in: int | None = None,
+    system_message: SystemMessage | str | None = SYSTEM_MESSAGE,
     output_type: Literal["MessageHistory", "LastMessage"] = "LastMessage",
     output_model: BaseModel | None = None,
     tool_details: str | None = None,
     tool_params: dict | None = None,
 ) -> Type[OutputLessToolCallLLM[Union[MessageHistory, AssistantMessage, BaseModel]]]:
+    # Look to see if the user has set the NOTION_TOKEN environment variable
+    if notion_api_token is None:
+        if os.getenv("NOTION_TOKEN"):
+            notion_api_token = os.getenv("NOTION_TOKEN")
+        else:
+            raise NodeCreationError(
+                "Notion API token not found",
+                [
+                    "Please set a NOTION_TOKEN in your .env or pass it as a parameter to the notion_agent function."
+                ],
+            )
+    # Look to see if the user has set the NOTION_ROOT_PAGE_ID environment variable
+    if os.getenv("NOTION_ROOT_PAGE_ID"):
+        system_message = SYSTEM_MESSAGE + (
+            f"Use the page with ID {os.getenv('NOTION_ROOT_PAGE_ID')} as the parent page for your operations."
+        )
+
     if output_model:
         OutputType = output_model  # noqa: N806
     else:
@@ -64,7 +82,7 @@ def notion_agent(  # noqa: C901
             args=MCP_ARGS,
             env={
                 "OPENAPI_MCP_HEADERS": f'{{"Authorization": "Bearer {notion_api_token}", "Notion-Version": "2022-06-28" }}'
-            }
+            },
         )
     )
     connected_nodes = {*tools}
