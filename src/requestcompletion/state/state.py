@@ -240,7 +240,7 @@ class RCState:
                     error=e,
                 )
             )
-            self.logger.exception(rfa.to_logging_msg(), exc_info=e)
+            self.logger.exception(rfa.to_logging_msg())
             raise e
         # you have to run this in a task so it isn't blocking other completions
         outputs = asyncio.create_task(self._run_request(request_id))
@@ -367,7 +367,7 @@ class RCState:
             return Failure(exception)
 
         # for any other error we want it to bubble up so the user can handle.
-        self.logger.exception(
+        self.logger.error(
             node_exception_action.to_logging_msg(), exc_info=exception
         )
         return Failure(exception)
