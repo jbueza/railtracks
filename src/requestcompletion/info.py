@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, TypeVar
 
+from .state.utils import create_sub_state_info
 from .utils.profiling import Stamp, StampManager
 from .state.request import RequestForest
 from .state.node import NodeForest
@@ -65,6 +66,27 @@ class ExecutionInfo:
     def all_stamps(self) -> List[Stamp]:
         """Convenience method to access all the stamps of the run."""
         return self.stamper.all_stamps
+
+    @property
+    def insertion_requests(self):
+        """A convenience method to access all the insertion requests of the run."""
+        return self.request_heap.insertion_request
+
+    def get_info(self, ids: List[str] | str | None = None) -> ExecutionInfo:
+        if ids is None:
+            return self
+        else:
+            new_node_forest, new_request_forest = create_sub_state_info(
+                self.node_heap.heap(),
+                self.request_heap.heap(),
+                ids,
+            )
+            return ExecutionInfo(
+                node_heap=new_node_forest,
+                request_heap=new_request_forest,
+                stamper=self.stamper,
+                exception_history=list(self.exception_history),
+            )
 
     def view_graph(self):
         """A convenience method used to view a graph representation of the run."""
