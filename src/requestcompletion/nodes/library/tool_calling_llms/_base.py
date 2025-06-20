@@ -1,8 +1,8 @@
 import asyncio
 from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Union, Callable
 from copy import deepcopy
-from ..nodes import Node
-from ...llm import (
+from ...nodes import Node
+from ....llm import (
     MessageHistory,
     ModelBase,
     ToolCall,
@@ -10,10 +10,10 @@ from ...llm import (
     ToolMessage,
     UserMessage,
 )
-from ...interaction.call import call
+from ....interaction.call import call
 from abc import ABC, abstractmethod
-from ...exceptions import NodeCreationError, LLMError
-from ...exceptions.node_invocation.validation import check_message_history
+from ....exceptions import NodeCreationError, LLMError
+from ....exceptions.node_invocation.validation import check_message_history
 
 _T = TypeVar("_T")
 _P = ParamSpec("_P")

@@ -11,7 +11,7 @@ from ....llm import (
     Tool,
 )
 from ....nodes.library import structured_llm
-from ....nodes.library._tool_call_llm_base import (
+from ..tool_calling_llms._base import (
     OutputLessToolCallLLM,
 )
 from ....nodes.nodes import Node

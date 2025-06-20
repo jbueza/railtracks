@@ -1,6 +1,6 @@
-from ._tool_call_llm_base import OutputLessToolCallLLM
-from ...llm import MessageHistory, ModelBase, SystemMessage
-from .easy_usage_wrappers.structured_llm import structured_llm
+from ._base import OutputLessToolCallLLM
+from ....llm import MessageHistory, ModelBase, SystemMessage
+from ..easy_usage_wrappers.structured_llm import structured_llm
 from pydantic import BaseModel
 from abc import ABC
 
