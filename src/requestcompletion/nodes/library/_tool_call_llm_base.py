@@ -142,6 +142,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 )
 
         if self.structured_resp_node:
+            print("Message history for structured output:", self.message_hist)
             try:
                 self.structured_output = await call(
                     self.structured_resp_node,

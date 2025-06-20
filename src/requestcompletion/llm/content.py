@@ -51,6 +51,12 @@ class ToolCallList(Content):
 
         super().__init__(tool_calls=tool_calls)
 
+    def __str__(self):
+        """
+        String representation of the ToolCallList.
+        """
+        return str(self.tool_calls)
+
     @property
     def to_llm(self):
         """
@@ -92,6 +98,12 @@ class StringContent(Content):
 
         super().__init__(string=string)
 
+    def __str__(self):
+        """
+        String representation of the BaseModelContent.
+        """
+        return format_message_with_context(self.string)
+
     @property
     def to_llm(self):
         """
@@ -111,16 +123,22 @@ class BaseModelContent(Content):
         description="The base model content of the message."
     )
 
-    def __init__(self, base_model):
+    def __init__(self, base_model: BaseModel):
         # Allow positional argument for tool_calls
         if not isinstance(base_model, BaseModel):
             raise TypeError("base_model must be an instance of BaseModel")
 
         super().__init__(base_model=base_model)
 
+    def __str__(self):
+        """
+        String representation of the BaseModelContent.
+        """
+        return str(self.base_model)
+
     @property
     def to_llm(self):
         """
         Convert the BaseModelContent to a format suitable for LLM processing.
         """
-        return self.content
+        return self.base_model

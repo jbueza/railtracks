@@ -86,6 +86,7 @@ class RCPublisher(Generic[_T]):
 
         """
         # logger.debug(f"Publishing message: {message}")
+        print(f"Publishing message: {message}, {str(message)}")
         if not self._running:
             raise RuntimeError("Publisher is not currently running.")
 

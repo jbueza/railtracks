@@ -189,7 +189,9 @@ class LiteLLMWrapper(ModelBase):
         try:
             raw = self._invoke(messages, response_format=schema, **kwargs)
             content_str = raw["choices"][0]["message"]["content"]
+            print(f"Structured response content: {content_str!r}")
             parsed = schema(**json.loads(content_str))
+            print(f"Parsed structured response: {parsed!r}")
             return Response(message=AssistantMessage(content=BaseModelContent(parsed)))
         except ValidationError as ve:
             raise ValueError(f"Schema validation failed: {ve}") from ve
