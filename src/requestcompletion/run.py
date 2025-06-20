@@ -1,8 +1,11 @@
 import asyncio
-from typing import TypeVar, ParamSpec, Callable, Dict, Any
 
 
 from .interaction.call import call
+
+from typing import TypeVar, ParamSpec, Callable, Dict, Any
+
+
 from .config import ExecutorConfig
 from .context.central import (
     external_context,
@@ -27,6 +30,9 @@ from .info import (
     ExecutionInfo,
 )
 from .state.state import RCState
+from .utils.logging.create import get_rc_logger
+
+logger = get_rc_logger("Runner")
 
 _TOutput = TypeVar("_TOutput")
 _P = ParamSpec("_P")
@@ -85,8 +91,11 @@ class Runner:
         # TODO see issue about logger
         prepare_logger(
             setting=executor_config.logging_setting,
+            path=executor_config.log_file,
         )
         self.publisher: RCPublisher[RequestCompletionMessage] = RCPublisher()
+
+        self._identifier = executor_config.run_identifier
 
         executor_info = ExecutionInfo.create_new()
         self.coordinator = Coordinator(
@@ -98,7 +107,9 @@ class Runner:
 
         self.coordinator.start(self.publisher)
         self.setup_subscriber()
-        register_globals(self.publisher)
+        register_globals(runner_id=self._identifier, rc_publisher=self.publisher)
+
+        logger.debug("Runner %s is initialized" % self._identifier)
 
     def __enter__(self):
         return self
