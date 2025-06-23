@@ -773,12 +773,42 @@ class TestLimitedToolCallLLM:
         assert isinstance(response, str)
         assert rc.context.get("tools_called") == 1
 
+    @pytest.mark.asyncio
+    async def test_context_reset_between_runs(self, model, simple_tools):
+        """Test that tools_called context variable is reset between runs."""
+        class SimpleToolNode(LimitedToolCallLLM):
+            def __init__(self, message_history: MessageHistory, model: rc.llm.ModelBase = model):
+                message_history.insert(0, SystemMessage("You are a number generator."))
+                super().__init__(message_history, model, max_tool_calls=1)
+
+            @classmethod
+            def connected_nodes(cls):
+                return {from_function(simple_tools)}
+
+            @classmethod
+            def pretty_name(cls) -> str:
+                return "Simple Tool Node"
+
+        message_history = MessageHistory(
+            [UserMessage("Give me a random number.")]
+        )
+        rc.context.put("tools_called", 0)
+        response = await rc.call(SimpleToolNode, message_history=message_history)
+        assert rc.context.get("tools_called") == 1
+
+        # Reset context and run again
+        rc.context.put("tools_called", 0)
+        response2 = await rc.call(SimpleToolNode, message_history=message_history)      # this run should be unaffected by the previous run
+        assert rc.context.get("tools_called") == 1
+
+
     def run_all_tests(self):
         self.test_allows_only_one_toolcall()
         self.test_zero_tool_calls_forces_final_answer()
         self.test_multiple_tool_calls_limit()
         self.test_negative_tool_calls_raises()
         self.test_works_with_different_tools()
+        self.test_context_reset_between_runs()
  
 @pytest.mark.asyncio
 async def limited_tool_call_tests(model, travel_planner_tools):
