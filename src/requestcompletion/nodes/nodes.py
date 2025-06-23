@@ -95,7 +95,10 @@ class NodeState(Generic[_TNode]):
         return self.node
 
 
-class DebugDetails(ABC, BaseModel):
+class DebugDetails(ABC):
+    pass
+
+class EmptyDebugDetails(DebugDetails):
     pass
 
 
@@ -107,7 +110,14 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
     ):
         # each fresh node will have a generated uuid that identifies it.
         self.uuid = str(uuid.uuid4())
-        self._debug_details: DebugDetails
+
+    @property
+    def debug_details(self) -> DebugDetails:
+        """
+        Returns a debug details object that contains information about the node.
+        This is used for debugging and logging purposes.
+        """
+        return EmptyDebugDetails()
 
     @classmethod
     @abstractmethod

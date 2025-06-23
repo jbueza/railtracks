@@ -153,6 +153,7 @@ class LiteLLMWrapper(ModelBase):
         pass
 
     def __init__(self, model_name: str, **kwargs):
+        super().__init__(**kwargs)
         self._model_name = model_name
         self._default_kwargs = kwargs
 
@@ -181,12 +182,12 @@ class LiteLLMWrapper(ModelBase):
             model=self._model_name, messages=litellm_messages, stream=stream, **merged
         )
 
-    def chat(self, messages: MessageHistory, **kwargs) -> Response:
+    def _chat(self, messages: MessageHistory, **kwargs) -> Response:
         raw = self._invoke(messages, **kwargs)
         content = raw["choices"][0]["message"]["content"]
         return Response(message=AssistantMessage(content=content))
 
-    def structured(
+    def _structured(
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
     ) -> Response:
         try:
@@ -202,7 +203,7 @@ class LiteLLMWrapper(ModelBase):
                 message_history=messages,
             ) from e
 
-    def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
+    def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         stream_iter = self._invoke(messages, stream=True, **kwargs)
 
         def streamer() -> Generator[str, None, None]:
@@ -211,7 +212,7 @@ class LiteLLMWrapper(ModelBase):
 
         return Response(message=None, streamer=streamer())
 
-    def chat_with_tools(
+    def _chat_with_tools(
         self, messages: MessageHistory, tools: List[Tool], **kwargs: Any
     ) -> Response:
         """
