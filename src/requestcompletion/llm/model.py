@@ -45,14 +45,14 @@ class ModelBase(ABC):
         """Removes the post-hook."""
         self._post_hook = []
 
-    @property
+    @abstractmethod
     def model_name(self) -> str | None:
         return None
 
-    @property
-    def model_provider(self) -> str | None:
+    @classmethod
+    @abstractmethod
+    def model_type(cls) -> str | None:
         return None
-
 
     def chat(
         self, messages: MessageHistory, **kwargs

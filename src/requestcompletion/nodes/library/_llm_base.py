@@ -66,8 +66,8 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
             RequestDetails(
                 message_input=deepcopy(message_history),
                 output=deepcopy(response.message),
-                model_name=self.model.model_name,
-                model_provider=self.model.model_provider,
+                model_name=self.model.model_name(),
+                model_provider=self.model.model_type(),
             )
         )
 

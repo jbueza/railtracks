@@ -17,9 +17,7 @@ class ProviderLLMWrapper(LiteLLMWrapper):
 
         super().__init__(model_name=model_name, **kwargs)
 
-    @classmethod
-    def model_type(cls) -> str:
-        raise NotImplementedError("Subclasses must implement `model_type` method.")
+
 
     def chat_with_tools(self, messages, tools, **kwargs):
         if not litellm.supports_function_calling(model=self._model_name):
