@@ -14,6 +14,8 @@ from requestcompletion.llm import (
 from typing import List
 
 from requestcompletion.llm.response import Response
+from tests.rc_tests.execution.test_task import hello_world
+
 
 # ======================================================= START Mock LLM + Messages Testing ========================================================
 def test_simple_message(mock_llm):
@@ -31,6 +33,68 @@ def test_simple_message(mock_llm):
     assert response.message.content == hello_world
     assert response.message.role == "assistant"
 
+
+
+def test_simple_message_with_pre_hook(mock_llm):
+    hello_world = "Hello world"
+
+    def chat_mock(message_history: MessageHistory):
+        for m in message_history:
+            assert isinstance(m.content, str)
+            assert m.content.islower()
+
+        return Response(AssistantMessage(hello_world))
+
+    model = mock_llm(chat=lambda x: Response(AssistantMessage(hello_world)))
+    model.add_pre_hook(lambda x: MessageHistory([UserMessage(m.content.lower()) for m in x]))
+    mess_hist = MessageHistory(
+        [
+            UserMessage(
+                "When learning a programming langauge, you are often told to print out a statement. What is this statement?"
+            )
+        ]
+    )
+    response = model.chat(mess_hist)
+    assert response.message.content == hello_world
+
+def test_simple_message_with_post_hook(mock_llm):
+    hello_world = "Hello world"
+
+    def chat_mock(message_history: MessageHistory):
+        return Response(AssistantMessage(hello_world))
+
+    model = mock_llm(chat=chat_mock)
+    model.add_post_hook(lambda x, y: Response(AssistantMessage(y.message.content.upper())))
+    mess_hist = MessageHistory(
+        [
+            UserMessage(
+                "When learning a programming langauge, you are often told to print out a statement. What is this statement?"
+            )
+        ]
+    )
+    response = model.chat(mess_hist)
+
+    assert response.message.content == hello_world.upper()
+
+def test_simple_message_with_multiple_post_hook(mock_llm):
+    hello_world = "Hello world"
+
+    def chat_mock(message_history: MessageHistory):
+        return Response(AssistantMessage(hello_world))
+
+    model = mock_llm(chat=chat_mock)
+    model.add_post_hook(lambda x, y: Response(AssistantMessage(y.message.content.upper())))
+    model.add_post_hook(lambda x, y: Response(AssistantMessage(y.message.content.lower())))
+    mess_hist = MessageHistory(
+        [
+            UserMessage(
+                "When learning a programming langauge, you are often told to print out a statement. What is this statement?"
+            )
+        ]
+    )
+    response = model.chat(mess_hist)
+
+    assert response.message.content == hello_world.lower()
 
 def test_simple_message_2(mock_llm):
     hello_world = "Hello World"
