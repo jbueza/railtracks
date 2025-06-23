@@ -164,9 +164,6 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
     def safe_copy(self) -> Self:
         """
         A method used to create a new pass by value copy of every element of the node except for the backend connections.
-
-        The backend connections include the data streamer, create_node_hook and invoke_node_hook.
-
         """
         cls = self.__class__
         result = cls.__new__(cls)
@@ -175,4 +172,4 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
         return result
 
     def __repr__(self):
-        return f"{self.pretty_name()}: {self.state_details()}"
+        return f"{hex(id(self))}: {self.pretty_name()}: {self.state_details()}"
