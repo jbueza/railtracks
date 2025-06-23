@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 class ExternalContext(ABC):
     @abstractmethod
-    def define(self, data: Dict[str, Any]) -> None:
+    def update(self, data: Dict[str, Any]) -> None:
         pass
 
     @abstractmethod
@@ -27,25 +27,19 @@ class ExternalContext(ABC):
         return self.get(item, default=None)
 
 
-class ImmutableExternalContext(ExternalContext):
+class MutableExternalContext(ExternalContext):
     """
-    An immutable context that cannot be modified after it had been defined. You may only ask to `get` objects.
+    A context that can be initially defined, then be interacted with using the `get` and `put` methods.
     """
 
     def __init__(self):
         self._context_var_store = {}
 
-    def define(self, data: Dict[str, Any]) -> None:
+    def update(self, data: Dict[str, Any]) -> None:
         """
-        Sets the values in the context. This will raise an error if the context has already been defined.
-
-        Once set you cannot reset it.
+        Sets the values in the context. If the context already has values, this will overwrite them, but it will not
+        delete any existing keys.
         """
-        if len(self._context_var_store) > 0:
-            raise RuntimeError(
-                "Cannot submit new context to ImmutableExternalContext after its been created."
-            )
-
         for key, value in data.items():
             self._context_var_store[key] = value
 
@@ -67,12 +61,4 @@ class ImmutableExternalContext(ExternalContext):
         key: str,
         value: Any,
     ):
-        raise ImmutableContextError("Cannot set values. This context is immutable.")
-
-
-class ImmutableContextError(RuntimeError):
-    """
-    Raised when trying to modify an ImmutableExternalContext.
-    """
-
-    pass
+        self._context_var_store[key] = value

@@ -174,6 +174,9 @@ class LiteLLMWrapper(ModelBase):
         merged = {**self._default_kwargs, **call_kwargs}
         if response_format is not None:
             merged["response_format"] = response_format
+        warnings.filterwarnings(
+            "ignore", category=UserWarning, module="pydantic.*"
+        )  # Supress pydantic warnings. See issue #204 for more deatils.
         return litellm.completion(
             model=self._model_name, messages=litellm_messages, stream=stream, **merged
         )
@@ -225,7 +228,6 @@ class LiteLLMWrapper(ModelBase):
 
         litellm_tools = [_to_litellm_tool(t) for t in tools]
 
-        kwargs.setdefault("tool_choice", "auto")
         kwargs["tools"] = litellm_tools
 
         resp = self._invoke(messages, **kwargs)
