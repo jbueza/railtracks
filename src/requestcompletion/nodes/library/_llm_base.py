@@ -9,6 +9,7 @@ import requestcompletion.llm as llm
 from requestcompletion.llm.response import Response
 from typing import NamedTuple, List, TypeVar, Generic
 
+from ...prompts.prompt import inject_context
 
 _T = TypeVar("_T")
 
@@ -43,6 +44,7 @@ class LLMDebug(DebugDetails):
 
         self.message_details: List[RequestDetails] = message_details
 
+
 class LLMBase(Node[_T], ABC, Generic[_T]):
 
     def __init__(self, model: llm.ModelBase, message_history: llm.MessageHistory):
@@ -58,8 +60,7 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
 
     def pre_llm_hook(self, message_history: llm.MessageHistory) -> llm.MessageHistory:
         """Hook to modify messages before sending them to the model."""
-        # TODO @levi
-        return message_history
+        return inject_context(message_history)
 
     def post_llm_hook(self, message_history: llm.MessageHistory, response: Response):
         self._debug_details.message_details.append(
@@ -72,7 +73,6 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
         )
 
         return response
-
 
     def debug_details(self):
         return self._debug_details

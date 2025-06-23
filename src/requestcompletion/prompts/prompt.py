@@ -1,7 +1,7 @@
 import string
 import yaml
 from ..context import get
-from ..llm import MessageHistory
+from ..llm import MessageHistory, Message
 
 
 def fill_prompt(prompt: str) -> str:
@@ -25,18 +25,11 @@ def inject_context(message_history: MessageHistory) -> MessageHistory:
     Returns:
         str: The prompt with the context injected.
     """
-    for message in message_history:
-        if message.role == "system":
-            continue
-        if message.content is None:
-            continue
+    for i, message in enumerate(message_history):
         if isinstance(message.content, str):
-            message.content = fill_prompt(message.content)
-        elif isinstance(message.content, dict):
-            message_history[i].content = yaml.safe_dump(
-                fill_prompt(yaml.safe_dump(message.content))
+            message_history[i] = Message(
+                role=message.role.value,
+                content=fill_prompt(message.content)
             )
-        else:
-            raise TypeError(
-                f"Unsupported content type: {type(message.content)}. Expected str or dict."
-            )
+
+    return message_history
