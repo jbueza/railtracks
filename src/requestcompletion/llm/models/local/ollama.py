@@ -102,8 +102,10 @@ class OllamaLLM(LiteLLMWrapper):
 
         return super().chat_with_tools(messages, tools, **kwargs)
 
+    @property
     def model_name(self) -> str:
         return self._model_name
 
+    @property
     def model_provider(self) -> str:
         return "Ollama"
