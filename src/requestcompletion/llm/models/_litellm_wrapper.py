@@ -229,7 +229,6 @@ class LiteLLMWrapper(ModelBase):
 
         litellm_tools = [_to_litellm_tool(t) for t in tools]
 
-        kwargs.setdefault("tool_choice", "auto")
         kwargs["tools"] = litellm_tools
 
         resp = self._invoke(messages, **kwargs)

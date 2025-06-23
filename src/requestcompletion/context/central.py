@@ -5,7 +5,7 @@ import warnings
 from typing import Any, Callable
 
 
-from requestcompletion.context.external import ImmutableExternalContext, ExternalContext
+from requestcompletion.context.external import MutableExternalContext, ExternalContext
 
 
 from requestcompletion.config import ExecutorConfig
@@ -13,7 +13,7 @@ from requestcompletion.context.internal import InternalContext
 from requestcompletion.pubsub.publisher import RCPublisher
 
 external_context: contextvars.ContextVar[ExternalContext] = contextvars.ContextVar(
-    "external_context", default=ImmutableExternalContext()
+    "external_context", default=MutableExternalContext()
 )
 config: contextvars.ContextVar[ExecutorConfig | None] = contextvars.ContextVar(
     "executor_config", default=ExecutorConfig()
