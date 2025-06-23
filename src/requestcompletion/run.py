@@ -85,7 +85,7 @@ class Runner:
         if context is None:
             context = {}
         context_global = external_context.get()
-        context_global.define(context)
+        context_global.update(context)
         external_context.set(context_global)
 
         # TODO see issue about logger
