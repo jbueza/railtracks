@@ -50,7 +50,7 @@ class OllamaLLM(LiteLLMWrapper):
         """
         super().__init__(model_name, **kwargs)
 
-        self.model_name = model_name.rsplit("/", 1)[-1]
+        self._model_name = model_name.rsplit("/", 1)[-1]
 
         match domain:
             case "default":
@@ -101,3 +101,9 @@ class OllamaLLM(LiteLLMWrapper):
             )
 
         return super().chat_with_tools(messages, tools, **kwargs)
+
+    def model_name(self) -> str:
+        return self._model_name
+
+    def model_provider(self) -> str:
+        return "Ollama"

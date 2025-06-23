@@ -78,7 +78,7 @@ class ModelBase(ABC):
         result = self._structured(messages, schema, **kwargs)
 
         for hook in self._post_hook:
-            result = hook(result)
+            result = hook(messages, result)
 
         return result
 
@@ -93,7 +93,7 @@ class ModelBase(ABC):
         result = self._stream_chat(messages, **kwargs)
 
         for hook in self._post_hook:
-            result = hook(result)
+            result = hook(messages, result)
 
         return result
 
@@ -107,7 +107,7 @@ class ModelBase(ABC):
         result = self._chat_with_tools(messages, tools, **kwargs)
 
         for hook in self._post_hook:
-            result = hook(result)
+            result = hook(messages, result)
 
         return result
 
