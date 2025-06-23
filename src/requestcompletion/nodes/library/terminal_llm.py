@@ -1,3 +1,4 @@
+from ._llm_base import LLMBase
 from ...llm import MessageHistory, ModelBase
 from ..nodes import Node
 from abc import ABC
@@ -6,7 +7,7 @@ from ...exceptions.node_invocation.validation import check_message_history
 from ...exceptions import LLMError
 
 
-class TerminalLLM(Node[str], ABC):
+class TerminalLLM(LLMBase[str], ABC):
     """A simple LLM nodes that takes in a message and returns a response. It is the simplest of all llms."""
 
     def __init__(self, message_history: MessageHistory, model: ModelBase):
@@ -15,12 +16,8 @@ class TerminalLLM(Node[str], ABC):
         Args:
 
         """
-        super().__init__()
-        self.model = model
-        check_message_history(
-            message_history
-        )  # raises NodeInvocationError if any of the checks fail
-        self.message_hist = deepcopy(message_history)
+        super().__init__(model=model, message_history=message_history)
+
 
     async def invoke(self) -> str | None:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
@@ -34,7 +31,6 @@ class TerminalLLM(Node[str], ABC):
             raise LLMError(
                 reason=f"Exception during model chat: {str(e)}",
                 message_history=self.message_hist,
-                exception_message=str(e),
             )
 
         self.message_hist.append(returned_mess.message)

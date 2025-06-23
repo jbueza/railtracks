@@ -2,6 +2,7 @@ import asyncio
 from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Union, Callable
 from copy import deepcopy
 from ..nodes import Node
+from ._llm_base import LLMBase
 from ...llm import (
     MessageHistory,
     ModelBase,
@@ -19,7 +20,7 @@ _T = TypeVar("_T")
 _P = ParamSpec("_P")
 
 
-class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
+class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
     """A base class that is a node which contains
      an LLm that can make tool calls. The tool calls will be returned
     as calls or if there is a response, the response will be returned as an output"""
@@ -30,12 +31,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         model: ModelBase,
         max_tool_calls: int | None = 30,
     ):
-        super().__init__()
-        self.model = model
-        check_message_history(
-            message_history
-        )  # raises NodeInvocationError if any of the checks fail
-        self.message_hist = deepcopy(message_history)
+        super().__init__(model=model, message_history=message_history)
         self.structured_resp_node = None  # The structured LLM node
 
         self.max_tool_calls = max_tool_calls

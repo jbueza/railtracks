@@ -1,3 +1,5 @@
+from typing import Type
+
 from ._tool_call_llm_base import OutputLessToolCallLLM
 from ...llm import MessageHistory, ModelBase, SystemMessage
 from .easy_usage_wrappers.structured_llm import structured_llm
@@ -10,7 +12,7 @@ class StructuredToolCallLLM(OutputLessToolCallLLM[str], ABC):
         self,
         message_history: MessageHistory,
         llm_model: ModelBase,
-        output_model: BaseModel,
+        output_model: Type[BaseModel],
         tool_details: str | None = None,
         tool_params: dict | None = None,
     ):
