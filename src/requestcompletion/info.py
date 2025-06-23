@@ -94,7 +94,7 @@ class ExecutionInfo:
 
             # we need to quickly check to make sure these ids are valid
             for identifier in ids:
-                if identifier not in self.node_heap:
+                if identifier not in self.request_heap:
                     raise ValueError(
                         f"Identifier '{identifier}' not found in the current state."
                     )
