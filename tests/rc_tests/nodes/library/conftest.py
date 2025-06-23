@@ -156,6 +156,7 @@ def travel_planner_tools():
         Returns:
             List[str]: A list of available locations.
         """
+        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
         return [
             "New York",
             "Los Angeles",
@@ -177,6 +178,7 @@ def travel_planner_tools():
         Returns:
             str: The currency used in the location.
         """
+        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
         currency_map = {
             "New York": "USD",
             "Los Angeles": "USD",
@@ -203,6 +205,7 @@ def travel_planner_tools():
         Returns:
             float: The average cost of living in the location.
         """
+        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
         daily_costs = {
             "New York": 200.0,
             "Los Angeles": 180.0,
@@ -232,6 +235,7 @@ def travel_planner_tools():
         Raises:
             ValueError: If the exchange rate is not available.
         """
+        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
         exchange_rates = {
             ("USD", "EUR"): 0.85,
             ("EUR", "USD"): 1.1765,
