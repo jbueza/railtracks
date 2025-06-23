@@ -63,7 +63,13 @@ lint.mccabe.max-complexity = 10
 
 
 [project.optional-dependencies]
-test = ["pytest >=7.1.2"]
+test = [
+    "pytest >=7.1.2",
+    "pytest-asyncio",
+    "flit",
+    "tomlkit==0.11.8",
+    "pytest-timeout"
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
