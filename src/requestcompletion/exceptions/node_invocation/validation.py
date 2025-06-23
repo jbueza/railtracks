@@ -49,6 +49,7 @@ def check_model(model: ModelBase):
             fatal=True,
         )
 
+
 def check_max_tool_calls(max_tool_calls: int):
     if max_tool_calls < 0:
         raise NodeInvocationError(

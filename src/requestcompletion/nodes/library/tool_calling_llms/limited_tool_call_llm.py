@@ -1,7 +1,6 @@
 from ._base import OutputLessToolCallLLM
 from ....llm import MessageHistory, ModelBase, SystemMessage
 from abc import ABC
-import asyncio
 
 
 class LimitedToolCallLLM(OutputLessToolCallLLM[str], ABC):
@@ -34,8 +33,8 @@ class LimitedToolCallLLM(OutputLessToolCallLLM[str], ABC):
             self.message_hist[0].content
             + "\n"
             + f"You are only allowed to make a maximum of {self.max_tool_calls} tool call(s) in total. "
-              f"Do not exceed this limit. If you reach the limit, respond directly without any further tool calls. Extra tool "
-              "calls will be ignored. Plan your tool usage carefully and do not exceed the limit under any circumstances."
+            f"Do not exceed this limit. If you reach the limit, respond directly without any further tool calls. Extra tool "
+            "calls will be ignored. Plan your tool usage carefully and do not exceed the limit under any circumstances."
         )
 
     def return_output(self) -> str:

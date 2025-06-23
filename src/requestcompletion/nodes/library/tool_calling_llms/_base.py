@@ -9,12 +9,15 @@ from ....llm import (
     ToolResponse,
     ToolMessage,
     UserMessage,
-    AssistantMessage
+    AssistantMessage,
 )
 from ....interaction.call import call
 from abc import ABC, abstractmethod
 from ....exceptions import NodeCreationError, LLMError
-from ....exceptions.node_invocation.validation import check_message_history, check_max_tool_calls
+from ....exceptions.node_invocation.validation import (
+    check_message_history,
+    check_max_tool_calls,
+)
 
 _T = TypeVar("_T")
 _P = ParamSpec("_P")
@@ -82,8 +85,14 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
 
     async def invoke(self) -> _T:
         while True:
-            current_tool_calls = len([m for m in self.message_hist if isinstance(m, ToolMessage)])
-            allowed_tool_calls = self.max_tool_calls - current_tool_calls if self.max_tool_calls is not None else None
+            current_tool_calls = len(
+                [m for m in self.message_hist if isinstance(m, ToolMessage)]
+            )
+            allowed_tool_calls = (
+                self.max_tool_calls - current_tool_calls
+                if self.max_tool_calls is not None
+                else None
+            )
             if self.max_tool_calls is not None and allowed_tool_calls <= 0:
                 await self._on_max_tool_calls_exceeded()
                 break
@@ -101,9 +110,12 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                     )
 
                     tool_calls = returned_mess.message.content
-                    if allowed_tool_calls is not None and len(tool_calls) > allowed_tool_calls:
+                    if (
+                        allowed_tool_calls is not None
+                        and len(tool_calls) > allowed_tool_calls
+                    ):
                         tool_calls = tool_calls[:allowed_tool_calls]
-                    
+
                     # append the requested tool calls assistant message, once the tool calls have been verified and truncated (if needed)
                     self.message_hist.append(AssistantMessage(content=tool_calls))
 
