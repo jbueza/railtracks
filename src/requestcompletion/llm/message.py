@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Literal, Generic, TypeVar
 
-from .content import Content, ToolResponse, StringContent
+from .content import Content, ToolResponse
 
 _T = TypeVar("_T", bound=Content)
 
@@ -59,24 +59,24 @@ class Message(Generic[_T]):
         return self._role
 
     def __str__(self):
-        return f"{self.role.value}: {str(self.content)}"
+        return f"{self.role.value}: {self.content}"
 
     def __repr__(self):
         return str(self)
 
 
-class _StringOnlyContent(Message[StringContent]):
+class _StringOnlyContent(Message[str]):
     """
     A helper class used to represent a message that only accepts string content.
     """
 
     @classmethod
-    def validate_content(cls, content: StringContent):
+    def validate_content(cls, content: str):
         """
         A method used to validate that the content of the message is a string.
         """
-        if not isinstance(content, StringContent):
-            raise TypeError(f"A {cls.__name__} needs to be StringContent but got {type(content)}")
+        if not isinstance(content, str):
+            raise TypeError(f"A {cls.__name__} needs a string but got {type(content)}")
 
 
 class UserMessage(_StringOnlyContent):
@@ -86,13 +86,7 @@ class UserMessage(_StringOnlyContent):
     Note that we only support string input
     """
 
-    def __init__(self, content: str | StringContent):
-        if isinstance(content, str):
-            content = StringContent(string=content)
-        elif not isinstance(content, StringContent):
-            raise TypeError(
-                f"A {self.__class__.__name__} needs a str or StringContent but got {type(content)}"
-            )
+    def __init__(self, content: str):
         super().__init__(content=content, role="user")
 
 
@@ -101,13 +95,7 @@ class SystemMessage(_StringOnlyContent):
     A simple class that represents a system message.
     """
 
-    def __init__(self, content: str | StringContent):
-        if isinstance(content, str):
-            content = StringContent(string=content)
-        elif not isinstance(content, StringContent):
-            raise TypeError(
-                f"A {self.__class__.__name__} needs a str or StringContent but got {type(content)}"
-            )
+    def __init__(self, content: str):
         super().__init__(content=content, role="system")
 
 
@@ -117,9 +105,6 @@ class AssistantMessage(Message[_T], Generic[_T]):
     """
 
     def __init__(self, content: _T):
-        if isinstance(content, str):
-            content = StringContent(string=content)
-
         super().__init__(content=content, role="assistant")
 
 
