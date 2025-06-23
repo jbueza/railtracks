@@ -48,3 +48,15 @@ def check_model(model: ModelBase):
             ],
             fatal=True,
         )
+
+def check_max_tool_calls(max_tool_calls: int):
+    if max_tool_calls < 0:
+        raise NodeInvocationError(
+            message="max_tool_calls must be a non-negative integer.",
+            notes=[
+                "The default value for any general RC tool_call_llm node is 30.",
+                "The default value for any LimitedToolCallLLM node is 1.",
+                "If you want to allow only a limited number of tool calls, set max_tool_calls to that number.",
+            ],
+            fatal=True,
+        )

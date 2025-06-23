@@ -137,6 +137,12 @@ def person_output_model():
 
 
 # ============ Tools ===========
+
+def _increment_tools_called():
+    """Increments the tools_called context variable by 1"""
+    count = rc.context.get("tools_called", -1)
+    rc.context.put("tools_called", count + 1)
+
 @pytest.fixture
 def simple_tools():
     def random_number() -> int:
@@ -145,6 +151,7 @@ def simple_tools():
         Returns:
             int: A random number between 1 and 100.
         """
+        _increment_tools_called()
         return random.randint(1, 100)
     return random_number
 
@@ -156,7 +163,7 @@ def travel_planner_tools():
         Returns:
             List[str]: A list of available locations.
         """
-        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
+        _increment_tools_called()
         return [
             "New York",
             "Los Angeles",
@@ -178,7 +185,7 @@ def travel_planner_tools():
         Returns:
             str: The currency used in the location.
         """
-        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
+        _increment_tools_called()
         currency_map = {
             "New York": "USD",
             "Los Angeles": "USD",
@@ -205,7 +212,7 @@ def travel_planner_tools():
         Returns:
             float: The average cost of living in the location.
         """
-        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
+        _increment_tools_called()
         daily_costs = {
             "New York": 200.0,
             "Los Angeles": 180.0,
@@ -235,7 +242,7 @@ def travel_planner_tools():
         Raises:
             ValueError: If the exchange rate is not available.
         """
-        rc.context.put("tools_called", rc.context.get("tools_called", -1)+1)
+        _increment_tools_called()
         exchange_rates = {
             ("USD", "EUR"): 0.85,
             ("EUR", "USD"): 1.1765,

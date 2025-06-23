@@ -5,7 +5,7 @@ import pytest
 import requestcompletion as rc
 
 from pydantic import BaseModel, Field
-from requestcompletion.exceptions import NodeCreationError
+from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
 from requestcompletion.llm import MessageHistory, UserMessage, SystemMessage
 
 from requestcompletion.nodes.library import from_function
@@ -708,7 +708,7 @@ class TestLimitedToolCallLLM:
         class MultiToolCallNode(LimitedToolCallLLM):
             def __init__(self, message_history: MessageHistory, model: rc.llm.ModelBase = model):
                 message_history.insert(0, SystemMessage("You are a travel planner."))
-                super().__init__(message_history, model, max_tool_calls=3)
+                super().__init__(message_history, model, max_tool_calls=5)
 
             @classmethod
             def connected_nodes(cls):
@@ -746,7 +746,7 @@ class TestLimitedToolCallLLM:
         message_history = MessageHistory(
             [UserMessage("Plan a trip to Paris.")]
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(NodeInvocationError):    # invocation error because max_tool_calls can be injected at rc.call / run as well. 
             await rc.call(NegativeToolCallNode, message_history=message_history)
 
     @pytest.mark.asyncio
