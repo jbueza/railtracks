@@ -109,7 +109,7 @@ class ModelBase(ABC):
         self, messages: MessageHistory, **kwargs
     ) -> Response:
         """Stream chat with the model using the provided messages."""
-        # TODO figure out how to make this work with streamed tasks.
+        # TODO migrate this streamer logic to work better.
         for hook in self._pre_hook:
             hook(messages)
 
