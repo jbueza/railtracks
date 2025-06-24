@@ -4,9 +4,6 @@ from pydantic import BaseModel
 from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
 from typing import Type
 
-# ================================================ START basic functionality =========================================================
-# ================================================ END basic functionality ===========================================================
-
 
 # ================================================ START Exception testing ===========================================================
 # =================== START Easy Usage Node Creation ===================
