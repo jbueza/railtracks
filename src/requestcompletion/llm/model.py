@@ -23,6 +23,7 @@ class ModelBase(ABC):
 
     All the hooks are optional and can be added or removed as needed.
     """
+
     def __init__(
         self,
         pre_hook: List[Callable[[MessageHistory], MessageHistory]] | None = None,
@@ -82,7 +83,7 @@ class ModelBase(ABC):
     @classmethod
     @abstractmethod
     def model_type(cls) -> str | None:
-        """ The name of the provider of this model or the model type. """
+        """The name of the provider of this model or the model type."""
         return None
 
     def chat(self, messages: MessageHistory, **kwargs) -> Response:

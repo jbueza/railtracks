@@ -100,6 +100,7 @@ class DebugDetails(dict[str, Any]):
     A simple debug detail object that operates like a dictionary that can be used to store debug information about
     the node.
     """
+
     pass
 
 

@@ -45,6 +45,7 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
     store debugging details that will allow us to determine token usage.
 
     """
+
     def __init__(self, model: llm.ModelBase, message_history: llm.MessageHistory):
         super().__init__()
         self.model = model
