@@ -105,8 +105,8 @@ class UserMessage(_StringOnlyContent):
     Note that we only support string input
     """
 
-    def __init__(self, content: str):
-        super().__init__(content=content, role="user")
+    def __init__(self, content: str, inject_prompt: bool = True):
+        super().__init__(content=content, role="user", inject_prompt=inject_prompt)
 
 
 class SystemMessage(_StringOnlyContent):
@@ -114,8 +114,8 @@ class SystemMessage(_StringOnlyContent):
     A simple class that represents a system message.
     """
 
-    def __init__(self, content: str):
-        super().__init__(content=content, role="system")
+    def __init__(self, content: str, inject_prompt: bool = True):
+        super().__init__(content=content, role="system", inject_prompt=inject_prompt)
 
 
 class AssistantMessage(Message[_T], Generic[_T]):
@@ -123,8 +123,8 @@ class AssistantMessage(Message[_T], Generic[_T]):
     A simple class that represents a message from the assistant.
     """
 
-    def __init__(self, content: _T):
-        super().__init__(content=content, role="assistant")
+    def __init__(self, content: _T, inject_prompt: bool = True):
+        super().__init__(content=content, role="assistant", inject_prompt=inject_prompt)
 
 
 # TODO further constrict the possible return type of a ToolMessage.

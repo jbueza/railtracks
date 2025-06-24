@@ -137,11 +137,9 @@ class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
 
         if self.structured_resp_node:
             try:
-                user_message = UserMessage(str(self.message_hist))
-                user_message.inject_prompt = False
                 self.structured_output = await call(
                     self.structured_resp_node,
-                    message_history=MessageHistory([user_message]),
+                    message_history=MessageHistory([UserMessage(str(self.message_hist), inject_prompt=False)]),
                 )
             except Exception:
                 # will be raised in the return_output method in StructuredToolCallLLM

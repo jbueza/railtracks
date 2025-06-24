@@ -1,3 +1,5 @@
+import pytest
+
 from requestcompletion import ExecutorConfig
 from requestcompletion.llm import MessageHistory, Message
 from requestcompletion.llm.response import Response
@@ -40,26 +42,6 @@ def test_prompt_injection_bypass():
     assert response.answer == "{secret_value}"
 
 
-def test_prompt_injection_global_config_bypass():
-    prompt = "{secret_value}"
-
-    def return_message(messages: MessageHistory) -> Response:
-        return Response(message=Message(role="assistant", content=messages[-1].content))
-
-    node = terminal_llm(
-        system_message=prompt,
-        model=MockLLM(chat=return_message)
-    )
-
-    with rc.Runner(
-            context={"secret_value": "tomato"},
-            executor_config=ExecutorConfig(prompt_injection=False)
-    ) as runner:
-        response = runner.run_sync(node, message_history=MessageHistory())
-
-    assert response.answer == "{secret_value}"
-
-
 def test_prompt_numerical():
     prompt = "{1}"
 
@@ -78,7 +60,7 @@ def test_prompt_numerical():
 
 
 def test_prompt_not_in_context():
-    prompt = "{secret}"
+    prompt = "{secret2}"
 
     def return_message(messages: MessageHistory) -> Response:
         return Response(message=Message(role="assistant", content=messages[-1].content))
@@ -91,4 +73,25 @@ def test_prompt_not_in_context():
     with rc.Runner() as runner:
         response = runner.run_sync(node, message_history=MessageHistory())
 
-    assert response.answer == "{secret}"
+    assert response.answer == "{secret2}"
+
+
+@pytest.mark.order("last")
+def test_prompt_injection_global_config_bypass():
+    prompt = "{secret_value}"
+
+    def return_message(messages: MessageHistory) -> Response:
+        return Response(message=Message(role="assistant", content=messages[-1].content))
+
+    node = terminal_llm(
+        system_message=prompt,
+        model=MockLLM(chat=return_message)
+    )
+
+    with rc.Runner(
+            context={"secret_value": "tomato"},
+            executor_config=ExecutorConfig(prompt_injection=False)
+    ) as runner:
+        response = runner.run_sync(node, message_history=MessageHistory())
+
+    assert response.answer == "{secret_value}"
