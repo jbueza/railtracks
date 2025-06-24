@@ -37,7 +37,9 @@ def inject_context(message_history: MessageHistory):
             if message.inject_prompt and isinstance(message.content, str):
                 try:
                     message_history[i] = Message(
-                        role=message.role.value, content=fill_prompt(message.content), inject_prompt=False
+                        role=message.role.value,
+                        content=fill_prompt(message.content),
+                        inject_prompt=False,
                     )
                 except ValueError:
                     pass
