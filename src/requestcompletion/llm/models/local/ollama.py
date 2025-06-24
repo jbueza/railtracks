@@ -17,7 +17,6 @@ class OllamaError(LLMError):
 
 
 class OllamaLLM(LiteLLMWrapper):
-
     def __init__(
         self,
         model_name: str,

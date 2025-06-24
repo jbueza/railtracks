@@ -16,10 +16,10 @@ from abc import ABC, abstractmethod
 
 class ModelBase(ABC):
     def __init__(
-            self,
-            pre_hook: List[Callable[[MessageHistory], MessageHistory]] | None = None,
-            post_hook: List[Callable[[MessageHistory, Response], Response]] | None = None,
-            exception_hook: List[Callable[[MessageHistory, Exception], None]] | None = None,
+        self,
+        pre_hook: List[Callable[[MessageHistory], MessageHistory]] | None = None,
+        post_hook: List[Callable[[MessageHistory, Response], Response]] | None = None,
+        exception_hook: List[Callable[[MessageHistory, Exception], None]] | None = None,
     ):
         if pre_hook is None:
             pre_hook: List[Callable[[MessageHistory], MessageHistory]] = []
@@ -34,16 +34,19 @@ class ModelBase(ABC):
         self._post_hook = post_hook
         self._exception_hook = exception_hook
 
-
     def add_pre_hook(self, hook: Callable[[MessageHistory], MessageHistory]) -> None:
         """Adds a pre-hook to modify messages before sending them to the model."""
         self._pre_hook.append(hook)
 
-    def add_post_hook(self, hook: Callable[[MessageHistory, Response], Response]) -> None:
+    def add_post_hook(
+        self, hook: Callable[[MessageHistory, Response], Response]
+    ) -> None:
         """Adds a post-hook to modify the response after receiving it from the model."""
         self._post_hook.append(hook)
 
-    def add_exception_hook(self, hook: Callable[[MessageHistory, Exception], None]) -> None:
+    def add_exception_hook(
+        self, hook: Callable[[MessageHistory, Exception], None]
+    ) -> None:
         """Adds an exception hook to handle exceptions during model interactions."""
         self._exception_hook.append(hook)
 
@@ -68,9 +71,7 @@ class ModelBase(ABC):
     def model_type(cls) -> str | None:
         return None
 
-    def chat(
-        self, messages: MessageHistory, **kwargs
-    ) -> Response:
+    def chat(self, messages: MessageHistory, **kwargs) -> Response:
         """Chat with the model using the provided messages."""
         for hook in self._pre_hook:
             hook(messages)
@@ -105,9 +106,7 @@ class ModelBase(ABC):
 
         return result
 
-    def stream_chat(
-        self, messages: MessageHistory, **kwargs
-    ) -> Response:
+    def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         """Stream chat with the model using the provided messages."""
         # TODO migrate this streamer logic to work better.
         for hook in self._pre_hook:

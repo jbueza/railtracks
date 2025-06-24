@@ -1,9 +1,6 @@
 from ._llm_base import LLMBase
 from ...llm import MessageHistory, ModelBase
-from ..nodes import Node
 from abc import ABC
-from copy import deepcopy
-from ...exceptions.node_invocation.validation import check_message_history
 from ...exceptions import LLMError
 
 
@@ -17,7 +14,6 @@ class TerminalLLM(LLMBase[str], ABC):
 
         """
         super().__init__(model=model, message_history=message_history)
-
 
     async def invoke(self) -> str | None:
         """Makes a call containing the inputted message and system prompt to the model and returns the response

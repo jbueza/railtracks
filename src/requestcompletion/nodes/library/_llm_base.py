@@ -4,25 +4,29 @@ from copy import deepcopy
 
 from typing_extensions import Self
 
-from requestcompletion.exceptions.node_invocation.validation import check_message_history
-from requestcompletion.nodes.nodes import Node, DebugDetails
+from requestcompletion.exceptions.node_invocation.validation import (
+    check_message_history,
+)
+from requestcompletion.nodes.nodes import Node
 import requestcompletion.llm as llm
 from requestcompletion.llm.response import Response
-from typing import List, TypeVar, Generic
+from typing import TypeVar, Generic
 
 
 _T = TypeVar("_T")
+
 
 class RequestDetails:
     """
     A named tuple to store details of each LLM request.
     """
+
     def __init__(
-            self,
-            message_input: llm.MessageHistory,
-            output: llm.Message | None,
-            model_name: str | None,
-            model_provider: str | None,
+        self,
+        message_input: llm.MessageHistory,
+        output: llm.Message | None,
+        model_name: str | None,
+        model_provider: str | None,
     ):
         self.input = message_input
         self.output = output
@@ -34,7 +38,6 @@ class RequestDetails:
 
 
 class LLMBase(Node[_T], ABC, Generic[_T]):
-
     def __init__(self, model: llm.ModelBase, message_history: llm.MessageHistory):
         super().__init__()
         self.model = model
@@ -75,7 +78,9 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
 
         return response
 
-    def _exception_llm_hook(self, message_history: llm.MessageHistory, exception: Exception):
+    def _exception_llm_hook(
+        self, message_history: llm.MessageHistory, exception: Exception
+    ):
         """Hook to handle exceptions during model interactions."""
         self._details["llm_details"].append(
             RequestDetails(
@@ -87,10 +92,8 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
         )
         raise exception
 
-
-
     def safe_copy(self) -> Self:
-        new_instance: LLMBase = super().safe_copy() # noqa: Type checking broken.
+        new_instance: LLMBase = super().safe_copy()  # noqa: Type checking broken.
 
         # This has got to be one of the weirdest things I've seen working with python
         # basically if we don't reattach the hooks, the `self` inserted into the model hooks will be the old memory address
@@ -100,4 +103,3 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
         # now that we have reattached the correct memory address to the llm the hooks will update properly.
 
         return new_instance
-
