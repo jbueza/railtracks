@@ -1,5 +1,0 @@
-class TestError(Exception):
-    pass
-
-def test_error_handling():
-    assert True  # Placeholder for actual test logic

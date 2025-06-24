@@ -52,7 +52,6 @@ class SimpleOutput(BaseModel):
     ],
 )
 def test_structured_llm_tool_errors(
-    self,
     output_model,
     tool_details,
     tool_params,

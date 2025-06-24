@@ -1,9 +1,6 @@
 import pytest
 import requestcompletion as rc
 from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
-from requestcompletion.llm import MessageHistory, UserMessage
-import random
-from conftest import _increment_tools_called
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("class_based", [True, False], ids=["class_based", "easy_usage_wrapper"])
@@ -61,7 +58,9 @@ async def test_negative_tool_calls_raises(limited_tool_call_node_factory, travel
 async def test_context_reset_between_runs(limited_tool_call_node_factory, travel_message_history, reset_tools_called, class_based):
     @rc.to_node
     def magic_number():
-        _increment_tools_called()
+        #  incrementing count for testing purposes
+        count = rc.context.get("tools_called", -1)
+        rc.context.put("tools_called", count + 1)
         return 42
     
     node = limited_tool_call_node_factory(max_tool_calls=1, class_based=class_based, tools=[magic_number])

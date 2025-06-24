@@ -1,8 +1,7 @@
 import pytest
 import requestcompletion as rc
 
-from pydantic import BaseModel, Field
-from requestcompletion.exceptions import NodeCreationError
+from pydantic import BaseModel
 
 NODE_INIT_METHODS = ["easy_wrapper", "class_based"]
 
