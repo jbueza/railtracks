@@ -33,23 +33,6 @@ class RequestDetails:
         return f"RequestDetails(model_name={self.model_name}, model_provider={self.model_provider}, input={self.input}, output={self.output})"
 
 
-class LLMDebug(DebugDetails):
-
-    def __init__(
-            self,
-            message_details: List[RequestDetails] = None,
-
-    ):
-        super().__init__()
-        # This is done to prevent mutability concerns of an empty list default.
-        if message_details is None:
-            message_details = []
-
-        self.message_details: List[RequestDetails] = message_details
-
-    # def __repr__(self):
-    #     return f"LLMDebug(message_details={self.message_details})"
-
 class LLMBase(Node[_T], ABC, Generic[_T]):
 
     def __init__(self, model: llm.ModelBase, message_history: llm.MessageHistory):
@@ -59,7 +42,8 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
             message_history
         )  # raises NodeInvocationError if any of the checks fail
         self.message_hist = deepcopy(message_history)
-        self._debug_details = LLMDebug()
+
+        self._details["llm_details"] = []
 
         self.attach_llm_hooks()
 
@@ -79,7 +63,7 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
         return message_history
 
     def post_llm_hook(self, message_history: llm.MessageHistory, response: Response):
-        self._debug_details.message_details.append(
+        self._details["llm_details"].append(
             RequestDetails(
                 message_input=deepcopy(message_history),
                 output=deepcopy(response.message),
@@ -92,6 +76,7 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
 
     def safe_copy(self) -> Self:
         new_instance: LLMBase = super().safe_copy() # noqa: Type checking broken.
+
         # This has got to be one of the weirdest things I've seen working with python
         # basically if we don't reattach the hooks, the `self` inserted into the model hooks will be the old memory address
         # so those updates will go to the old instance instead of the new one.
@@ -101,6 +86,3 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
 
         return new_instance
 
-    @property
-    def debug_details(self):
-        return self._debug_details
