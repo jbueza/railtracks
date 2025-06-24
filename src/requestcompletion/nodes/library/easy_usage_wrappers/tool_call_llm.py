@@ -36,11 +36,9 @@ def tool_call_llm(  # noqa: C901
     tool_params: dict | None = None,
 ) -> Type[OutputLessToolCallLLM[Union[MessageHistory, AssistantMessage, BaseModel]]]:
     if output_model:
-        OutputType = output_model  # noqa: N806
+        output = output_model
     else:
-        OutputType = (
-            MessageHistory if output_type == "MessageHistory" else AssistantMessage
-        )
+        output = MessageHistory if output_type == "MessageHistory" else AssistantMessage
 
     if (
         output_model and output_type == "MessageHistory"
@@ -71,7 +69,9 @@ def tool_call_llm(  # noqa: C901
             )
 
     # Choose base class depending on max_tool_calls
-    base_cls = OutputLessToolCallLLM[OutputType] if max_tool_calls is None else LimitedToolCallLLM
+    base_cls = (
+        OutputLessToolCallLLM[output] if max_tool_calls is None else LimitedToolCallLLM
+    )
 
     class ToolCallLLM(base_cls):
         def return_output(self):
@@ -88,7 +88,7 @@ def tool_call_llm(  # noqa: C901
             self,
             message_history: MessageHistory,
             llm_model: ModelBase | None = None,
-            max_tool_calls: int =  max_tool_calls if max_tool_calls is not None else 30,
+            max_tool_calls: int = max_tool_calls if max_tool_calls is not None else 30,
         ):
             check_message_history(
                 message_history, system_message
@@ -159,7 +159,9 @@ def tool_call_llm(  # noqa: C901
             )
             return cls(message_hist)
 
-    validate_tool_metadata(tool_params, tool_details, system_message, pretty_name, max_tool_calls)
+    validate_tool_metadata(
+        tool_params, tool_details, system_message, pretty_name, max_tool_calls
+    )
     if system_message is not None and isinstance(
         system_message, str
     ):  # system_message is a string, (tackled at the time of node creation)

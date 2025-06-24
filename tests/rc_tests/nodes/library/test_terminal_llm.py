@@ -236,7 +236,7 @@ async def test_tool_info_not_classmethod(model, encoder_system_message):
 # =================== END Class Based Node Creation ===================
 # =================== START invocation exceptions =====================
 @pytest.mark.asyncio
-async def test_no_message_history_easy_usage(model, encoder_system_message):
+async def test_no_message_history_easy_usage(model):
     simple_agent = rc.library.terminal_llm(
             pretty_name="Encoder",
             model=model,
@@ -246,7 +246,7 @@ async def test_no_message_history_easy_usage(model, encoder_system_message):
         await rc.call(simple_agent, message_history=rc.llm.MessageHistory([]))
 
 @pytest.mark.asyncio
-async def test_no_message_history_class_based(model):
+async def test_no_message_history_class_based():
     class Encoder(rc.library.TerminalLLM):
         def __init__(self, message_history: rc.llm.MessageHistory, model: rc.llm.ModelBase = None):
             super().__init__(message_history=message_history, model=model)

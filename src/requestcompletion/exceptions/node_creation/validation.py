@@ -205,6 +205,7 @@ def _check_tool_params_and_details(tool_params: Any, tool_details: Any) -> None:
             notes=get_notes(ExceptionMessageKey.MISSING_TOOL_DETAILS_NOTES),
         )
 
+
 def _check_max_tool_calls(max_tool_calls: int | None) -> None:
     """
     Ensure max_tool_calls is a non-negative integer.
@@ -219,12 +220,13 @@ def _check_max_tool_calls(max_tool_calls: int | None) -> None:
             notes=get_notes(ExceptionMessageKey.MAX_TOOL_CALLS_NEGATIVE_NOTES),
         )
 
+
 def validate_tool_metadata(
     tool_params: Any,
     tool_details: Any,
     system_message: Any,
     pretty_name: str | None,
-    max_tool_calls: int | None,
+    max_tool_calls: int | None = None,
 ) -> None:
     """
     Run all tool metadata validation checks at once.
