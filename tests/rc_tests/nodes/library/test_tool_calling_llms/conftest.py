@@ -3,7 +3,7 @@ import requestcompletion as rc
 from typing import List, Callable
 from pydantic import BaseModel, Field
 import random
-
+from requestcompletion.nodes.library import LimitedToolCallLLM
 
 # ============ Model ===========
 @pytest.fixture
@@ -552,3 +552,48 @@ def only_function_taking_travel_planner_node(request, model, travel_planner_tool
     )
 
     return travel_planner_node
+
+# ============================================= LIMITED TOOL CALLING LLM FIxTURES ================================================
+@pytest.fixture
+def travel_message_history():
+    def _make(msg="I want to travel to New York from Vancouver for 4 days. Give me a budget summary for the trip in INR."):
+        return rc.llm.MessageHistory([rc.llm.UserMessage(msg)])
+    return _make
+
+@pytest.fixture
+def limited_tool_call_node_factory(model, travel_planner_tools):
+    def _factory(max_tool_calls=1, system_message=None, tools=None, class_based=False):
+        tools = tools or set([rc.library.from_function(tool) for tool in travel_planner_tools])
+        sys_msg = system_message or rc.llm.SystemMessage(
+            "You are a travel planner that will plan a trip. you have access to AvailableLocations, CurrencyUsed and AverageLocationCost tools. Use them when you need to."
+        )
+        tool_nodes = tools
+        if not class_based:
+            return rc.library.tool_call_llm(
+                connected_nodes=tool_nodes,
+                pretty_name="Limited Tool Call Test Node",
+                system_message=sys_msg,
+                model=model,
+                max_tool_calls=max_tool_calls,
+            )
+        else:
+            class LimitedToolCallTestNode(LimitedToolCallLLM):
+                def __init__(self, message_history, model=model):
+                    message_history.insert(0, sys_msg)
+                    super().__init__(message_history, model, max_tool_calls=max_tool_calls)
+                @classmethod
+                def connected_nodes(cls):
+                    return tool_nodes
+                @classmethod
+                def pretty_name(cls):
+                    return "Limited Tool Call Test Node"
+            return LimitedToolCallTestNode
+    return _factory
+
+@pytest.fixture
+def reset_tools_called():
+    def _reset(val=0):
+        rc.context.put("tools_called", val)
+    return _reset
+
+# ============================================= END LIMITED TOOL CALLING LLM FIxTURES ================================================
