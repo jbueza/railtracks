@@ -7,7 +7,7 @@ import requestcompletion as rc
 
 
 def test_prompt_injection():
-    prompt = "{1}"
+    prompt = "{secret}"
 
     def return_message(messages: MessageHistory) -> Response:
         return Response(message=Message(role="assistant", content=messages[-1].content))
@@ -17,7 +17,7 @@ def test_prompt_injection():
         model=MockLLM(chat=return_message)
     )
 
-    with rc.Runner(context={"1": "tomato"}) as runner:
+    with rc.Runner(context={"secret": "tomato"}) as runner:
         response = runner.run_sync(node, message_history=MessageHistory())
 
     assert response.answer == "tomato"
@@ -58,3 +58,37 @@ def test_prompt_injection_global_config_bypass():
         response = runner.run_sync(node, message_history=MessageHistory())
 
     assert response.answer == "{secret_value}"
+
+
+def test_prompt_numerical():
+    prompt = "{1}"
+
+    def return_message(messages: MessageHistory) -> Response:
+        return Response(message=Message(role="assistant", content=messages[-1].content))
+
+    node = terminal_llm(
+        system_message=prompt,
+        model=MockLLM(chat=return_message)
+    )
+
+    with rc.Runner(context={"1": "tomato"}) as runner:
+        response = runner.run_sync(node, message_history=MessageHistory())
+
+    assert response.answer == "tomato"
+
+
+def test_prompt_not_in_context():
+    prompt = "{secret}"
+
+    def return_message(messages: MessageHistory) -> Response:
+        return Response(message=Message(role="assistant", content=messages[-1].content))
+
+    node = terminal_llm(
+        system_message=prompt,
+        model=MockLLM(chat=return_message)
+    )
+
+    with rc.Runner() as runner:
+        response = runner.run_sync(node, message_history=MessageHistory())
+
+    assert response.answer == "{secret}"
