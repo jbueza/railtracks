@@ -1,14 +1,21 @@
 import pytest
 import requestcompletion as rc
-from typing import List, Callable
+from typing import List, Callable, Type
 from pydantic import BaseModel, Field
 import random
+
+from ...llm.conftest import MockLLM
 
 
 # ============ Model ===========
 @pytest.fixture
 def model():
     return rc.llm.OpenAILLM("gpt-4o")
+
+# =========== Mock model ===========
+@pytest.fixture
+def mock_llm() -> Type[MockLLM]:
+    return MockLLM
 
 
 # ============ System Messages ===========

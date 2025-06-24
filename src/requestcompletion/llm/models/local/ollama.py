@@ -17,10 +17,6 @@ class OllamaError(LLMError):
 
 
 class OllamaLLM(LiteLLMWrapper):
-    @classmethod
-    def model_type(cls):
-        return "Ollama"
-
     def __init__(
         self,
         model_name: str,
@@ -48,9 +44,8 @@ class OllamaLLM(LiteLLMWrapper):
                 - specified model is not available on the server
             RequestException: If connection to Ollama server fails
         """
+        model_name = model_name.rsplit("/", 1)[-1]  # Extract model name from full path
         super().__init__(model_name, **kwargs)
-
-        self._model_name = model_name.rsplit("/", 1)[-1]
 
         match domain:
             case "default":
@@ -83,8 +78,8 @@ class OllamaLLM(LiteLLMWrapper):
 
             model_names = {model["name"] for model in models["models"]}
 
-            if self.model_name not in model_names:
-                error_msg = f"{self.model_name} not available on server {self.domain}. Avaiable models are: {model_names}"
+            if self.model_name() not in model_names:
+                error_msg = f"{self.model_name()} not available on server {self.domain}. Avaiable models are: {model_names}"
                 raise OllamaError(error_msg)
 
         except OllamaError as e:
@@ -97,13 +92,11 @@ class OllamaLLM(LiteLLMWrapper):
     def chat_with_tools(self, messages, tools, **kwargs):
         if not litellm.supports_function_calling(model=self._model_name):
             raise LLMError(
-                reason=f"Model '{self.model_name}' does not support function calling."
+                reason=f"Model '{self.model_name()}' does not support function calling."
             )
 
         return super().chat_with_tools(messages, tools, **kwargs)
 
-    def model_name(self) -> str:
-        return self._model_name
-
-    def model_provider(self) -> str:
+    @classmethod
+    def model_type(cls) -> str:
         return "Ollama"

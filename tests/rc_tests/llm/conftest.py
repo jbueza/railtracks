@@ -47,6 +47,13 @@ class MockLLM(llm.ModelBase):
         self, messages: MessageHistory, tools: List[Tool], **kwargs
     ) -> Response:
         return self._chat_with_tools(messages, tools)
+
+    def model_name(self) -> str | None:
+        return "MockLLM"
+
+    @classmethod
+    def model_type(cls) -> str | None:
+        return "mock"
     
 
 @pytest.fixture

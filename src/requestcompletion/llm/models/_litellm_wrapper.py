@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC
 import json
 from typing import List, Dict, Type, Optional, Any, Generator, Union, Set
 from pydantic import BaseModel, ValidationError
@@ -133,7 +133,7 @@ def _to_litellm_message(msg: Message) -> Dict[str, Any]:
     return base
 
 
-class LiteLLMWrapper(ModelBase):
+class LiteLLMWrapper(ModelBase, ABC):
     """
     A large base class that wraps around a litellm model.
 
@@ -146,11 +146,6 @@ class LiteLLMWrapper(ModelBase):
     Each individual API should implement the required `abstract_methods` in order to allow users to interact with a
     model of that type.
     """
-
-    @classmethod
-    @abstractmethod
-    def model_type(cls) -> str:
-        pass
 
     def __init__(self, model_name: str, **kwargs):
         super().__init__(**kwargs)
@@ -253,3 +248,9 @@ class LiteLLMWrapper(ModelBase):
         if len(parts) == 2:
             return f"LiteLLMWrapper(provider={parts[0]}, name={parts[1]})"
         return f"LiteLLMWrapper(name={self._model_name})"
+
+    def model_name(self) -> str | None:
+        """
+        Returns the model name.
+        """
+        return self._model_name
