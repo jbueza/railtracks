@@ -1,5 +1,4 @@
 import string
-import yaml
 from ..context import get
 from ..llm import MessageHistory, Message
 

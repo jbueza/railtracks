@@ -1,13 +1,12 @@
 from abc import ABC
 from copy import deepcopy
 
-from pydantic import Field, BaseModel
 
 from requestcompletion.exceptions.node_invocation.validation import check_message_history
 from requestcompletion.nodes.nodes import Node, DebugDetails
 import requestcompletion.llm as llm
 from requestcompletion.llm.response import Response
-from typing import NamedTuple, List, TypeVar, Generic
+from typing import List, TypeVar, Generic
 
 from ...prompts.prompt import inject_context
 
@@ -76,5 +75,3 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
 
     def debug_details(self):
         return self._debug_details
-
-    # TODO @levi insert prompt insertion here.

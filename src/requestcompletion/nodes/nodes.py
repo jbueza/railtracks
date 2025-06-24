@@ -1,6 +1,5 @@
 from __future__ import annotations
 import asyncio
-from pydantic import BaseModel
 import uuid
 from copy import deepcopy
 from ..llm import Tool
