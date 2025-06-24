@@ -77,12 +77,14 @@ class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
                 system_message, str
             ):  # system_message is a string, (tackled at the time of node creation)
                 system_message = SystemMessage(system_message)
+            
+            #Initialize class wide variables passed by factory function
             cls._connected_nodes = connected_nodes
             cls.tool_params = tool_params
             cls.tool_details = tool_details
             cls._pretty_name = pretty_name
-            cls.output_type = output_type
-            cls.output_model = output_model
+            cls._output_type = output_type
+            cls._output_model = output_model
             cls.system_message = system_message
             cls.model = model
 
@@ -91,11 +93,11 @@ class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
 
 
     def return_output(self):
-        if self.__class__.output_model:
+        if self.__class__._output_model:
             if isinstance(self.structured_output, Exception):
                 raise self.structured_output
             return self.structured_output
-        elif self.__class__.output_type == "MessageHistory":
+        elif self.__class__._output_type == "MessageHistory":
             return self.message_hist
         else:
             return self.message_hist[-1]
@@ -137,12 +139,12 @@ class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
             message_history_copy, llm_model, max_tool_calls=max_tool_calls
         )
 
-        if self.__class__.output_model:
+        if self.__class__._output_model:
             system_structured = SystemMessage(
                 "You are a structured LLM that can convert the response into a structured output."
             )
             self.structured_resp_node = structured_llm(
-                self.__class__.output_model, system_message=system_structured, model=llm_model
+                self.__class__._output_model, system_message=system_structured, model=llm_model
             )
 
     @abstractmethod
