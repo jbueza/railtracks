@@ -48,6 +48,39 @@ async def test_hooks(mock_llm):
 
 
 
+@pytest.mark.asyncio
+async def test_error_hooks(mock_llm):
+    example_message_history = llm.MessageHistory([
+        llm.UserMessage(content="What is the meaning of life?"),
+    ])
+    exception = Exception("Simulated error")
+    def exception_raiser(x):
+        raise exception
 
+    model = mock_llm(chat=exception_raiser)
+    node = MockModelNode(
+        model=model,
+        message_history=example_message_history,
+    )
+
+    with pytest.raises(Exception):
+        await node.invoke()
+
+    assert len(node.details["llm_details"]) == 1
+    r_d = node.details["llm_details"][0]
+    compare_request = RequestDetails(
+            message_input=example_message_history,
+            output=None,
+            model_name=model.model_name(),
+            model_provider=mock_llm.model_type(),
+        )
+
+    for i in zip(r_d.input, compare_request.input):
+        assert i[0].role == i[1].role
+        assert i[0].content == i[1].content
+
+    assert r_d.output is None
+    assert r_d.model_name == compare_request.model_name
+    assert r_d.model_provider == compare_request.model_provider
 
 
