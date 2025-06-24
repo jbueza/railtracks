@@ -97,6 +97,7 @@ class NodeState(Generic[_TNode]):
 class DebugDetails(ABC):
     pass
 
+
 class EmptyDebugDetails(DebugDetails):
     pass
 

@@ -27,8 +27,7 @@ def inject_context(message_history: MessageHistory):
         for i, message in enumerate(message_history):
             if message.inject_prompt and isinstance(message.content, str):
                 message_history[i] = Message(
-                    role=message.role.value,
-                    content=fill_prompt(message.content)
+                    role=message.role.value, content=fill_prompt(message.content)
                 )
 
     return message_history

@@ -2,7 +2,9 @@ from abc import ABC
 from copy import deepcopy
 
 
-from requestcompletion.exceptions.node_invocation.validation import check_message_history
+from requestcompletion.exceptions.node_invocation.validation import (
+    check_message_history,
+)
 from requestcompletion.nodes.nodes import Node, DebugDetails
 import requestcompletion.llm as llm
 from requestcompletion.llm.response import Response
@@ -12,16 +14,18 @@ from ...prompts.prompt import inject_context
 
 _T = TypeVar("_T")
 
+
 class RequestDetails:
     """
     A named tuple to store details of each LLM request.
     """
+
     def __init__(
-            self,
-            message_input: llm.MessageHistory,
-            output: llm.MessageHistory,
-            model_name: str | None,
-            model_provider: str | None,
+        self,
+        message_input: llm.MessageHistory,
+        output: llm.MessageHistory,
+        model_name: str | None,
+        model_provider: str | None,
     ):
         self.input = message_input
         self.output = output
@@ -30,11 +34,9 @@ class RequestDetails:
 
 
 class LLMDebug(DebugDetails):
-
     def __init__(
-            self,
-            message_details: List[RequestDetails] = None,
-
+        self,
+        message_details: List[RequestDetails] = None,
     ):
         super().__init__()
         # This is done to prevent mutability concerns of an empty list default.
@@ -45,7 +47,6 @@ class LLMDebug(DebugDetails):
 
 
 class LLMBase(Node[_T], ABC, Generic[_T]):
-
     def __init__(self, model: llm.ModelBase, message_history: llm.MessageHistory):
         super().__init__()
         self.model = model

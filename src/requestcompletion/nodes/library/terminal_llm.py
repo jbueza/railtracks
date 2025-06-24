@@ -15,7 +15,6 @@ class TerminalLLM(LLMBase[str], ABC):
         """
         super().__init__(model=model, message_history=message_history)
 
-
     async def invoke(self) -> str | None:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
 

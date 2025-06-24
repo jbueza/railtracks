@@ -27,7 +27,10 @@ class Message(Generic[_T]):
     """
 
     def __init__(
-        self, content: _T, role: Literal["assistant", "user", "system", "tool"], inject_prompt: bool = True
+        self,
+        content: _T,
+        role: Literal["assistant", "user", "system", "tool"],
+        inject_prompt: bool = True,
     ):
         """
         A simple class that represents a message that an LLM can read.

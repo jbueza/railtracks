@@ -16,9 +16,9 @@ from abc import ABC, abstractmethod
 
 class ModelBase(ABC):
     def __init__(
-            self,
-            pre_hook: List[Callable[[MessageHistory], MessageHistory]] | None = None,
-            post_hook: List[Callable[[MessageHistory, Response], Response]] | None = None,
+        self,
+        pre_hook: List[Callable[[MessageHistory], MessageHistory]] | None = None,
+        post_hook: List[Callable[[MessageHistory, Response], Response]] | None = None,
     ):
         if pre_hook is None:
             pre_hook: List[Callable[[MessageHistory], MessageHistory]] = []
@@ -33,7 +33,9 @@ class ModelBase(ABC):
         """Adds a pre-hook to modify messages before sending them to the model."""
         self._pre_hook.append(hook)
 
-    def add_post_hook(self, hook: Callable[[MessageHistory, Response], Response]) -> None:
+    def add_post_hook(
+        self, hook: Callable[[MessageHistory, Response], Response]
+    ) -> None:
         """Adds a post-hook to modify the response after receiving it from the model."""
         self._post_hook.append(hook)
 
@@ -53,9 +55,7 @@ class ModelBase(ABC):
     def model_provider(self) -> str | None:
         return None
 
-    def chat(
-        self, messages: MessageHistory, **kwargs
-    ) -> Response:
+    def chat(self, messages: MessageHistory, **kwargs) -> Response:
         """Chat with the model using the provided messages."""
         for hook in self._pre_hook:
             messages = hook(messages)
@@ -83,9 +83,7 @@ class ModelBase(ABC):
 
         return result
 
-    def stream_chat(
-        self, messages: MessageHistory, **kwargs
-    ) -> Response:
+    def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         """Stream chat with the model using the provided messages."""
         # TODO figure out how to make this work with streamed tasks.
         for hook in self._pre_hook:
