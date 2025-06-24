@@ -76,9 +76,8 @@ class Runner:
         # first lets read from defaults if necessary for the provided input config
         if executor_config is None:
             executor_config = get_config()
-        else:
-            # if we have a config, we will set it as the global config
-            set_global_config(executor_config)
+
+        set_global_config(executor_config)
 
         self.executor_config = executor_config
 
