@@ -38,6 +38,13 @@ class RequestDetails:
 
 
 class LLMBase(Node[_T], ABC, Generic[_T]):
+    """
+    A basic LLM base class that encapsulates the attaching of an LLM model and message history object.
+
+    The main functionality of the class is contained within the attachment of pre and post hooks to the model so we can
+    store debugging details that will allow us to determine token usage.
+
+    """
     def __init__(self, model: llm.ModelBase, message_history: llm.MessageHistory):
         super().__init__()
         self.model = model
@@ -67,6 +74,7 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
         return message_history
 
     def _post_llm_hook(self, message_history: llm.MessageHistory, response: Response):
+        """Hook to store the response details after invoking the model."""
         self._details["llm_details"].append(
             RequestDetails(
                 message_input=deepcopy(message_history),
@@ -81,7 +89,7 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
     def _exception_llm_hook(
         self, message_history: llm.MessageHistory, exception: Exception
     ):
-        """Hook to handle exceptions during model interactions."""
+        """Hook to store the response details after exception was thrown during model invocation"""
         self._details["llm_details"].append(
             RequestDetails(
                 message_input=deepcopy(message_history),

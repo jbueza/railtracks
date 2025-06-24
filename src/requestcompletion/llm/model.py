@@ -15,6 +15,14 @@ from abc import ABC, abstractmethod
 
 
 class ModelBase(ABC):
+    """
+    A simple base that represents the behavior of a model that can be used for chat, structured interactions, and streaming.
+
+    The base class allows for the insertion of hooks that can modify the messages before they are sent to the model,
+    response after they are received, and map exceptions that may occur during the interaction.
+
+    All the hooks are optional and can be added or removed as needed.
+    """
     def __init__(
         self,
         pre_hook: List[Callable[[MessageHistory], MessageHistory]] | None = None,
@@ -51,24 +59,30 @@ class ModelBase(ABC):
         self._exception_hook.append(hook)
 
     def remove_pre_hooks(self) -> None:
-        """Removes the pre-hook."""
+        """Removes all of the hooks that modify messages before sending them to the model."""
         self._pre_hook = []
 
     def remove_post_hooks(self) -> None:
-        """Removes the post-hook."""
+        """Removes all of the hooks that modify the response after receiving it from the model."""
         self._post_hook = []
 
     def remove_exception_hooks(self) -> None:
-        """Removes the exception hook."""
+        """Removes all of the hooks that handle exceptions during model interactions."""
         self._exception_hook = []
 
     @abstractmethod
     def model_name(self) -> str | None:
+        """
+        Returns the name of the model being used.
+
+        It can be treated as unique identifier for the model when paired with the `model_type`.
+        """
         return None
 
     @classmethod
     @abstractmethod
     def model_type(cls) -> str | None:
+        """ The name of the provider of this model or the model type. """
         return None
 
     def chat(self, messages: MessageHistory, **kwargs) -> Response:
