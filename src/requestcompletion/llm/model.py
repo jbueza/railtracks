@@ -19,6 +19,7 @@ class ModelBase(ABC):
             self,
             pre_hook: List[Callable[[MessageHistory], MessageHistory]] | None = None,
             post_hook: List[Callable[[MessageHistory, Response], Response]] | None = None,
+            exception_hook: List[Callable[[MessageHistory, Exception], None]] | None = None,
     ):
         if pre_hook is None:
             pre_hook: List[Callable[[MessageHistory], MessageHistory]] = []
@@ -26,8 +27,13 @@ class ModelBase(ABC):
         if post_hook is None:
             post_hook: List[Callable[[MessageHistory, Response], Response]] = []
 
+        if exception_hook is None:
+            exception_hook: List[Callable[[MessageHistory, Exception], None]] = []
+
         self._pre_hook = pre_hook
         self._post_hook = post_hook
+        self._exception_hook = exception_hook
+
 
     def add_pre_hook(self, hook: Callable[[MessageHistory], MessageHistory]) -> None:
         """Adds a pre-hook to modify messages before sending them to the model."""
@@ -37,6 +43,10 @@ class ModelBase(ABC):
         """Adds a post-hook to modify the response after receiving it from the model."""
         self._post_hook.append(hook)
 
+    def add_exception_hook(self, hook: Callable[[MessageHistory, Exception], None]) -> None:
+        """Adds an exception hook to handle exceptions during model interactions."""
+        self._exception_hook.append(hook)
+
     def remove_pre_hooks(self) -> None:
         """Removes the pre-hook."""
         self._pre_hook = []
@@ -44,6 +54,10 @@ class ModelBase(ABC):
     def remove_post_hooks(self) -> None:
         """Removes the post-hook."""
         self._post_hook = []
+
+    def remove_exception_hooks(self) -> None:
+        """Removes the exception hook."""
+        self._exception_hook = []
 
     @abstractmethod
     def model_name(self) -> str | None:
@@ -60,8 +74,12 @@ class ModelBase(ABC):
         """Chat with the model using the provided messages."""
         for hook in self._pre_hook:
             hook(messages)
-
-        result = self._chat(messages, **kwargs)
+        try:
+            result = self._chat(messages, **kwargs)
+        except Exception as e:
+            for hook in self._exception_hook:
+                hook(messages, e)
+            raise e
 
         for hook in self._post_hook:
             result = hook(messages, result)
@@ -75,7 +93,12 @@ class ModelBase(ABC):
         for hook in self._pre_hook:
             hook(messages)
 
-        result = self._structured(messages, schema, **kwargs)
+        try:
+            result = self._structured(messages, schema, **kwargs)
+        except Exception as e:
+            for hook in self._exception_hook:
+                hook(messages, e)
+            raise e
 
         for hook in self._post_hook:
             result = hook(messages, result)
@@ -104,7 +127,12 @@ class ModelBase(ABC):
         for hook in self._pre_hook:
             hook(messages)
 
-        result = self._chat_with_tools(messages, tools, **kwargs)
+        try:
+            result = self._chat_with_tools(messages, tools, **kwargs)
+        except Exception as e:
+            for hook in self._exception_hook:
+                hook(messages, e)
+            raise e
 
         for hook in self._post_hook:
             result = hook(messages, result)
