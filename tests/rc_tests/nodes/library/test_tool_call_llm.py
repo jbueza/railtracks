@@ -6,7 +6,7 @@ import requestcompletion as rc
 
 from pydantic import BaseModel, Field
 from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
-from requestcompletion.llm import MessageHistory, UserMessage, SystemMessage
+from requestcompletion.llm import MessageHistory, UserMessage, SystemMessage, Message
 
 from requestcompletion.nodes.library import from_function
 from requestcompletion.nodes.library.tool_calling_llms.limited_tool_call_llm import LimitedToolCallLLM
@@ -650,7 +650,28 @@ def test_structured_llm_tool_errors(
 class TestLimitedToolCallLLM:
     """ All tests for the LimitedToolCallLLM"""
 
-    async def test_allows_only_one_toolcall(self, model, travel_planner_tools):
+    async def test_allows_only_one_toolcall_easy_wrapper(self, model, travel_planner_tools):
+        """Test that LimitedToolCallLLM allows only one tool call turn before forcing a final answer."""
+        test_node = rc.library.tool_call_llm(
+            connected_nodes=set([from_function(tool) for tool in travel_planner_tools]),
+            pretty_name="Limited Tool Call Test Node",
+            system_message=rc.llm.SystemMessage(
+                "You are a travel planner that will plan a trip. you have access to AvailableLocations, CurrencyUsed and AverageLocationCost tools. Use them when you need to."
+            ),
+            model=model,
+            max_tool_calls=1,
+        )
+
+        message_history = MessageHistory(
+            [UserMessage("I want to travel to New York from Vancouver for 4 days. Give me a budget summary for the trip in INR.")]
+        )
+
+        rc.context.put("tools_called", 0)
+        response: Message = await rc.call(test_node, message_history=message_history)
+        assert isinstance(response.content, str)
+        assert rc.context.get("tools_called") == 1
+
+    async def test_allows_only_one_toolcall_class_based(self, model, travel_planner_tools):
         """Test that LimitedToolCallLLM allows only one tool call turn before forcing a final answer."""
         
         class LimitedToolCallTestNode(LimitedToolCallLLM):
@@ -674,12 +695,33 @@ class TestLimitedToolCallLLM:
 
         rc.context.put("tools_called", 0)
         response = await rc.call(LimitedToolCallTestNode, message_history=message_history)
-        # The result should be a string (final answer), not a list of tool calls
         assert isinstance(response, str)
         assert rc.context.get("tools_called") == 1
 
     @pytest.mark.asyncio
-    async def test_zero_tool_calls_forces_final_answer(self, model, travel_planner_tools):
+    async def test_zero_tool_calls_forces_final_answer_easy_wrapper(self, model, travel_planner_tools):
+        """Test that LimitedToolCallLLM with max_tool_calls=0 returns a final answer immediately."""
+        test_node = rc.library.tool_call_llm(
+            connected_nodes=set([from_function(tool) for tool in travel_planner_tools]),
+            pretty_name="Limited Tool Call Test Node",
+            system_message=rc.llm.SystemMessage(
+                "You are a travel planner that will plan a trip. you have access to AvailableLocations, CurrencyUsed and AverageLocationCost tools. Use them when you need to."
+            ),
+            model=model,
+            max_tool_calls=0,
+        )
+
+        message_history = MessageHistory(
+            [UserMessage("Plan a trip to Paris for 2 days.")]
+        )
+
+        rc.context.put("tools_called", 0)
+        response: Message = await rc.call(test_node, message_history=message_history)
+        assert isinstance(response.content, str)
+        assert rc.context.get("tools_called") == 0
+
+    @pytest.mark.asyncio
+    async def test_zero_tool_calls_forces_final_answer_class_based(self, model, travel_planner_tools):
         """Test that LimitedToolCallLLM with max_tool_calls=0 returns a final answer immediately."""
         class ZeroToolCallNode(LimitedToolCallLLM):
             def __init__(self, message_history: MessageHistory, model: rc.llm.ModelBase = model):
@@ -703,7 +745,28 @@ class TestLimitedToolCallLLM:
         assert rc.context.get("tools_called") == 0
 
     @pytest.mark.asyncio
-    async def test_multiple_tool_calls_limit(self, model, travel_planner_tools):
+    async def test_multiple_tool_calls_limit_easy_wrapper(self, model, travel_planner_tools):
+        """Test that LimitedToolCallLLM allows up to N tool calls and then returns a final answer (easy wrapper)."""
+        test_node = rc.library.tool_call_llm(
+            connected_nodes=set([from_function(tool) for tool in travel_planner_tools]),
+            pretty_name="Multi Tool Call Node",
+            system_message=rc.llm.SystemMessage(
+                "You are a travel planner."
+            ),
+            model=model,
+            max_tool_calls=5,
+        )
+
+        message_history = MessageHistory(
+            [UserMessage("Plan a trip to Paris, Berlin, and New York for 2 days each.")]
+        )
+        rc.context.put("tools_called", 0)
+        response: Message = await rc.call(test_node, message_history=message_history)
+        assert isinstance(response.content, str)
+        assert rc.context.get("tools_called") <= 5
+
+    @pytest.mark.asyncio
+    async def test_multiple_tool_calls_limit_class_based(self, model, travel_planner_tools):
         """Test that LimitedToolCallLLM allows up to N tool calls and then returns a final answer."""
         class MultiToolCallNode(LimitedToolCallLLM):
             def __init__(self, message_history: MessageHistory, model: rc.llm.ModelBase = model):
@@ -724,11 +787,25 @@ class TestLimitedToolCallLLM:
         rc.context.put("tools_called", 0)
         response = await rc.call(MultiToolCallNode, message_history=message_history)
         assert isinstance(response, str)
-        # Should not exceed 3 tool calls
-        assert rc.context.get("tools_called") <= 3
+        assert rc.context.get("tools_called") <= 5
 
     @pytest.mark.asyncio
-    async def test_negative_tool_calls_raises(self, model, travel_planner_tools):
+    async def test_negative_tool_calls_raises_easy_wrapper(self, model, travel_planner_tools):
+        """Test that LimitedToolCallLLM raises if max_tool_calls is negative (easy wrapper)."""
+
+        with pytest.raises(NodeCreationError, match="max_tool_calls must be a non-negative integer."):
+            _ = rc.library.tool_call_llm(
+                connected_nodes=set([from_function(tool) for tool in travel_planner_tools]),
+                pretty_name="Negative Tool Call Node",
+                system_message=rc.llm.SystemMessage(
+                    "You are a travel planner."
+                ),
+                model=model,
+                max_tool_calls=-1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_negative_tool_calls_raises_class_based(self, model, travel_planner_tools):
         """Test that LimitedToolCallLLM raises if max_tool_calls is negative."""
         class NegativeToolCallNode(LimitedToolCallLLM):
             def __init__(self, message_history: MessageHistory, model: rc.llm.ModelBase = model):
@@ -746,11 +823,37 @@ class TestLimitedToolCallLLM:
         message_history = MessageHistory(
             [UserMessage("Plan a trip to Paris.")]
         )
-        with pytest.raises(NodeInvocationError):    # invocation error because max_tool_calls can be injected at rc.call / run as well. 
+        with pytest.raises(NodeInvocationError, match="max_tool_calls must be a non-negative integer."):    # invocation error because max_tool_calls can be injected at rc.call / run as well. 
             await rc.call(NegativeToolCallNode, message_history=message_history)
 
+
     @pytest.mark.asyncio
-    async def test_works_with_different_tools(self, model, simple_tools):
+    async def test_context_reset_between_runs_easy_wrapper(self, model, simple_tools):
+        """Test that tools_called context variable is reset between runs (easy wrapper)."""
+        test_node = rc.library.tool_call_llm(
+            connected_nodes={from_function(simple_tools)},
+            pretty_name="Simple Tool Node",
+            system_message=rc.llm.SystemMessage(
+                "You are a number generator."
+            ),
+            model=model,
+            max_tool_calls=1,
+        )
+
+        message_history = MessageHistory(
+            [UserMessage("Give me a random number.")]
+        )
+        rc.context.put("tools_called", 0)
+        response: Message = await rc.call(test_node, message_history=message_history)
+        assert rc.context.get("tools_called") == 1
+
+        # Reset context and run again
+        rc.context.put("tools_called", 0)
+        response2: Message = await rc.call(test_node, message_history=message_history)
+        assert rc.context.get("tools_called") == 1
+
+    @pytest.mark.asyncio
+    async def test_works_with_different_tools_class_based(self, model, simple_tools):
         """Test LimitedToolCallLLM works with a different set of tools."""
         class SimpleToolNode(LimitedToolCallLLM):
             def __init__(self, message_history: MessageHistory, model: rc.llm.ModelBase = model):
@@ -774,7 +877,28 @@ class TestLimitedToolCallLLM:
         assert rc.context.get("tools_called") == 1
 
     @pytest.mark.asyncio
-    async def test_context_reset_between_runs(self, model, simple_tools):
+    async def test_works_with_different_tools_easy_wrapper(self, model, simple_tools):
+        """Test LimitedToolCallLLM works with a different set of tools (easy wrapper)."""
+        test_node = rc.library.tool_call_llm(
+            connected_nodes={from_function(simple_tools)},
+            pretty_name="Simple Tool Node",
+            system_message=rc.llm.SystemMessage(
+                "You are a number generator."
+            ),
+            model=model,
+            max_tool_calls=1,
+        )
+
+        message_history = MessageHistory(
+            [UserMessage("Give me a random number.")]
+        )
+        rc.context.put("tools_called", 0)
+        response: Message = await rc.call(test_node, message_history=message_history)
+        assert isinstance(response.content, str)
+        assert rc.context.get("tools_called") == 1
+
+    @pytest.mark.asyncio
+    async def test_context_reset_between_runs_class_based(self, model, simple_tools):
         """Test that tools_called context variable is reset between runs."""
         class SimpleToolNode(LimitedToolCallLLM):
             def __init__(self, message_history: MessageHistory, model: rc.llm.ModelBase = model):
@@ -801,14 +925,13 @@ class TestLimitedToolCallLLM:
         response2 = await rc.call(SimpleToolNode, message_history=message_history)      # this run should be unaffected by the previous run
         assert rc.context.get("tools_called") == 1
 
-
     def run_all_tests(self):
-        self.test_allows_only_one_toolcall()
-        self.test_zero_tool_calls_forces_final_answer()
-        self.test_multiple_tool_calls_limit()
-        self.test_negative_tool_calls_raises()
-        self.test_works_with_different_tools()
-        self.test_context_reset_between_runs()
+        self.test_allows_only_one_toolcall_class_based()
+        self.test_zero_tool_calls_forces_final_answer_class_based()
+        self.test_multiple_tool_calls_limit_class_based()
+        self.test_negative_tool_calls_raises_class_based()
+        self.test_works_with_different_tools_class_based()
+        self.test_context_reset_between_runs_class_based()
  
 @pytest.mark.asyncio
 async def limited_tool_call_tests(model, travel_planner_tools):

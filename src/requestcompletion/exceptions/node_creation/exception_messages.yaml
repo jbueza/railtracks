@@ -31,6 +31,12 @@ MISSING_TOOL_DETAILS_MSG: "Tool parameters are provided, but tool details are mi
 MISSING_TOOL_DETAILS_NOTES:
   - "If you want to use this node as a tool, you must provide tool details."
 
+MAX_TOOL_CALLS_NEGATIVE_MSG: "max_tool_calls must be a non-negative integer."
+MAX_TOOL_CALLS_NEGATIVE_NOTES:
+  - "The default value for any general RC tool_call_llm node is 30."
+  - "The default value for any LimitedToolCallLLM node is 1."
+  - "If you want to allow only a limited number of tool calls, set max_tool_calls to that number."
+  
 OUTPUT_MODEL_EMPTY_MSG: "Output model has no fields defined."
 OUTPUT_MODEL_EMPTY_NOTES:
   - "Check to see if the BaseModel has any fields defined."
