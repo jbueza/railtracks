@@ -42,6 +42,7 @@ class Message(Generic[_T]):
                 - ToolResponse: A tool response.
                 - BaseModel: A custom base model object.
             role: The role of the message (assistant, user, system, tool, etc.).
+            inject_prompt (bool, optional): Whether to inject prompt with context variables. Defaults to True.
         """
         self.validate_content(content)
         self._content = content
@@ -65,8 +66,7 @@ class Message(Generic[_T]):
     @property
     def inject_prompt(self) -> bool:
         """
-        A boolean that indicates whether this message should be injected into the prompt.
-        This is used to control whether the message is included in the prompt or not.
+        A boolean that indicates whether this message should be injected into from context.
         """
         return self._inject_prompt
 
@@ -100,9 +100,11 @@ class _StringOnlyContent(Message[str]):
 
 class UserMessage(_StringOnlyContent):
     """
-    A simple class that represents a user message.
-
     Note that we only support string input
+
+    Args:
+        content (str): The content of the user message.
+        inject_prompt (bool, optional): Whether to inject prompt with context variables. Defaults to True.
     """
 
     def __init__(self, content: str, inject_prompt: bool = True):
@@ -112,6 +114,10 @@ class UserMessage(_StringOnlyContent):
 class SystemMessage(_StringOnlyContent):
     """
     A simple class that represents a system message.
+
+    Args:
+        content (str): The content of the system message.
+        inject_prompt (bool, optional): Whether to inject prompt with context  variables. Defaults to True.
     """
 
     def __init__(self, content: str, inject_prompt: bool = True):
@@ -121,6 +127,10 @@ class SystemMessage(_StringOnlyContent):
 class AssistantMessage(Message[_T], Generic[_T]):
     """
     A simple class that represents a message from the assistant.
+
+    Args:
+        content (_T): The content of the assistant message.
+        inject_prompt (bool, optional): Whether to inject prompt with context  variables. Defaults to True.
     """
 
     def __init__(self, content: _T, inject_prompt: bool = True):
@@ -131,6 +141,9 @@ class AssistantMessage(Message[_T], Generic[_T]):
 class ToolMessage(Message[ToolResponse]):
     """
     A simple class that represents a message that is a tool call answer.
+
+    Args:
+        content (ToolResponse): The tool response content for the message.
     """
 
     def __init__(self, content: ToolResponse):

@@ -29,7 +29,7 @@ class ExecutorConfig:
             end_on_error (bool): If true, the executor will stop execution when an exception is encountered.
             logging_setting (allowable_log_levels): The setting for the level of logging you would like to have.
             subscriber (Callable or Coroutine): A function or coroutine that will handle streaming messages.
-            prompt_injection (bool): If true, prompts will be injected with global context
+            prompt_injection (bool): If true, prompts can be injected with global context
         """
         self.timeout = timeout
         self.end_on_error = end_on_error
