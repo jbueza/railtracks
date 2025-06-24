@@ -1,5 +1,6 @@
 import string
 from ..context import get
+from ..context.central import get_config
 from ..llm import MessageHistory, Message
 
 
@@ -14,21 +15,20 @@ def fill_prompt(prompt: str) -> str:
     return string.Formatter().vformat(prompt, (), ContextDict())
 
 
-def inject_context(message_history: MessageHistory) -> MessageHistory:
+def inject_context(message_history: MessageHistory):
     """
     Injects the context from the current request into the prompt.
 
     Args:
-        message_history (str): The prompt to inject context into.
+        message_history (MessageHistory): The prompts to inject context into.
 
-    Returns:
-        str: The prompt with the context injected.
     """
-    for i, message in enumerate(message_history):
-        if isinstance(message.content, str):
-            message_history[i] = Message(
-                role=message.role.value,
-                content=fill_prompt(message.content)
-            )
+    if get_config().prompt_injection:
+        for i, message in enumerate(message_history):
+            if message.inject_prompt and isinstance(message.content, str):
+                message_history[i] = Message(
+                    role=message.role.value,
+                    content=fill_prompt(message.content)
+                )
 
     return message_history

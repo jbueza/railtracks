@@ -27,7 +27,7 @@ class Message(Generic[_T]):
     """
 
     def __init__(
-        self, content: _T, role: Literal["assistant", "user", "system", "tool"]
+        self, content: _T, role: Literal["assistant", "user", "system", "tool"], inject_prompt: bool = True
     ):
         """
         A simple class that represents a message that an LLM can read.
@@ -43,6 +43,7 @@ class Message(Generic[_T]):
         self.validate_content(content)
         self._content = content
         self._role = Role(role)
+        self._inject_prompt = inject_prompt
 
     @classmethod
     def validate_content(cls, content: _T):
@@ -57,6 +58,20 @@ class Message(Generic[_T]):
     def role(self) -> Role:
         """Collects the role of the message."""
         return self._role
+
+    @property
+    def inject_prompt(self) -> bool:
+        """
+        A boolean that indicates whether this message should be injected into the prompt.
+        This is used to control whether the message is included in the prompt or not.
+        """
+        return self._inject_prompt
+
+    def set_inject_prompt(self, value: bool):
+        """
+        Sets the inject_prompt property.
+        """
+        self._inject_prompt = value
 
     def __str__(self):
         return f"{self.role.value}: {self.content}"

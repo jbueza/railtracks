@@ -19,6 +19,7 @@ class ExecutorConfig:
             Callable[[str], None] | Callable[[str], Coroutine[None, None, None]] | None
         ) = None,
         run_identifier: str | None = None,
+        prompt_injection: bool = True,
     ):
         """
         ExecutorConfig is special configuration object designed to allow customization of the executor in the RC system.
@@ -35,3 +36,4 @@ class ExecutorConfig:
         self.subscriber = subscriber
         self.run_identifier = run_identifier if run_identifier else str(uuid.uuid4())
         self.log_file = log_file
+        self.prompt_injection = prompt_injection

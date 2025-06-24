@@ -1,0 +1,60 @@
+from requestcompletion import ExecutorConfig
+from requestcompletion.llm import MessageHistory, Message
+from requestcompletion.llm.response import Response
+from requestcompletion.nodes.library.easy_usage_wrappers.terminal_llm import terminal_llm
+from tests.rc_tests.llm.conftest import MockLLM
+import requestcompletion as rc
+
+
+def test_prompt_injection():
+    prompt = "{secret_value}"
+
+    def return_message(messages: MessageHistory) -> Response:
+        return Response(message=Message(role="assistant", content=messages[-1].content))
+
+    node = terminal_llm(
+        system_message=prompt,
+        model=MockLLM(chat=return_message)
+    )
+
+    with rc.Runner(context={"secret_value": "tomato"}) as runner:
+        response = runner.run_sync(node, message_history=MessageHistory())
+
+    assert response.answer == "tomato"
+
+
+def test_prompt_injection_bypass():
+    prompt = "{{secret_value}}"
+
+    def return_message(messages: MessageHistory) -> Response:
+        return Response(message=Message(role="assistant", content=messages[-1].content))
+
+    node = terminal_llm(
+        system_message=prompt,
+        model=MockLLM(chat=return_message)
+    )
+
+    with rc.Runner(context={"secret_value": "tomato"}) as runner:
+        response = runner.run_sync(node, message_history=MessageHistory())
+
+    assert response.answer == "{secret_value}"
+
+
+def test_prompt_injection_global_config_bypass():
+    prompt = "{secret_value}"
+
+    def return_message(messages: MessageHistory) -> Response:
+        return Response(message=Message(role="assistant", content=messages[-1].content))
+
+    node = terminal_llm(
+        system_message=prompt,
+        model=MockLLM(chat=return_message)
+    )
+
+    with rc.Runner(
+            context={"secret_value": "tomato"},
+            executor_config=ExecutorConfig(prompt_injection=False)
+    ) as runner:
+        response = runner.run_sync(node, message_history=MessageHistory())
+
+    assert response.answer == "{secret_value}"

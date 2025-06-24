@@ -23,17 +23,3 @@ def test_put_context():
         result = runner.run_sync(context_node)
 
     assert result.answer == "test_value"
-
-
-def test_prompt_injection():
-    prompt = "The secret message is: {secret_value}"
-    message_history = rc.llm.MessageHistory([
-        rc.llm.UserMessage("What is the secret message? Only return the message.")
-    ])
-
-    node = terminal_llm(system_message=prompt, model=rc.llm.OpenAILLM("gpt-4o"))
-
-    with rc.Runner(context={"secret_value": "'tomato'"}) as runner:
-        response = runner.run_sync(node, message_history)
-
-    assert response.answer == "tomato"

@@ -53,15 +53,15 @@ class ModelBase(ABC):
     def model_provider(self) -> str | None:
         return None
 
-
     def chat(
         self, messages: MessageHistory, **kwargs
     ) -> Response:
         """Chat with the model using the provided messages."""
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
 
         result = self._chat(messages, **kwargs)
+        result.message.set_inject_prompt(False)
 
         for hook in self._post_hook:
             result = hook(messages, result)
@@ -73,9 +73,10 @@ class ModelBase(ABC):
     ) -> Response:
         """Structured interaction with the model using the provided messages and schema."""
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
 
         result = self._structured(messages, schema, **kwargs)
+        result.message.set_inject_prompt(False)
 
         for hook in self._post_hook:
             result = hook(messages, result)
@@ -88,9 +89,10 @@ class ModelBase(ABC):
         """Stream chat with the model using the provided messages."""
         # TODO figure out how to make this work with streamed tasks.
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
 
         result = self._stream_chat(messages, **kwargs)
+        result.message.set_inject_prompt(False)
 
         for hook in self._post_hook:
             result = hook(messages, result)
@@ -102,9 +104,10 @@ class ModelBase(ABC):
     ) -> Response:
         """Chat with the model using the provided messages and tools."""
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
 
         result = self._chat_with_tools(messages, tools, **kwargs)
+        result.message.set_inject_prompt(False)
 
         for hook in self._post_hook:
             result = hook(messages, result)
