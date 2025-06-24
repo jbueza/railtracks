@@ -1,18 +1,16 @@
+#%%
 import asyncio
-#%%
 import requestcompletion as rc
-#%%
 from mcp import StdioServerParameters
-
 from requestcompletion.nodes.library.mcp_tool import async_from_mcp_server, from_mcp_server
 
 #%%
 # Install mcp_server_time for time tools:
-MCP_COMMAND = "uv"
-MCP_ARGS = ["--directory", r"C:\Users\Levi\Documents\MCP\node\node_server.py", "run", "node_server.py"]
+MCP_COMMAND = "uvx"
+MCP_ARGS = ["mcp-server-time"]
 # Airbnb MCP server requires Node.js and the `npx` command to run.
 
-
+# 
 #%%
 # Discover all tools
 fetch_tools = from_mcp_server(StdioServerParameters(command=MCP_COMMAND, args=MCP_ARGS))
