@@ -1,6 +1,6 @@
 import requestcompletion as rc
 from requestcompletion.context import put, get
-from requestcompletion.nodes.library import from_function, terminal_llm
+from requestcompletion.nodes.library import from_function
 from requestcompletion.interaction.call import call
 
 

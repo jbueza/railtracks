@@ -7,7 +7,7 @@ import requestcompletion as rc
 
 
 def test_prompt_injection():
-    prompt = "{secret_value}"
+    prompt = "{1}"
 
     def return_message(messages: MessageHistory) -> Response:
         return Response(message=Message(role="assistant", content=messages[-1].content))
@@ -17,7 +17,7 @@ def test_prompt_injection():
         model=MockLLM(chat=return_message)
     )
 
-    with rc.Runner(context={"secret_value": "tomato"}) as runner:
+    with rc.Runner(context={"1": "tomato"}) as runner:
         response = runner.run_sync(node, message_history=MessageHistory())
 
     assert response.answer == "tomato"

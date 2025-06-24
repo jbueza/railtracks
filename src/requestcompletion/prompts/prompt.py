@@ -4,15 +4,21 @@ from ..context.central import get_config
 from ..llm import MessageHistory, Message
 
 
+class KeyOnlyFormatter(string.Formatter):
+    def get_value(self, key, args, kwargs):
+        # Always treat key as a string and look up in kwargs (your context dict)
+        return kwargs[str(key)]
+
+
 def fill_prompt(prompt: str) -> str:
     class ContextDict(dict):
         def __getitem__(self, key):
             return get(key)
 
         def __missing__(self, key):
-            return f"{{{key}}} (missing from context)"  # Return the placeholder if not found
+            return f"{{{key}}}"  # Return the placeholder if not found
 
-    return string.Formatter().vformat(prompt, (), ContextDict())
+    return KeyOnlyFormatter().vformat(prompt, (), ContextDict())
 
 
 def inject_context(message_history: MessageHistory):
