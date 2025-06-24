@@ -92,7 +92,7 @@ class ModelBase(ABC):
             messages = hook(messages)
         try:
             result = self._chat(messages, **kwargs)
-            result.message.set_inject_prompt(False)
+            result.message._inject_prompt = False
         except Exception as e:
             for hook in self._exception_hook:
                 hook(messages, e)
@@ -112,7 +112,7 @@ class ModelBase(ABC):
 
         try:
             result = self._structured(messages, schema, **kwargs)
-            result.message.set_inject_prompt(False)
+            result.message._inject_prompt = False
         except Exception as e:
             for hook in self._exception_hook:
                 hook(messages, e)
@@ -130,7 +130,6 @@ class ModelBase(ABC):
             messages = hook(messages)
 
         result = self._stream_chat(messages, **kwargs)
-        result.message.set_inject_prompt(False)
 
         for hook in self._post_hook:
             result = hook(messages, result)
@@ -146,7 +145,7 @@ class ModelBase(ABC):
 
         try:
             result = self._chat_with_tools(messages, tools, **kwargs)
-            result.message.set_inject_prompt(False)
+            result.message._inject_prompt = False
         except Exception as e:
             for hook in self._exception_hook:
                 hook(messages, e)

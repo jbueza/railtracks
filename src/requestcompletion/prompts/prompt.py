@@ -1,24 +1,27 @@
 import string
-from ..context import get
+import requestcompletion as rc
 from ..context.central import get_config
 from ..llm import MessageHistory, Message
 
 
 class KeyOnlyFormatter(string.Formatter):
     def get_value(self, key, args, kwargs):
-        # Always treat key as a string and look up in kwargs (your context dict)
-        return kwargs[str(key)]
+        try:
+            return kwargs[str(key)]
+        except KeyError:
+            return f"{{{key}}}"
+
+
+class _ContextDict(dict):
+    def __getitem__(self, key):
+        return rc.context.get(key)
+
+    def __missing__(self, key):
+        return f"{{{key}}}"  # Return the placeholder if not found
 
 
 def fill_prompt(prompt: str) -> str:
-    class ContextDict(dict):
-        def __getitem__(self, key):
-            return get(key)
-
-        def __missing__(self, key):
-            return f"{{{key}}}"  # Return the placeholder if not found
-
-    return KeyOnlyFormatter().vformat(prompt, (), ContextDict())
+    return KeyOnlyFormatter().vformat(prompt, (), _ContextDict())
 
 
 def inject_context(message_history: MessageHistory):

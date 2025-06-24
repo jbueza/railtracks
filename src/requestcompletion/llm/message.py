@@ -70,7 +70,8 @@ class Message(Generic[_T]):
         """
         return self._inject_prompt
 
-    def set_inject_prompt(self, value: bool):
+    @inject_prompt.setter
+    def inject_prompt(self, value: bool):
         """
         Sets the inject_prompt property.
         """
