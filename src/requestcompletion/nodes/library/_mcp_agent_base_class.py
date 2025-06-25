@@ -104,10 +104,11 @@ class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
 
     def __init__(
         self,
-        message_history: MessageHistory,
+        instructions: str,
         llm_model: ModelBase | None = None,
         max_tool_calls: int | None = 30,
     ):
+        message_history = MessageHistory([UserMessage(instructions)])
         check_message_history(
             message_history, self.__class__.system_message
         )  # raises NodeInvocationError if any of the checks fail

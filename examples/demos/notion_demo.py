@@ -18,6 +18,6 @@ with rc.Runner() as run:
     result = asyncio.run(
         run.run(
             notion_agent,
-            message_history=MessageHistory([UserMessage(USER_PROMPT)]),
+            instructions=USER_PROMPT,
         )
     )

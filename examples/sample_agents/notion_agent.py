@@ -1,5 +1,6 @@
 from typing import Type, Union, Literal
 from pydantic import BaseModel
+import json
 from requestcompletion.llm import (
     MessageHistory,
     ModelBase,
@@ -16,7 +17,7 @@ from requestcompletion.nodes.library._mcp_agent_base_class import (
 
 MCP_COMMAND = "npx"
 MCP_ARGS = ["-y", "@notionhq/notion-mcp-server"]
-MCP_ENV_DATE = "2022-06-28"
+DEFAULT_VERSION = "2022-06-28"
 SYSTEM_MESSAGE = """You are a master notion page designer. You love creating beautiful
 and well-structured Notion pages and make sure that everything is correctly formatted."""
 PRETTY_NAME = "Notion Agent"
@@ -26,6 +27,7 @@ You can use this tool to edit and create any notion pages you might need."""
 
 def notion_agent(  # noqa: C901
     notion_api_token: str | None = None,
+    notion_version : str | None = None,
     model: ModelBase | None = None,
     output_type: Literal["MessageHistory", "LastMessage"] = "LastMessage",
     output_model: BaseModel | None = None,
@@ -45,13 +47,26 @@ def notion_agent(  # noqa: C901
         type: NotionAgent Class
     """
 
+    #format the env variable
+    if notion_version:
+        headers = {
+            "Authorization": f"Bearer {notion_api_token}",
+            "Notion-Version": notion_version
+        }
+    else:
+        headers = {
+            "Authorization": f"Bearer {notion_api_token}",
+            "Notion-Version": DEFAULT_VERSION
+        }
+    notion_env = {
+        "OPENAPI_MCP_HEADERS": json.dumps(headers)
+    }
+
     class NotionAgent(
         MCPAgentBase[check_output(output_type, output_model)],
         mcp_command=MCP_COMMAND,
         mcp_args=MCP_ARGS,
-        mcp_env={
-            "OPENAPI_MCP_HEADERS": f'{{"Authorization": "Bearer {notion_api_token}", "Notion-Version":  {MCP_ENV_DATE} }}'
-        },
+        mcp_env=notion_env,
         api_token=notion_api_token,
         pretty_name=PRETTY_NAME,
         model=model,
