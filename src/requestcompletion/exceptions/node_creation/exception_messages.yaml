@@ -11,6 +11,7 @@ CONNECTED_NODES_TYPE_MSG: "connected_nodes must return a set of Nodes."
 CONNECTED_NODES_TYPE_NOTES:
   - "Ensure all the nodes provided as connected_nodes are of type Node."
   - "You can use the from_function function to convert a function to a Node."
+  - "You can use the @rc.to_node decorator to convert a function to a Node. eg.-\n@rc.to_node\ndef my_function(): ..."
 
 DICT_PARAMETER_NOT_ALLOWED_MSG: "Parameter '{param_name}' contains a dictionary type at {path}, which is not allowed."
 DICT_PARAMETER_NOT_ALLOWED_NOTES:

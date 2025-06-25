@@ -8,42 +8,42 @@ from requestcompletion.exceptions import NodeCreationError, NodeInvocationError
 
 # ================================================ START terminal_llm basic functionality =========================================================
 @pytest.mark.asyncio
-async def test_terminal_llm_instantiate_and_invoke(dummy_model):
+async def test_terminal_llm_instantiate_and_invoke(model):
     class MockLLM(TerminalLLM):
         @classmethod
         def pretty_name(cls):
             return "Mock LLM"
         
     mh = MessageHistory([SystemMessage("system prompt"), UserMessage("hello")])
-    node = MockLLM(message_history=mh, model=dummy_model())
+    node = MockLLM(message_history=mh, model=model())
     result = await node.invoke()
     assert result == "dummy content"
 
 @pytest.mark.asyncio
-async def test_terminal_llm_easy_usage_wrapper_invoke(dummy_model):
+async def test_terminal_llm_easy_usage_wrapper_invoke(model):
     node = terminal_llm(
         pretty_name="Mock LLM",
         system_message="system prompt",
-        model=dummy_model(),
+        model=model(),
     )
     mh = MessageHistory([UserMessage("hello")])
     result = await rc.call(node, message_history=mh)
     assert result == "dummy content"
 
-def test_terminal_llm_easy_usage_wrapper_classmethods(dummy_model):
+def test_terminal_llm_easy_usage_wrapper_classmethods(model):
     NodeClass = terminal_llm(
         pretty_name="Mock LLM",
         system_message="system prompt",
-        model=dummy_model(),
+        model=model(),
     )
     assert NodeClass.pretty_name() == "Mock LLM"
 
 @pytest.mark.asyncio
-async def test_terminal_llm_system_message_string_inserts_system_message(dummy_model):
+async def test_terminal_llm_system_message_string_inserts_system_message(model):
     NodeClass = terminal_llm(
         pretty_name="TestTerminalNode",
         system_message="system prompt",
-        model=dummy_model(),
+        model=model(),
     )
     mh = MessageHistory([UserMessage("hello")])
     node = NodeClass(message_history=mh)

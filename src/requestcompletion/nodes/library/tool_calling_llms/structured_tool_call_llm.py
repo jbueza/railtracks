@@ -30,6 +30,7 @@ class StructuredToolCallLLM(OutputLessToolCallLLM[str], ABC):
             model=self.model,
             tool_details=tool_details,
             tool_params=tool_params,
+            pretty_name=self.pretty_name(),
         )
 
     def return_output(self) -> BaseModel:

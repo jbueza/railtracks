@@ -1,9 +1,90 @@
 import pytest
 import requestcompletion as rc
 from pydantic import BaseModel, Field
+from requestcompletion.nodes.library import tool_call_llm, StructuredToolCallLLM
 from requestcompletion.exceptions import NodeCreationError
+from requestcompletion.llm import MessageHistory, SystemMessage, UserMessage
+# =========================== Basic functionality ==========================
+
+def test_structured_tool_call_llm_init(model, output_model, mock_tool):
+    class MockStructuredToolCallLLM(StructuredToolCallLLM):
+        @classmethod
+        def output_model(cls):
+            return output_model
+        
+        @classmethod
+        def pretty_name(cls):
+            return "Mock Structured ToolCallLLM"
+        
+        def connected_nodes(self):
+            return {mock_tool}
+    
+    mh = MessageHistory([SystemMessage("system prompt"), UserMessage("extract value")])
+    node = MockStructuredToolCallLLM(
+        message_history=mh,
+        llm_model=model,
+        output_model=output_model,
+        tool_details="Extracts a value.",
+        tool_params=None,
+    )
+    assert hasattr(node, "structured_resp_node")
+
+def test_structured_tool_call_llm_return_output_success(mock_tool, model, output_model):
+    class MockStructuredToolCallLLM(StructuredToolCallLLM):
+        @classmethod
+        def output_model(cls):
+            return output_model
+        
+        @classmethod
+        def pretty_name(cls):
+            return "Mock Structured ToolCallLLM"
+        
+        def connected_nodes(self):
+            return {mock_tool}
+    
+    mh = MessageHistory([SystemMessage("system prompt"), UserMessage("extract value")])
+    node = MockStructuredToolCallLLM(
+        message_history=mh,
+        llm_model=model,
+        output_model=output_model,
+        tool_details="Extracts a value.",
+        tool_params=None,
+    )
+    node.structured_output = output_model(value=123)
+    assert node.return_output().value == 123
+
+def test_structured_tool_call_llm_return_output_exception(model, output_model, mock_tool):
+    node = tool_call_llm(
+        system_message=SystemMessage("system prompt"),
+        connected_nodes={mock_tool},
+        model=model(),
+        output_model=output_model,
+        tool_details="Extracts a value.",
+        tool_params=None,
+        pretty_name="Mock Structured ToolCallLLM",
+    )
+    mh = MessageHistory([SystemMessage("system prompt"), UserMessage("extract value")])
+    node = node(mh)
+    node.structured_output = ValueError("fail")
+    with pytest.raises(ValueError):
+        node.return_output()
+
+def test_structured_llm_easy_usage_wrapper(model, output_model, mock_tool):
+    mh = MessageHistory([SystemMessage("system prompt"), UserMessage("extract value")])
+    node = tool_call_llm(
+        system_message=SystemMessage("system prompt"),
+        connected_nodes={mock_tool},
+        model=model(),
+        output_model=output_model,
+        tool_details="Extracts a value.",
+        tool_params=None,
+        pretty_name="Mock Structured ToolCallLLM",
+    )
+    node = node(mh)
+    assert hasattr(node, "structured_resp_node")
 
 
+# =========================== Exception testing ============================
 # Not using the ones in conftest.py because we will have to use lazy_fixtures for that. lazy_fixture is not very well supported in pytest (better to avaoid it)
 class SimpleOutput(BaseModel):
     text: str = Field(description="The text to return")

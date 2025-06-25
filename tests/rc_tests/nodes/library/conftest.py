@@ -13,7 +13,7 @@ def model():
     return rc.llm.OpenAILLM("gpt-4o")
 
 @pytest.fixture
-def dummy_model():
+def model():
     class DummyModel(ModelBase):
         def __init__(self, message_history = [], model = "dummy"):
             self.message_history = message_history
@@ -23,13 +23,16 @@ def dummy_model():
             return Response(message=AssistantMessage(self.message))
         
         def structured(self, messages, schema):
-            return Response(message=AssistantMessage(schema(text="dummy content", number=42)))
+            return Response(message=AssistantMessage(schema(text=self.message, number=42)))
         
+        # ============ Not being used yet ===========
         def chat_with_tools(self, messages, tools):
             return Response(message=AssistantMessage([ToolMessage(ToolResponse(result=self.message, identifier="test", name="test"))]))
         
         def stream_chat(self, messages):
             return Response(message=None, streamer=lambda: "dummy content")
+        # ============ Not being used yet ===========
+
     return DummyModel
 
 # ============ System Messages ===========

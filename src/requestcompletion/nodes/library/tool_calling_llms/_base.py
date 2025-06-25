@@ -156,6 +156,9 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                         )
                 else:
                     # this means the tool call is finished
+                    self.message_hist.append(
+                        AssistantMessage(content=returned_mess.message.content)
+                    )
                     break
             else:
                 # the message is malformed from the model

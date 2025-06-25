@@ -9,7 +9,7 @@ from typing import Type
 
 # ===================================================== START Unit Testing =========================================================
 @pytest.mark.asyncio
-async def test_structured_llm_instantiate_and_invoke(simple_output_model, dummy_model):
+async def test_structured_llm_instantiate_and_invoke(simple_output_model, model):
     class MyLLM(StructuredLLM):
         @classmethod
         def output_model(cls) -> Type[BaseModel]:
@@ -20,7 +20,7 @@ async def test_structured_llm_instantiate_and_invoke(simple_output_model, dummy_
             return "Mock LLM"
 
     mh = MessageHistory([SystemMessage("system prompt"), UserMessage("hello")])
-    result = await rc.call(MyLLM, message_history=mh, model=dummy_model())
+    result = await rc.call(MyLLM, message_history=mh, model=model())
     assert isinstance(result, simple_output_model)
     assert result.text == "dummy content"
     assert result.number == 42
@@ -33,11 +33,11 @@ def test_structured_llm_output_model_classmethod(simple_output_model):
     assert MyLLM.output_model() is simple_output_model
 
 @pytest.mark.asyncio
-async def test_structured_llm_easy_usage_wrapper_invoke(simple_output_model, dummy_model):
+async def test_structured_llm_easy_usage_wrapper_invoke(simple_output_model, model):
     node = structured_llm(
         output_model=simple_output_model,
         system_message="system prompt",
-        model=dummy_model(),
+        model=model(),
         pretty_name="TestNode"
     )
     mh = MessageHistory([UserMessage("hello")])
@@ -46,11 +46,11 @@ async def test_structured_llm_easy_usage_wrapper_invoke(simple_output_model, dum
     assert result.text == "dummy content"
     assert result.number == 42
 
-def test_structured_llm_easy_usage_wrapper_classmethods(simple_output_model, dummy_model):
+def test_structured_llm_easy_usage_wrapper_classmethods(simple_output_model, model):
     node = structured_llm(
         output_model=simple_output_model,
         system_message="system prompt",
-        model=dummy_model(),
+        model=model(),
         pretty_name="TestNode"
     )
     assert node.output_model() is simple_output_model
