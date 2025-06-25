@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+
 import uuid
 from copy import deepcopy
 from ..llm import Tool
@@ -94,14 +95,34 @@ class NodeState(Generic[_TNode]):
         return self.node
 
 
+class DebugDetails(dict[str, Any]):
+    """
+    A simple debug detail object that operates like a dictionary that can be used to store debug information about
+    the node.
+    """
+
+    pass
+
+
 class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
     """An abstract base class which defines some the functionality of a node"""
 
     def __init__(
         self,
+        *,
+        debug_details: DebugDetails | None = None,
     ):
         # each fresh node will have a generated uuid that identifies it.
         self.uuid = str(uuid.uuid4())
+        self._details: DebugDetails = debug_details or DebugDetails()
+
+    @property
+    def details(self) -> DebugDetails:
+        """
+        Returns a debug details object that contains information about the node.
+        This is used for debugging and logging purposes.
+        """
+        return self._details
 
     @classmethod
     @abstractmethod
@@ -148,9 +169,6 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
     def safe_copy(self) -> Self:
         """
         A method used to create a new pass by value copy of every element of the node except for the backend connections.
-
-        The backend connections include the data streamer, create_node_hook and invoke_node_hook.
-
         """
         cls = self.__class__
         result = cls.__new__(cls)
@@ -159,4 +177,4 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
         return result
 
     def __repr__(self):
-        return f"{self.pretty_name()}: {self.state_details()}"
+        return f"{hex(id(self))}: {self.pretty_name()}: {self.state_details()}"

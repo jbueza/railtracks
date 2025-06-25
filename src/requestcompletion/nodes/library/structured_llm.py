@@ -1,8 +1,7 @@
 from typing import TypeVar, Type
-from copy import deepcopy
+
+from ._llm_base import LLMBase
 from ...llm import MessageHistory, ModelBase
-from ..nodes import Node
-from ...exceptions.node_invocation.validation import check_message_history
 from ...exceptions import LLMError
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
@@ -10,7 +9,7 @@ from abc import ABC, abstractmethod
 _TOutput = TypeVar("_TOutput", bound=BaseModel)
 
 
-class StructuredLLM(Node[_TOutput], ABC):
+class StructuredLLM(LLMBase[_TOutput], ABC):
     # TODO: allow for more general (non-pydantic) outputs
     @classmethod
     @abstractmethod
@@ -22,12 +21,7 @@ class StructuredLLM(Node[_TOutput], ABC):
         Args:
 
         """
-        super().__init__()
-        self.model = model
-        check_message_history(
-            message_history
-        )  # raises NodeInvocationError if any of the checks fail
-        self.message_hist = deepcopy(message_history)
+        super().__init__(model=model, message_history=message_history)
 
     async def invoke(self) -> _TOutput:
         """Makes a call containing the inputted message and system prompt to the model and returns the response
