@@ -1,6 +1,6 @@
 import requestcompletion as rc
 from requestcompletion.llm import MessageHistory, UserMessage
-from ..sample_agents.notion_plug import notion_agent
+from ..sample_agents.notion_agent import notion_agent
 import asyncio
 
 
@@ -12,13 +12,12 @@ Otherwise you can specify the title of the parent page in the system message"""
 USER_PROMPT = """Would you be able to create a new page for me in Notion labeled "Jokes"? I would like to have a small joke at the top of the page. Anything but the scientist joke please."""
 
 
-notion_agent = notion_agent()
+notion_agent = notion_agent(model=rc.llm.OpenAILLM("gpt-4o"))
 
 with rc.Runner() as run:
     result = asyncio.run(
         run.run(
             notion_agent,
             message_history=MessageHistory([UserMessage(USER_PROMPT)]),
-            llm_model=rc.llm.OpenAILLM("gpt-4o"),
         )
     )

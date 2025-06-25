@@ -28,12 +28,13 @@ from requestcompletion.exceptions.node_invocation.validation import (
     check_message_history,
 )
 import requestcompletion as rc
-from requestcompletion.nodes.library.function import from_function
 
 _T = TypeVar("_T")
-    
+
+
 class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
-    def __init_subclass__(cls, 
+    def __init_subclass__(
+        cls,
         mcp_command: str | None = None,
         mcp_args: list[str] | None = None,
         mcp_env: dict[str, str] | None = None,
@@ -44,53 +45,52 @@ class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
         output_type: Literal["MessageHistory", "LastMessage"] = "LastMessage",
         output_model: BaseModel | None = None,
         tool_details: str | None = None,
-        tool_params: dict | None = None,):
-
-            # Look to see if the user has set the NOTION_TOKEN environment variable
-            if api_token is None:
-                if os.getenv("NOTION_TOKEN"):
-                    api_token = os.getenv("NOTION_TOKEN")
-                else:
-                    raise NodeCreationError(
-                        "Notion API token not found",
-                        [
-                            "Please set a NOTION_TOKEN in your .env or pass it as a parameter to the notion_agent function."
-                        ],
-                    )
-            # Look to see if the user has set the NOTION_ROOT_PAGE_ID environment variable
-            if os.getenv("NOTION_ROOT_PAGE_ID"):
-                system_message = system_message + (
-                    f"Use the page with ID {os.getenv('NOTION_ROOT_PAGE_ID')} as the parent page for your operations."
+        tool_params: dict | None = None,
+    ):
+        # Look to see if the user has set the NOTION_TOKEN environment variable
+        if api_token is None:
+            if os.getenv("NOTION_TOKEN"):
+                api_token = os.getenv("NOTION_TOKEN")
+            else:
+                raise NodeCreationError(
+                    "Notion API token not found",
+                    [
+                        "Please set a NOTION_TOKEN in your .env or pass it as a parameter to the notion_agent function."
+                    ],
                 )
-
-            tools = rc.nodes.library.from_mcp_server(
-                StdioServerParameters(
-                    command=mcp_command,
-                    args=mcp_args,
-                    env= mcp_env if mcp_env is not None else None
-                )
+        # Look to see if the user has set the NOTION_ROOT_PAGE_ID environment variable
+        if os.getenv("NOTION_ROOT_PAGE_ID"):
+            system_message = system_message + (
+                f"Use the page with ID {os.getenv('NOTION_ROOT_PAGE_ID')} as the parent page for your operations."
             )
-            connected_nodes = {*tools}
 
-            validate_tool_metadata(tool_params, tool_details, system_message, pretty_name)
-            if system_message is not None and isinstance(
-                system_message, str
-            ):  # system_message is a string, (tackled at the time of node creation)
-                system_message = SystemMessage(system_message)
-            
-            #Initialize class wide variables passed by factory function
-            cls._connected_nodes = connected_nodes
-            cls.tool_params = tool_params
-            cls.tool_details = tool_details
-            cls._pretty_name = pretty_name
-            cls._output_type = output_type
-            cls._output_model = output_model
-            cls.system_message = system_message
-            cls.model = model
+        tools = rc.nodes.library.from_mcp_server(
+            StdioServerParameters(
+                command=mcp_command,
+                args=mcp_args,
+                env=mcp_env if mcp_env is not None else None,
+            )
+        )
+        connected_nodes = {*tools}
 
-            #Now that attributes are set, we can validate the attributes
-            super().__init_subclass__()
+        validate_tool_metadata(tool_params, tool_details, system_message, pretty_name)
+        if system_message is not None and isinstance(
+            system_message, str
+        ):  # system_message is a string, (tackled at the time of node creation)
+            system_message = SystemMessage(system_message)
 
+        # Initialize class wide variables passed by factory function
+        cls._connected_nodes = connected_nodes
+        cls.tool_params = tool_params
+        cls.tool_details = tool_details
+        cls._pretty_name = pretty_name
+        cls._output_type = output_type
+        cls._output_model = output_model
+        cls.system_message = system_message
+        cls.model = model
+
+        # Now that attributes are set, we can validate the attributes
+        super().__init_subclass__()
 
     def return_output(self):
         if self.__class__._output_model:
@@ -135,16 +135,16 @@ class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
             )  # raises NodeInvocationError if any of the checks fail
             llm_model = self.__class__.model
 
-        super().__init__(
-            message_history_copy, llm_model, max_tool_calls=max_tool_calls
-        )
+        super().__init__(message_history_copy, llm_model, max_tool_calls=max_tool_calls)
 
         if self.__class__._output_model:
             system_structured = SystemMessage(
                 "You are a structured LLM that can convert the response into a structured output."
             )
             self.structured_resp_node = structured_llm(
-                self.__class__._output_model, system_message=system_structured, model=llm_model
+                self.__class__._output_model,
+                system_message=system_structured,
+                model=llm_model,
             )
 
     @abstractmethod
@@ -179,11 +179,14 @@ class MCPAgentBase(OutputLessToolCallLLM[_T], ABC, Generic[_T]):
             ]
         )
         return cls(message_hist)
-    
-def check_output(output_type: Literal["MessageHistory", "LastMessage"],
-        output_model: BaseModel,):
+
+
+def check_output(
+    output_type: Literal["MessageHistory", "LastMessage"],
+    output_model: BaseModel,
+):
     if output_model:
-                OutputType = output_model  # noqa: N806
+        OutputType = output_model  # noqa: N806
     else:
         OutputType = (  # noqa: N806
             MessageHistory if output_type == "MessageHistory" else AssistantMessage
