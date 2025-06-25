@@ -33,10 +33,9 @@ class MutableExternalContext(ExternalContext):
     """
 
     def __init__(
-            self,
-            input_dict: Dict[str, Any] | None = None,
+        self,
+        input_dict: Dict[str, Any] | None = None,
     ):
-
         if input_dict is not None:
             self._context_var_store = input_dict
         else:

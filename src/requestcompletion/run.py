@@ -10,7 +10,7 @@ from .config import ExecutorConfig
 from .context.central import (
     register_globals,
     delete_globals,
-    set_global_config, get_global_config, set_local_config,
+    get_global_config,
 )
 from .execution.coordinator import Coordinator
 from .execution.execution_strategy import AsyncioExecutionStrategy
@@ -75,13 +75,10 @@ class Runner:
         if executor_config is None:
             executor_config = get_global_config()
 
-
         self.executor_config = executor_config
 
         if context is None:
             context = {}
-
-
 
         # TODO see issue about logger
         prepare_logger(
@@ -107,7 +104,7 @@ class Runner:
             rc_publisher=self.publisher,
             parent_id=None,
             executor_config=executor_config,
-            global_context_vars=context
+            global_context_vars=context,
         )
 
         logger.debug("Runner %s is initialized" % self._identifier)

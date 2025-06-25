@@ -12,17 +12,18 @@ from requestcompletion.config import ExecutorConfig
 from requestcompletion.context.internal import InternalContext
 from requestcompletion.pubsub.publisher import RCPublisher
 
+
 class RunnerContextVars:
     """
     A class to hold context variables which are scoped within the context of a single runner.
     """
 
     def __init__(
-            self,
-            *,
-            runner_id: str,
-            internal_context: InternalContext,
-            external_context: ExternalContext,
+        self,
+        *,
+        runner_id: str,
+        internal_context: InternalContext,
+        external_context: ExternalContext,
     ):
         self.runner_id = runner_id
         self.internal_context = internal_context
@@ -41,12 +42,13 @@ class RunnerContextVars:
         )
 
 
-runner_context: contextvars.ContextVar[RunnerContextVars | None] = contextvars.ContextVar(
-    "runner_context", default=None
+runner_context: contextvars.ContextVar[RunnerContextVars | None] = (
+    contextvars.ContextVar("runner_context", default=None)
 )
 global_executor_config: contextvars.ContextVar[ExecutorConfig] = contextvars.ContextVar(
     "executor_config", default=ExecutorConfig()
 )
+
 
 def safe_get_runner_context() -> RunnerContextVars:
     """
@@ -60,13 +62,10 @@ def safe_get_runner_context() -> RunnerContextVars:
     """
     context = runner_context.get()
     if context is None:
-            raise RuntimeError(
-                "Global variables have not been registered. Call `register_globals()` first."
-            )
+        raise RuntimeError(
+            "Global variables have not been registered. Call `register_globals()` first."
+        )
     return context
-
-
-
 
 
 def is_context_present():
@@ -142,7 +141,7 @@ def register_globals(
         publisher=rc_publisher,
         parent_id=parent_id,
         runner_id=runner_id,
-        executor_config=executor_config ,
+        executor_config=executor_config,
     )
     e_c = MutableExternalContext(global_context_vars)
 
@@ -194,6 +193,7 @@ def get_global_config() -> ExecutorConfig:
     executor_config = global_executor_config.get()
     return executor_config
 
+
 def get_local_config() -> ExecutorConfig:
     """
     Get the executor configuration for the current thread's global variables.
@@ -204,6 +204,7 @@ def get_local_config() -> ExecutorConfig:
     context = safe_get_runner_context()
 
     return context.internal_context.executor_config
+
 
 def set_local_config(
     executor_config: ExecutorConfig,
@@ -218,7 +219,6 @@ def set_local_config(
 
     context.executor_config = executor_config
     runner_context.set(context)
-
 
 
 def set_global_config(
@@ -249,7 +249,6 @@ def update_parent_id(new_parent_id: str):
 
 def delete_globals():
     runner_context.set(None)
-
 
 
 def get(
