@@ -15,10 +15,7 @@ from .._llm_base import LLMBase
 from ....interaction.call import call
 from abc import ABC, abstractmethod
 from ....exceptions import NodeCreationError, LLMError
-from ....exceptions.node_invocation.validation import (
-    check_message_history,
-    check_max_tool_calls,
-)
+from ....exceptions.node_invocation.validation import check_max_tool_calls
 
 _T = TypeVar("_T")
 _P = ParamSpec("_P")
@@ -36,12 +33,7 @@ class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
         max_tool_calls: int | None = 30,
     ):
         super().__init__(model=model, message_history=message_history)
-        self.model = model
-        check_message_history(
-            message_history
-        )  # raises NodeInvocationError if any of the checks fail
         check_max_tool_calls(max_tool_calls)
-        self.message_hist = deepcopy(message_history)
         self.structured_resp_node = None  # The structured LLM node
 
         self.max_tool_calls = max_tool_calls
