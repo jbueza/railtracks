@@ -38,6 +38,7 @@ def notion_agent(  # noqa: C901
 
     Args:
         notion_api_token: your notion api token, if not passed this will be taken from you .env
+        notion_version: For you to specify the NotionMCP server notion if it is not up to date
         model:
             The type of LLM you would like to use
             output_type: Specifies what portion of the conversation to return. You can choose between
