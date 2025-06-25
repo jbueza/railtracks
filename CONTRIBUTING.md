@@ -1,19 +1,73 @@
-# Setup for development
+# Contributing Guide
 
-## Setup steps
+Welcome! This guide will help you set up your development environment and contribute effectively to our project.
 
-1. Setup your python venv in this repository: `python -m venv .venv`
-1. Activate your venv: `.venv\Scripts\activate`
-1. Ensure you have [flit installed](https://flit.pypa.io/en/stable/)
-1. `flit install --python .venv/Scripts/python.exe`
-1. `flit build`
+## Development Setup
+
+### Prerequisites
+
+- **Python Version**: Ensure Python 3.10+ is installed on your system.
+- **Environment Manager**: You can use either `venv` or `conda` for creating a virtual environment.
+
+### Steps to Set Up Your Development Environment
+
+#### 1. Create and Activate a Virtual Environment
+
+**Using `venv`**  
+1. Create a virtual environment:  
+   ```bash
+   python -m venv .venv
+   ```
+2. Activate the virtual environment:  
+   - On Windows:  
+     ```bash
+     .venv\Scripts\activate
+     ```
+   - On macOS/Linux:  
+     ```bash
+     source .venv/bin/activate
+     ```
+
+**Using `conda`**  
+1. Create a Conda environment:  
+   ```bash
+   conda create -n myenv python=3.10
+   ```
+2. Activate the Conda environment:  
+   ```bash
+   conda activate myenv
+   ```
+
+#### 2. Install Required Packages
+
+- Install the package in editable mode:  
+   ```bash
+   pip install -e .
+   ```
+
+---
 
 ## Running Tests
 
-`pytest`
+To verify your changes and ensure everything works correctly, run:  
+```bash
+pytest tests
+```
+- You may need to download `pytest-asyncio` and `pytest-timeout` to run the suite properly.
+---
 
-## Release Process
+## Code Style
+We follow the `ruff` code style. Please ensure your code adheres to the style by running:
+```bash
+ruff check .
+ruff format .
+```
 
-- Ensure you bump the version (semver) in `src/requestcompletion/**init**.py`
-- Commit the change and get it merged into `main`
-- Create a Release through GitHub and tag it as the version that was bumped "v1.0.3"
+## How to Contribute
+
+1. Make your changes in a new branch or fork.
+2. Commit your changes with a meaningful message.
+3. Open a Pull Request (PR) into the `main` branch.
+
+We look forward to your contributions! 🎉
+

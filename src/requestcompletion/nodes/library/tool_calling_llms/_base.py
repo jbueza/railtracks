@@ -11,6 +11,7 @@ from ....llm import (
     UserMessage,
     AssistantMessage,
 )
+from .._llm_base import LLMBase
 from ....interaction.call import call
 from abc import ABC, abstractmethod
 from ....exceptions import NodeCreationError, LLMError
@@ -23,7 +24,7 @@ _T = TypeVar("_T")
 _P = ParamSpec("_P")
 
 
-class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
+class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
     """A base class that is a node which contains
      an LLm that can make tool calls. The tool calls will be returned
     as calls or if there is a response, the response will be returned as an output"""
@@ -34,7 +35,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
         model: ModelBase,
         max_tool_calls: int | None = 30,
     ):
-        super().__init__()
+        super().__init__(model=model, message_history=message_history)
         self.model = model
         check_message_history(
             message_history
@@ -172,7 +173,7 @@ class OutputLessToolCallLLM(Node[_T], ABC, Generic[_T]):
                 self.structured_output = await call(
                     self.structured_resp_node,
                     message_history=MessageHistory(
-                        [UserMessage(str(self.message_hist))]
+                        [UserMessage(str(self.message_hist), inject_prompt=False)]
                     ),
                 )
             except Exception:

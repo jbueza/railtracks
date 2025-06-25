@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Type
 import pytest
 from pydantic import BaseModel
 import requestcompletion.llm as llm
@@ -26,30 +26,38 @@ class MockLLM(llm.ModelBase):
         chat_with_tools: Callable[[MessageHistory, List[Tool]], Response] = lambda x,
         y: Response(),
     ):
+        super().__init__()
         self._chat = chat
         self._structured = structured
         self._stream_chat = stream_chat
         self._chat_with_tools = chat_with_tools
 
-    def chat(self, messages: MessageHistory, **kwargs) -> Response:
+    def _chat(self, messages: MessageHistory, **kwargs) -> Response:
         return self._chat(messages)
 
-    def structured(
+    def _structured(
         self, messages: MessageHistory, schema: BaseModel, **kwargs
     ) -> Response:
         return self._structured(messages, schema)
 
-    def stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
+    def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         return self._stream_chat(messages)
 
-    def chat_with_tools(
+    def _chat_with_tools(
         self, messages: MessageHistory, tools: List[Tool], **kwargs
     ) -> Response:
         return self._chat_with_tools(messages, tools)
+
+    def model_name(self) -> str | None:
+        return "MockLLM"
+
+    @classmethod
+    def model_type(cls) -> str | None:
+        return "mock"
     
 
 @pytest.fixture
-def mock_llm() -> MockLLM:
+def mock_llm() -> Type[MockLLM]:
     return MockLLM
 #===================================== END MockLLM ======================================
 

@@ -1,47 +1,34 @@
 import pytest
 import requestcompletion as rc
 from requestcompletion.llm.response import Response
-from requestcompletion.llm import AssistantMessage, ToolMessage, ToolResponse, ModelBase
-from typing import List, Callable
+from requestcompletion.llm import AssistantMessage
+from typing import List, Callable, Type
 from pydantic import BaseModel, Field
-import random
 
+from ...llm.conftest import MockLLM
 
-# ============ Model ===========
+# =========== Mock model and functions ===========
 @pytest.fixture
-def model():
-    return rc.llm.OpenAILLM("gpt-4o")
+def mock_llm() -> Type[MockLLM]:
+    return MockLLM
 
 @pytest.fixture
-def model():
-    class DummyModel(ModelBase):
-        def __init__(self, message_history = [], model = "dummy"):
-            self.message_history = message_history
-            self.message = "dummy content"
+def mock_chat_function():
+    def _chat(messages):
+        return Response(message=AssistantMessage("dummy content"))
+    return _chat
 
-        def chat(self, messages):
-            return Response(message=AssistantMessage(self.message))
-        
-        def structured(self, messages, schema):
-            return Response(message=AssistantMessage(schema(text=self.message, number=42)))
-        
-        # ============ Not being used yet ===========
-        def chat_with_tools(self, messages, tools):
-            return Response(message=AssistantMessage([ToolMessage(ToolResponse(result=self.message, identifier="test", name="test"))]))
-        
-        def stream_chat(self, messages):
-            return Response(message=None, streamer=lambda: "dummy content")
-        # ============ Not being used yet ===========
-
-    return DummyModel
-
+@pytest.fixture
+def mock_structured_function(simple_output_model):
+    def _structured(messages, schema):
+        return Response(message=AssistantMessage(simple_output_model(text="dummy content", number=42)))
+    return _structured
 # ============ System Messages ===========
 @pytest.fixture
 def encoder_system_message():
     return rc.llm.SystemMessage(
         "You are a text encoder. Encode the input string into bytes and do a random operation on them. You can use the following operations: reverse the byte order, or repeat each byte twice, or jumble the bytes."
     )
-
 
 @pytest.fixture
 def decoder_system_message():
@@ -139,23 +126,18 @@ class PersonOutput(BaseModel):  # complex structured output case
 def travel_planner_output_model():
     return TravelPlannerOutput
 
-
 @pytest.fixture
 def math_output_model():
     return MathOutput
-
 
 @pytest.fixture
 def simple_output_model():
     return SimpleOutput
 
-
 @pytest.fixture
 def empty_output_model():
     return EmptyModel
 
-
 @pytest.fixture
 def person_output_model():
     return PersonOutput
-

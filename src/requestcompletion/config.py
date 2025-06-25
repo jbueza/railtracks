@@ -19,6 +19,7 @@ class ExecutorConfig:
             Callable[[str], None] | Callable[[str], Coroutine[None, None, None]] | None
         ) = None,
         run_identifier: str | None = None,
+        prompt_injection: bool = True,
     ):
         """
         ExecutorConfig is special configuration object designed to allow customization of the executor in the RC system.
@@ -28,6 +29,7 @@ class ExecutorConfig:
             end_on_error (bool): If true, the executor will stop execution when an exception is encountered.
             logging_setting (allowable_log_levels): The setting for the level of logging you would like to have.
             subscriber (Callable or Coroutine): A function or coroutine that will handle streaming messages.
+            prompt_injection (bool): If true, prompts can be injected with global context
         """
         self.timeout = timeout
         self.end_on_error = end_on_error
@@ -35,3 +37,4 @@ class ExecutorConfig:
         self.subscriber = subscriber
         self.run_identifier = run_identifier if run_identifier else str(uuid.uuid4())
         self.log_file = log_file
+        self.prompt_injection = prompt_injection

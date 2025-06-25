@@ -2,6 +2,7 @@ from ._base import OutputLessToolCallLLM
 from ....llm import MessageHistory, ModelBase, SystemMessage
 from ..easy_usage_wrappers.structured_llm import structured_llm
 from pydantic import BaseModel
+from typing import Type
 from abc import ABC
 
 
@@ -10,7 +11,7 @@ class StructuredToolCallLLM(OutputLessToolCallLLM[str], ABC):
         self,
         message_history: MessageHistory,
         llm_model: ModelBase,
-        output_model: BaseModel,
+        output_model: Type[BaseModel],
         tool_details: str | None = None,
         tool_params: dict | None = None,
     ):

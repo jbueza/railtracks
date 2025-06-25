@@ -6,7 +6,7 @@ from requestcompletion.exceptions import NodeCreationError
 from requestcompletion.llm import MessageHistory, SystemMessage, UserMessage
 # =========================== Basic functionality ==========================
 
-def test_structured_tool_call_llm_init(model, output_model, mock_tool):
+def test_structured_tool_call_llm_init(mock_llm, output_model, mock_tool):
     class MockStructuredToolCallLLM(StructuredToolCallLLM):
         @classmethod
         def output_model(cls):
@@ -22,14 +22,14 @@ def test_structured_tool_call_llm_init(model, output_model, mock_tool):
     mh = MessageHistory([SystemMessage("system prompt"), UserMessage("extract value")])
     node = MockStructuredToolCallLLM(
         message_history=mh,
-        llm_model=model,
+        llm_model=mock_llm(),
         output_model=output_model,
         tool_details="Extracts a value.",
         tool_params=None,
     )
     assert hasattr(node, "structured_resp_node")
 
-def test_structured_tool_call_llm_return_output_success(mock_tool, model, output_model):
+def test_structured_tool_call_llm_return_output_success(mock_tool, mock_llm, output_model):
     class MockStructuredToolCallLLM(StructuredToolCallLLM):
         @classmethod
         def output_model(cls):
@@ -45,7 +45,7 @@ def test_structured_tool_call_llm_return_output_success(mock_tool, model, output
     mh = MessageHistory([SystemMessage("system prompt"), UserMessage("extract value")])
     node = MockStructuredToolCallLLM(
         message_history=mh,
-        llm_model=model,
+        llm_model=mock_llm(),
         output_model=output_model,
         tool_details="Extracts a value.",
         tool_params=None,
@@ -53,11 +53,11 @@ def test_structured_tool_call_llm_return_output_success(mock_tool, model, output
     node.structured_output = output_model(value=123)
     assert node.return_output().value == 123
 
-def test_structured_tool_call_llm_return_output_exception(model, output_model, mock_tool):
+def test_structured_tool_call_llm_return_output_exception(mock_llm, output_model, mock_tool):
     node = tool_call_llm(
         system_message=SystemMessage("system prompt"),
         connected_nodes={mock_tool},
-        model=model(),
+        model=mock_llm(),
         output_model=output_model,
         tool_details="Extracts a value.",
         tool_params=None,
@@ -69,12 +69,12 @@ def test_structured_tool_call_llm_return_output_exception(model, output_model, m
     with pytest.raises(ValueError):
         node.return_output()
 
-def test_structured_llm_easy_usage_wrapper(model, output_model, mock_tool):
+def test_structured_llm_easy_usage_wrapper(mock_llm, output_model, mock_tool):
     mh = MessageHistory([SystemMessage("system prompt"), UserMessage("extract value")])
     node = tool_call_llm(
         system_message=SystemMessage("system prompt"),
         connected_nodes={mock_tool},
-        model=model(),
+        model=mock_llm(),
         output_model=output_model,
         tool_details="Extracts a value.",
         tool_params=None,
@@ -155,7 +155,7 @@ def test_structured_llm_tool_errors(
 
 @pytest.mark.asyncio  # can remove this test once we have support for output_model with output_type = MessageHistory. See Line 30 in src/requestcompletion/nodes/library/easy_usage_wrappers/tool_call_llm.py
 async def test_structured_tool_call_with_output_model_and_output_type(
-    model, math_output_model
+    mock_llm, math_output_model
 ):
     """Tool call llm init with output model and output_type = message_history should raise an error."""
     rng_node = rc.library.terminal_llm(
@@ -163,7 +163,7 @@ async def test_structured_tool_call_with_output_model_and_output_type(
         system_message=rc.llm.SystemMessage(
             "You are a helful assistant that can generate 5 random numbers between 1 and 100."
         ),
-        model=model,
+        model=mock_llm(),
         tool_details="A tool used to generate 5 random integers between 1 and 100.",
         tool_params=None,
     )
@@ -178,7 +178,7 @@ async def test_structured_tool_call_with_output_model_and_output_type(
             system_message=rc.llm.SystemMessage(
                 "You are a math genius that calls the RNG tool to generate 5 random numbers between 1 and 100 and gives the sum of those numbers."
             ),
-            model=model,
+            model=mock_llm(),
             output_type="MessageHistory",
             output_model=math_output_model,
         )
