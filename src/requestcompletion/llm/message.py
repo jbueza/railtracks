@@ -27,7 +27,10 @@ class Message(Generic[_T]):
     """
 
     def __init__(
-        self, content: _T, role: Literal["assistant", "user", "system", "tool"]
+        self,
+        content: _T,
+        role: Literal["assistant", "user", "system", "tool"],
+        inject_prompt: bool = True,
     ):
         """
         A simple class that represents a message that an LLM can read.
@@ -39,10 +42,12 @@ class Message(Generic[_T]):
                 - ToolResponse: A tool response.
                 - BaseModel: A custom base model object.
             role: The role of the message (assistant, user, system, tool, etc.).
+            inject_prompt (bool, optional): Whether to inject prompt with context variables. Defaults to True.
         """
         self.validate_content(content)
         self._content = content
         self._role = Role(role)
+        self._inject_prompt = inject_prompt
 
     @classmethod
     def validate_content(cls, content: _T):
@@ -57,6 +62,20 @@ class Message(Generic[_T]):
     def role(self) -> Role:
         """Collects the role of the message."""
         return self._role
+
+    @property
+    def inject_prompt(self) -> bool:
+        """
+        A boolean that indicates whether this message should be injected into from context.
+        """
+        return self._inject_prompt
+
+    @inject_prompt.setter
+    def inject_prompt(self, value: bool):
+        """
+        Sets the inject_prompt property.
+        """
+        self._inject_prompt = value
 
     def __str__(self):
         return f"{self.role.value}: {self.content}"
@@ -81,37 +100,50 @@ class _StringOnlyContent(Message[str]):
 
 class UserMessage(_StringOnlyContent):
     """
-    A simple class that represents a user message.
-
     Note that we only support string input
+
+    Args:
+        content (str): The content of the user message.
+        inject_prompt (bool, optional): Whether to inject prompt with context variables. Defaults to True.
     """
 
-    def __init__(self, content: str):
-        super().__init__(content=content, role="user")
+    def __init__(self, content: str, inject_prompt: bool = True):
+        super().__init__(content=content, role="user", inject_prompt=inject_prompt)
 
 
 class SystemMessage(_StringOnlyContent):
     """
     A simple class that represents a system message.
+
+    Args:
+        content (str): The content of the system message.
+        inject_prompt (bool, optional): Whether to inject prompt with context  variables. Defaults to True.
     """
 
-    def __init__(self, content: str):
-        super().__init__(content=content, role="system")
+    def __init__(self, content: str, inject_prompt: bool = True):
+        super().__init__(content=content, role="system", inject_prompt=inject_prompt)
 
 
 class AssistantMessage(Message[_T], Generic[_T]):
     """
     A simple class that represents a message from the assistant.
+
+    Args:
+        content (_T): The content of the assistant message.
+        inject_prompt (bool, optional): Whether to inject prompt with context  variables. Defaults to True.
     """
 
-    def __init__(self, content: _T):
-        super().__init__(content=content, role="assistant")
+    def __init__(self, content: _T, inject_prompt: bool = True):
+        super().__init__(content=content, role="assistant", inject_prompt=inject_prompt)
 
 
 # TODO further constrict the possible return type of a ToolMessage.
 class ToolMessage(Message[ToolResponse]):
     """
     A simple class that represents a message that is a tool call answer.
+
+    Args:
+        content (ToolResponse): The tool response content for the message.
     """
 
     def __init__(self, content: ToolResponse):

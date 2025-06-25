@@ -65,7 +65,7 @@ class TestPrimitiveInputTypes:
             Returns:
                 str: The result of the function.
             """
-            return f"str(input_num)" * input_num
+            return str(input_num) * input_num
 
         agent = create_top_level_node(
             magic_number,

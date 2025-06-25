@@ -89,9 +89,10 @@ class ModelBase(ABC):
     def chat(self, messages: MessageHistory, **kwargs) -> Response:
         """Chat with the model using the provided messages."""
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
         try:
             result = self._chat(messages, **kwargs)
+            result.message._inject_prompt = False
         except Exception as e:
             for hook in self._exception_hook:
                 hook(messages, e)
@@ -107,10 +108,11 @@ class ModelBase(ABC):
     ) -> Response:
         """Structured interaction with the model using the provided messages and schema."""
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
 
         try:
             result = self._structured(messages, schema, **kwargs)
+            result.message._inject_prompt = False
         except Exception as e:
             for hook in self._exception_hook:
                 hook(messages, e)
@@ -125,7 +127,7 @@ class ModelBase(ABC):
         """Stream chat with the model using the provided messages."""
         # TODO migrate this streamer logic to work better.
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
 
         result = self._stream_chat(messages, **kwargs)
 
@@ -139,10 +141,11 @@ class ModelBase(ABC):
     ) -> Response:
         """Chat with the model using the provided messages and tools."""
         for hook in self._pre_hook:
-            hook(messages)
+            messages = hook(messages)
 
         try:
             result = self._chat_with_tools(messages, tools, **kwargs)
+            result.message._inject_prompt = False
         except Exception as e:
             for hook in self._exception_hook:
                 hook(messages, e)

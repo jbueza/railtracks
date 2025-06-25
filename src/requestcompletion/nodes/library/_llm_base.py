@@ -12,6 +12,7 @@ import requestcompletion.llm as llm
 from requestcompletion.llm.response import Response
 from typing import TypeVar, Generic
 
+from ...prompts.prompt import inject_context
 
 _T = TypeVar("_T")
 
@@ -71,8 +72,7 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
 
     def _pre_llm_hook(self, message_history: llm.MessageHistory) -> llm.MessageHistory:
         """Hook to modify messages before sending them to the model."""
-        # TODO @levi
-        return message_history
+        return inject_context(message_history)
 
     def _post_llm_hook(self, message_history: llm.MessageHistory, response: Response):
         """Hook to store the response details after invoking the model."""
