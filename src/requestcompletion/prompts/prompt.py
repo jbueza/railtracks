@@ -1,5 +1,6 @@
 import string
 import requestcompletion as rc
+from requestcompletion.exceptions import ContextError
 from ..context.central import get_local_config
 from ..llm import MessageHistory, Message
 
@@ -36,7 +37,7 @@ def inject_context(message_history: MessageHistory):
     try:
         local_config = get_local_config()
         is_prompt_inject = local_config.prompt_injection
-    except RuntimeError:
+    except ContextError:
         is_prompt_inject = False
 
     if is_prompt_inject:
