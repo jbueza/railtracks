@@ -4,7 +4,7 @@ from requestcompletion import ExecutorConfig
 from requestcompletion.llm import MessageHistory, Message
 from requestcompletion.llm.response import Response
 from requestcompletion.nodes.library.easy_usage_wrappers.terminal_llm import terminal_llm
-from tests.rc_tests.llm.conftest import MockLLM
+from tests.unit_tests.llm.conftest import MockLLM
 import requestcompletion as rc
 
 

@@ -14,7 +14,7 @@ from requestcompletion.llm import (
 from typing import List
 
 from requestcompletion.llm.response import Response
-from tests.rc_tests.execution.test_task import hello_world
+from tests.unit_tests.execution.test_task import hello_world
 
 
 # ======================================================= START Mock LLM + Messages Testing ========================================================
