@@ -40,10 +40,14 @@ def check_model(model: ModelBase):
         )
 
 
-def check_max_tool_calls(max_tool_calls: int):
-    if max_tool_calls < 0:
+def check_max_tool_calls(max_tool_calls: int | None):
+    if max_tool_calls is None:
+        warnings.warn(
+            get_message(ExceptionMessageKey.MAX_TOOL_CALLS_UNLIMITED_WARN),
+            RuntimeWarning,
+        )
+    elif max_tool_calls < 0:
         raise NodeInvocationError(
             get_message(ExceptionMessageKey.MAX_TOOL_CALLS_NEGATIVE_MSG),
             notes=get_notes(ExceptionMessageKey.MAX_TOOL_CALLS_NEGATIVE_NOTES),
-            fatal=True,
         )

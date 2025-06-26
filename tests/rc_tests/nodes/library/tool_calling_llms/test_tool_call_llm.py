@@ -82,6 +82,29 @@ def test_outputless_tool_call_llm_create_node_multiple_match(mock_llm, mock_tool
         node.create_node("duplicate", {})
 
 # ---- Max Tool Calls tests ----
+def test_unlimited_tool_call_gives_warning_on_creation(mock_llm, mock_tool):
+    with pytest.warns(UserWarning, match="unlimited tool calls"):
+        _ = tool_call_llm(
+            connected_nodes={mock_tool},
+            pretty_name="Test ToolCallLLM",
+            model=mock_llm(),
+            max_tool_calls=None,    # None means unlimited
+            system_message="system prompt"
+        )
+@pytest.mark.skip("infinite loop")
+async def test_unlimited_tool_call_gives_warning_at_runtime(mock_llm, mock_tool, mock_chat_with_tools_function):
+    class MockLimitedToolCallLLM(ToolCallLLM):
+        @classmethod
+        def pretty_name(cls):
+            return "Mock Limited Tool Call LLM"
+        
+        def connected_nodes(self):
+            return {mock_tool}
+    mh = MessageHistory([SystemMessage("system prompt"), UserMessage("hello")])
+    mock_model = mock_llm(chat_with_tools=mock_chat_with_tools_function)
+    with pytest.warns(RuntimeWarning, match="unlimited tool calls"):    # param injection at runtime
+        resp = await rc.call(MockLimitedToolCallLLM, message_history=mh, model=mock_model, max_tool_calls=None)
+        
 def test_limited_tool_call_llm_return_output(mock_tool, mock_llm, mock_chat_with_tools_function):
     class MockLimitedToolCallLLM(ToolCallLLM):
        @classmethod

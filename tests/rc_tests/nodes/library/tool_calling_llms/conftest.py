@@ -1,6 +1,6 @@
 import pytest
 import requestcompletion as rc
-from requestcompletion.llm import AssistantMessage, ToolMessage, ToolResponse, ModelBase
+from requestcompletion.llm import AssistantMessage, ToolMessage, ToolResponse, ToolCall
 from requestcompletion.llm.response import Response
 from pydantic import BaseModel, Field
 from ....llm.conftest import MockLLM
@@ -24,11 +24,15 @@ def mock_structured_function():
     return _structured
 
 @pytest.fixture
-def mock_chat_with_tools_function():
+def mock_chat_with_tools_function():    # !!! TODO: this goes on forever, modify logic to be a simple mock
     def _chat_with_tools(messages, tools):
         if len(messages) > 0 and isinstance(messages[-1], ToolMessage) and messages[-1].content.name == "last tool call":
             return Response(message=AssistantMessage("Final answer after tool calls exhausted."))  # mock model expects the tool call name
-        return Response(message=AssistantMessage([ToolMessage(ToolResponse(result="dummy content", identifier="test", name="test"))]))
+        if isinstance(messages[-1].content, list):
+            # if test tool was requested, mock a response
+            return Response(message=AssistantMessage([ToolMessage(ToolResponse(result="dummy content", identifier="test", name="test"))]))
+        return Response(message=AssistantMessage([ToolCall(identifier="test", name="test", arguments={})]))  # request a test tool
+    
     return _chat_with_tools
 
 # ============ Tools ===========
