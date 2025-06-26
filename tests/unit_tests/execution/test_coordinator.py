@@ -1,3 +1,4 @@
+
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 from typing import get_args
@@ -7,11 +8,10 @@ from src.requestcompletion.execution.coordinator import (
 )
 from src.requestcompletion.execution.task import Task
 from src.requestcompletion.pubsub.messages import (
-    RequestSuccess, RequestFailure, RequestCreationFailure, RequestFinishedBase, ExecutionConfigurations
+    RequestSuccess, RequestFailure, RequestCreationFailure, ExecutionConfigurations
 )
 
-
-
+# ============ START Job Tests ===============
 def test_job_create_and_end(mock_task):
     job = Job.create_new(mock_task)
     assert job.status == "opened"
@@ -23,7 +23,9 @@ def test_job_create_and_end(mock_task):
     assert job.status == "closed"
     assert job.result == "success"
     assert job.end_time is not None
+# ============ END Job Tests ===============
 
+# ============ START CoordinatorState Tests ===============
 def test_coordinator_state_add_and_end_job(mock_task):
     state = CoordinatorState.empty()
     state.add_job(mock_task)
@@ -38,8 +40,9 @@ def test_coordinator_state_end_job_not_found():
     state = CoordinatorState.empty()
     with pytest.raises(ValueError):
         state.end_job("not-found", "success")
+# ============ END CoordinatorState Tests ===============
 
-# ===================================================================
+# ============ START Coordinator Fixtures ===============
 @pytest.fixture
 def mock_execution_strategy():
     strat = MagicMock()
@@ -58,15 +61,18 @@ def all_execution_modes(mock_execution_strategy):
 @pytest.fixture
 def coordinator(all_execution_modes):
     return Coordinator(execution_modes=all_execution_modes)
-# ===================================================================
+# ============ END Coordinator Fixtures ===============
 
+# ============ START Coordinator Async Tests ===============
 @pytest.mark.asyncio
 async def test_coordinator_submit_adds_job_and_executes(coordinator, mock_task, mock_execution_strategy):
     result = await coordinator.submit(mock_task, list(coordinator.execution_strategy.keys())[0])
     assert result == "exec-result"
     assert len(coordinator.state.job_list) == 1
     mock_execution_strategy.execute.assert_awaited_once_with(mock_task)
+# ============ END Coordinator Async Tests ===============
 
+# ============ START Coordinator Message Handling Tests ===============
 def test_coordinator_handle_item_success_and_failure(coordinator, mock_task):
     coordinator.state.add_job(mock_task)
     # Simulate success
@@ -89,8 +95,11 @@ def test_coordinator_handle_item_creation_failure_does_nothing(coordinator, mock
     coordinator.handle_item(msg)
     # Should not close the job
     assert coordinator.state.job_list[0].status == "opened"
+# ============ END Coordinator Message Handling Tests ===============
 
+# ============ START Coordinator Shutdown Tests ===============
 def test_coordinator_shutdown_calls_all_strategies(coordinator, mock_execution_strategy):
     coordinator.shutdown()
     for strat in coordinator.execution_strategy.values():
         strat.shutdown.assert_called_once()
+# ============ END Coordinator Shutdown Tests ===============

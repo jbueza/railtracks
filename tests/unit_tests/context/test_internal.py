@@ -1,15 +1,18 @@
+
 import pytest
 from unittest import mock
 from requestcompletion.context.internal import InternalContext
 
+# ============ START DummyPublisher Helper ===============
 class DummyPublisher:
     def __init__(self, running=True):
         self._running = running
     def is_running(self):
         return self._running
+# ============ END DummyPublisher Helper ===============
 
+# ============ START InternalContext Property Tests ===============
 def test_internal_context_properties(dummy_executor_config):
-
     pub = DummyPublisher()
     ctx = InternalContext(
         runner_id="runner-1",
@@ -22,7 +25,9 @@ def test_internal_context_properties(dummy_executor_config):
     assert ctx.publisher is pub
     assert ctx.executor_config is dummy_executor_config
     assert ctx.is_active is True
+# ============ END InternalContext Property Tests ===============
 
+# ============ START InternalContext Setter Tests ===============
 def test_internal_context_setters(dummy_executor_config):
     ctx = InternalContext(
         runner_id=None,
@@ -40,7 +45,9 @@ def test_internal_context_setters(dummy_executor_config):
     assert ctx.parent_id == "p2"
     assert ctx.publisher is pub
     assert ctx.executor_config is new_config
+# ============ END InternalContext Setter Tests ===============
 
+# ============ START InternalContext is_active Tests ===============
 def test_is_active_false_when_no_publisher(dummy_executor_config):
     ctx = InternalContext(
         runner_id="r",
@@ -59,7 +66,9 @@ def test_is_active_false_when_publisher_not_running(dummy_executor_config):
         executor_config=dummy_executor_config,
     )
     assert ctx.is_active is False
+# ============ END InternalContext is_active Tests ===============
 
+# ============ START InternalContext prepare_new Tests ===============
 def test_prepare_new_creates_new_context(dummy_executor_config):
     pub = DummyPublisher()
     ctx = InternalContext(
@@ -74,3 +83,4 @@ def test_prepare_new_creates_new_context(dummy_executor_config):
     assert new_ctx.publisher is pub
     assert new_ctx.runner_id == ctx.runner_id
     assert new_ctx.executor_config is ctx.executor_config
+# ============ END InternalContext prepare_new Tests ===============
