@@ -64,8 +64,10 @@ def safe_get_runner_context() -> RunnerContextVars:
     if context is None:
         raise ContextError(
             message="Context not available.",
-            notes = ["You need to have an active runner to access context.",
-                     "Eg.-\n with rc.Runner():\n    _ = rc.call(node)"]
+            notes=[
+                "You need to have an active runner to access context.",
+                "Eg.-\n with rc.Runner():\n    _ = rc.call(node)",
+            ],
         )
     return context
 

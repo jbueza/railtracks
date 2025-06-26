@@ -414,8 +414,8 @@ async def test_allows_only_one_toolcall(limited_tool_call_node_factory, travel_m
 async def test_zero_tool_calls_forces_final_answer(limited_tool_call_node_factory, travel_message_history, reset_tools_called, class_based):
     node = limited_tool_call_node_factory(max_tool_calls=0, class_based=class_based)
     message_history = travel_message_history("Plan a trip to Paris for 2 days.")
-    reset_tools_called()
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
+        reset_tools_called()
         response = await rc.call(node, message_history=message_history)
         if class_based:
             assert isinstance(response, str)
@@ -428,8 +428,8 @@ async def test_zero_tool_calls_forces_final_answer(limited_tool_call_node_factor
 async def test_multiple_tool_calls_limit(limited_tool_call_node_factory, travel_message_history, reset_tools_called, class_based):
     node = limited_tool_call_node_factory(max_tool_calls=5, class_based=class_based)
     message_history = travel_message_history("Plan a trip to Paris, Berlin, and New York for 2 days each.")
-    reset_tools_called()
     with rc.Runner(executor_config=rc.ExecutorConfig(logging_setting="NONE")) as runner:
+        reset_tools_called()
         response = await rc.call(node, message_history=message_history)
         if class_based:
             assert isinstance(response, str)

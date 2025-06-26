@@ -65,7 +65,7 @@ class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
     def return_output(self) -> _T: ...
 
     async def _on_max_tool_calls_exceeded(self):
-        """ force a final response """
+        """force a final response"""
         returned_mess = self.model.chat_with_tools(self.message_hist, tools=[])
         self.message_hist.append(returned_mess.message)
 
