@@ -8,7 +8,7 @@ import pytest
 import subprocess
 import sys
 
-from requestcompletion.mcp.main import MCPHttpParams
+from requestcompletion.rc_mcp.main import MCPHttpParams
 
 
 @pytest.fixture(scope="session", autouse=True)

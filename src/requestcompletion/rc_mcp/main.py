@@ -15,7 +15,7 @@ from mcp.client.sse import sse_client
 
 from pydantic import BaseModel
 from ..llm import Tool
-from ..mcp.oauth import InMemoryTokenStorage, CallbackServer
+from ..rc_mcp.oauth import InMemoryTokenStorage, CallbackServer
 from ..nodes.nodes import Node
 
 try:

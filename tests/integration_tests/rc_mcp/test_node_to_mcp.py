@@ -6,8 +6,8 @@ import time
 import pytest
 
 import requestcompletion as rc
-from requestcompletion.mcp import MCPHttpParams
-from requestcompletion.mcp.to_node import create_mcp_server
+from requestcompletion.rc_mcp import MCPHttpParams
+from requestcompletion.rc_mcp.to_node import create_mcp_server
 from requestcompletion.nodes import library as rc_library
 
 from mcp.server import FastMCP
