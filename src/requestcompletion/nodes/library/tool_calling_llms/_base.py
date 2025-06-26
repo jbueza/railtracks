@@ -1,7 +1,7 @@
 import asyncio
 from typing import TypeVar, ParamSpec, Generic, Set, Type, Dict, Any, Union, Callable
 from ...nodes import Node
-from ....llm import (
+from requestcompletion.llm import (
     MessageHistory,
     ModelBase,
     ToolCall,
@@ -11,10 +11,10 @@ from ....llm import (
     AssistantMessage,
 )
 from .._llm_base import LLMBase
-from ....interaction.call import call
+from requestcompletion.run import call
 from abc import ABC, abstractmethod
-from ....exceptions import NodeCreationError, LLMError
-from ....exceptions.node_invocation.validation import check_max_tool_calls
+from requestcompletion.exceptions import NodeCreationError, LLMError
+from requestcompletion.exceptions.node_invocation.validation import check_max_tool_calls
 
 _T = TypeVar("_T")
 _P = ParamSpec("_P")

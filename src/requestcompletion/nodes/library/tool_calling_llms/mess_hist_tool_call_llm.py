@@ -1,5 +1,5 @@
 from ._base import OutputLessToolCallLLM
-from ....llm import MessageHistory
+from requestcompletion.llm import MessageHistory
 
 from abc import ABC
 

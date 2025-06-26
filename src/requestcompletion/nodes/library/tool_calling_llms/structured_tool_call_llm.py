@@ -1,5 +1,5 @@
 from ._base import OutputLessToolCallLLM
-from ....llm import MessageHistory, ModelBase, SystemMessage
+from requestcompletion.llm import MessageHistory, ModelBase, SystemMessage
 from ..easy_usage_wrappers.structured_llm import structured_llm
 from pydantic import BaseModel
 from typing import Type
