@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 
 from requestcompletion.context.external import MutableExternalContext, ExternalContext
-
+from requestcompletion.exceptions import ContextError
 
 from requestcompletion.config import ExecutorConfig
 from requestcompletion.context.internal import InternalContext
@@ -62,8 +62,10 @@ def safe_get_runner_context() -> RunnerContextVars:
     """
     context = runner_context.get()
     if context is None:
-        raise RuntimeError(
-            "Global variables have not been registered. Call `register_globals()` first."
+        raise ContextError(
+            message="Context not available.",
+            notes = ["You need to have an active runner to access context.",
+                     "Eg.-\n with rc.Runner():\n    _ = rc.call(node)"]
         )
     return context
 

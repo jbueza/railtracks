@@ -34,7 +34,6 @@ class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
         super().__init__(model=model, message_history=message_history)
         check_max_tool_calls(max_tool_calls)
         self.structured_resp_node = None  # The structured LLM node
-
         self.max_tool_calls = max_tool_calls
 
     @abstractmethod
@@ -66,14 +65,9 @@ class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
     def return_output(self) -> _T: ...
 
     async def _on_max_tool_calls_exceeded(self):
-        """
-        Called when the max tool calls are exceeded.
-        By default, raises an error. Subclasses can override.
-        """
-        raise LLMError(
-            reason=f"Maximum number of tool calls ({self.max_tool_calls}) exceeded.",
-            message_history=self.message_hist,
-        )
+        """ force a final response """
+        returned_mess = self.model.chat_with_tools(self.message_hist, tools=[])
+        self.message_hist.append(returned_mess.message)
 
     async def invoke(self) -> _T:
         while True:

@@ -12,7 +12,6 @@ from ....llm import (
 )
 from ....nodes.library import structured_llm
 from ..tool_calling_llms._base import OutputLessToolCallLLM
-from ..tool_calling_llms.limited_tool_call_llm import LimitedToolCallLLM
 from ....nodes.nodes import Node
 from ....llm.message import Role
 
@@ -68,12 +67,7 @@ def tool_call_llm(  # noqa: C901
                 ],
             )
 
-    # Choose base class depending on max_tool_calls
-    base_cls = (
-        OutputLessToolCallLLM[output] if max_tool_calls is None else LimitedToolCallLLM
-    )
-
-    class ToolCallLLM(base_cls):
+    class ToolCallLLM(OutputLessToolCallLLM[output]):
         def return_output(self):
             if output_model:
                 if isinstance(self.structured_output, Exception):

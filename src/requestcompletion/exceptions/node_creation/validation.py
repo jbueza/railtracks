@@ -1,4 +1,4 @@
-from .exception_messages import ExceptionMessageKey, get_message, get_notes
+from ..exception_messages import ExceptionMessageKey, get_message, get_notes
 from typing import Any, Iterable, Callable, Dict, get_origin
 import inspect
 from ..errors import NodeCreationError
