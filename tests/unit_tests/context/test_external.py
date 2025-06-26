@@ -34,3 +34,32 @@ def test_double_load_in():
 
     assert context.get("test_key") == "test_value"
     assert context.get("another_key") == "another_value"
+
+
+def test_setitem_and_getitem():
+    context = MutableExternalContext()
+    context["foo"] = "bar"
+    assert context["foo"] == "bar"
+
+
+def test_update_overwrites_but_does_not_delete():
+    context = MutableExternalContext({"a": 1, "b": 2})
+    context.update({"a": 10, "c": 3})
+    assert context.get("a") == 10
+    assert context.get("b") == 2
+    assert context.get("c") == 3
+
+
+def test_init_with_input_dict():
+    d = {"x": 42}
+    context = MutableExternalContext(d)
+    assert context.get("x") == 42
+    # Changing the original dict should reflect in context (since it's not copied)
+    d["y"] = 99
+    assert context.get("y") == 99
+
+
+def test_get_raises_keyerror_when_default_is_none():
+    context = MutableExternalContext()
+    with pytest.raises(KeyError):
+        context.get("missing")
