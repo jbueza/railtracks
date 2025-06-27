@@ -165,4 +165,3 @@ class RCJSONEncoder(json.JSONEncoder):
             return "ERROR: " + str(
                 o
             )  # Fallback to string representation for non-serializable objects
-

@@ -2,7 +2,6 @@ from __future__ import annotations
 from abc import ABC
 from copy import deepcopy
 
-import tiktoken
 from typing_extensions import Self
 
 from requestcompletion.exceptions.node_invocation.validation import (
@@ -42,7 +41,6 @@ class RequestDetails:
         self.output_tokens = output_tokens
         self.total_cost = total_cost
         self.system_fingerprint = system_fingerprint
-
 
     def __repr__(self):
         return f"RequestDetails(model_name={self.model_name}, model_provider={self.model_provider}, input={self.input}, output={self.output})"

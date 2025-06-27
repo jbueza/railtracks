@@ -4,14 +4,14 @@ from typing import Generator
 
 class MessageInfo:
     def __init__(
-            self,
-            *,
-            input_tokens: int | None = None,
-            output_tokens: int | None = None,
-            latency: float | None = None,
-            model_name: str | None = None,
-            total_cost: float | None = None,
-            system_fingerprint: str | None = None,
+        self,
+        *,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        latency: float | None = None,
+        model_name: str | None = None,
+        total_cost: float | None = None,
+        system_fingerprint: str | None = None,
     ):
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
@@ -38,16 +38,11 @@ class MessageInfo:
         )
 
 
-
-
-
-
 class Response:
     """
     A simple object that represents a response from a model. It includes specific detail about the returned message
     and any other additional information from the model.
     """
-
 
     def __init__(
         self,

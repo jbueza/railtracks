@@ -1,11 +1,22 @@
 import time
 from abc import ABC
 import json
-from typing import List, Dict, Type, Optional, Any, Generator, Union, Set, TypeVar, Callable
+from typing import (
+    List,
+    Dict,
+    Type,
+    Optional,
+    Any,
+    Generator,
+    Union,
+    Set,
+    TypeVar,
+    Callable,
+)
 from pydantic import BaseModel, ValidationError
 from ...exceptions.errors import LLMError, NodeInvocationError
 import litellm
-from litellm.utils import ModelResponse, CustomStreamWrapper, token_counter
+from litellm.utils import ModelResponse, CustomStreamWrapper
 
 from ..model import ModelBase
 from ..message import Message
@@ -236,7 +247,10 @@ class LiteLLMWrapper(ModelBase, ABC):
 
         # If no tool calls were emitted, return plain assistant response: NOT IDEAL
         if choice.finish_reason == "stop" and not choice.message.tool_calls:
-            return Response(message=AssistantMessage(content=choice.message.content), message_info=message_info)
+            return Response(
+                message=AssistantMessage(content=choice.message.content),
+                message_info=message_info,
+            )
 
         calls: List[ToolCall] = []
         for tc in choice.message.tool_calls:
@@ -245,7 +259,9 @@ class LiteLLMWrapper(ModelBase, ABC):
                 ToolCall(identifier=tc.id, name=tc.function.name, arguments=args)
             )
 
-        return Response(message=AssistantMessage(content=calls), message_info=message_info)
+        return Response(
+            message=AssistantMessage(content=calls), message_info=message_info
+        )
 
     def __str__(self) -> str:
         parts = self._model_name.split("/", 1)
@@ -260,7 +276,9 @@ class LiteLLMWrapper(ModelBase, ABC):
         return self._model_name
 
     @classmethod
-    def extract_message_info(cls, model_response: ModelResponse, latency: float) -> MessageInfo:
+    def extract_message_info(
+        cls, model_response: ModelResponse, latency: float
+    ) -> MessageInfo:
         """
         Create a Response object from a ModelResponse.
 
@@ -272,11 +290,16 @@ class LiteLLMWrapper(ModelBase, ABC):
             MessageInfo: An object containing the details about the message info.
         """
         input_tokens = return_none_on_error(lambda: model_response.usage.prompt_tokens)
-        output_tokens = return_none_on_error(lambda: model_response.usage.completion_tokens)
+        output_tokens = return_none_on_error(
+            lambda: model_response.usage.completion_tokens
+        )
         model_name = return_none_on_error(lambda: model_response.model)
-        system_fingerprint = return_none_on_error(lambda: model_response.system_fingerprint)
-        total_cost = return_none_on_error(lambda: model_response._hidden_params["response_cost"])
-
+        system_fingerprint = return_none_on_error(
+            lambda: model_response.system_fingerprint
+        )
+        total_cost = return_none_on_error(
+            lambda: model_response._hidden_params["response_cost"]
+        )
 
         return MessageInfo(
             input_tokens=input_tokens,
@@ -287,11 +310,12 @@ class LiteLLMWrapper(ModelBase, ABC):
             system_fingerprint=system_fingerprint,
         )
 
+
 _T = TypeVar("_T")
+
 
 def return_none_on_error(func: Callable[[], _T]) -> _T:
     try:
         return func()
-    except:
+    except: # noqa: E722
         return None
-
