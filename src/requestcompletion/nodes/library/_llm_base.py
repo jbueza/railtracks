@@ -2,6 +2,7 @@ from __future__ import annotations
 from abc import ABC
 from copy import deepcopy
 
+import tiktoken
 from typing_extensions import Self
 
 from requestcompletion.exceptions.node_invocation.validation import (
@@ -22,6 +23,7 @@ class RequestDetails:
     A named tuple to store details of each LLM request.
     """
 
+
     def __init__(
         self,
         message_input: llm.MessageHistory,
@@ -33,6 +35,25 @@ class RequestDetails:
         self.output = output
         self.model_name = model_name
         self.model_provider = model_provider
+
+    def get_encoding(self):
+        try:
+            return tiktoken.encoding_for_model(self.model_name)
+        except KeyError:
+            # Fallback to cl100k_base if the model encoding is not found
+            return tiktoken.get_encoding("cl100k_base")
+
+    @property
+    def input_tokens(self) -> int:
+        """
+        Returns the number of tokens in the input message history.
+        """
+        # TODO implement specialized logic for tool calls
+        encoding = self.get_encoding()
+        return sum(
+            message.tokens(encoding) for message in self.input
+        )
+
 
     def __repr__(self):
         return f"RequestDetails(model_name={self.model_name}, model_provider={self.model_provider}, input={self.input}, output={self.output})"

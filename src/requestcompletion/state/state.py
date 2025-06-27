@@ -70,7 +70,6 @@ class RCState:
         self._request_heap = execution_info.request_heap
         self._stamper = execution_info.stamper
 
-        self.exception_history = deque[Exception](execution_info.exception_history)
 
         self.executor_config = executor_config
         # TODO add config connections to the RC work manager
@@ -377,7 +376,6 @@ class RCState:
             node_heap=self._node_heap,
             request_heap=self._request_heap,
             stamper=self._stamper,
-            exception_history=list(self.exception_history),
         )
 
     def get_info(self, ids: List[str] | str) -> ExecutionInfo:
@@ -388,7 +386,6 @@ class RCState:
             node_heap=filtered_nodes,
             request_heap=filtered_requests,
             stamper=self._stamper,
-            exception_history=list(self.exception_history),
         )
 
     async def handle_result(self, result: RequestFinishedBase):

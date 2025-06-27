@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import List, TypeVar
+import json
+from typing import List, TypeVar, Iterable, Tuple
 
 from .state.utils import create_sub_state_info
 from .utils.profiling import Stamp, StampManager
 from .state.request import RequestForest
 from .state.node import NodeForest
+from .utils.serialization.graph import Edge, Vertex
+from .utils.serialization.serialize import RCJSONEncoder
 from .visuals.agent_viewer import AgentViewer
 
 
@@ -26,12 +29,10 @@ class ExecutionInfo:
         request_heap: RequestForest,
         node_heap: NodeForest,
         stamper: StampManager,
-        exception_history: List[Exception] = None,
     ):
         self.request_heap = request_heap
         self.node_heap = node_heap
         self.stamper = stamper
-        self.exception_history = exception_history or []
 
     @classmethod
     def default(cls):
@@ -54,7 +55,6 @@ class ExecutionInfo:
             request_heap=request_heap,
             node_heap=node_heap,
             stamper=stamper,
-            exception_history=[],
         )
 
     @property
@@ -108,8 +108,18 @@ class ExecutionInfo:
                 node_heap=new_node_forest,
                 request_heap=new_request_forest,
                 stamper=self.stamper,
-                exception_history=list(self.exception_history),
             )
+
+    def to_graph(self) -> Tuple[List[Vertex], List[Edge]]:
+        """
+        Converts the current state into its graph representation.
+
+        Returns:
+            List[Node]: An iterable of nodes in the graph.
+            List[Edge]: An iterable of edges in the graph.
+        """
+        return self.node_heap.to_vertices(), self.request_heap.to_edges()
+
 
     def view_graph(self):
         """A convenience method used to view a graph representation of the run."""

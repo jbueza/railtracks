@@ -1,0 +1,140 @@
+from __future__ import annotations
+import json
+from typing import Any
+
+
+from requestcompletion.llm import Message, ToolResponse, ToolCall
+from requestcompletion.nodes.library._llm_base import RequestDetails
+from requestcompletion.nodes.nodes import LatencyDetails
+from requestcompletion.utils.profiling import Stamp
+from requestcompletion.utils.serialization.graph import Edge, Vertex
+
+
+supported_types = (
+    Message,
+    ToolResponse,
+    Edge,
+    Vertex,
+    RequestDetails,
+    Stamp,
+    ToolCall,
+    LatencyDetails,
+)
+
+
+def encoder_extender(o) -> dict[str, Any]:
+    """
+    Extends the encoding of supported types to their dictionary representation.
+    """
+    if isinstance(o, Edge):
+        return encode_edge(o)
+    elif isinstance(o, Vertex):
+        return encode_vertex(o)
+    elif isinstance(o, Stamp):
+        return encode_stamp(o)
+    elif isinstance(o, RequestDetails):
+        return encode_request_details(o)
+    elif isinstance(o, Message):
+        return encode_message(o)
+    elif isinstance(o, ToolResponse):
+        return encode_content(o)
+    elif isinstance(o, ToolCall):
+        return encode_tool_call(o)
+    elif isinstance(o, LatencyDetails):
+        return encode_latency_details(o)
+    else:
+        raise TypeError(f"Unsupported type: {type(o)}")
+
+def encode_tool_call(tool_call: ToolCall):
+    return {
+        "identifier": tool_call.identifier,
+        "name": tool_call.name,
+        "arguments": tool_call.arguments,
+    }
+
+def encode_latency_details(latency_details: LatencyDetails):
+    return {
+        "total_time": latency_details.total_time,
+    }
+
+
+
+def encode_edge(edge: Edge) -> dict[str, Any]:
+    """
+    Encodes an Edge object to a dictionary representation.
+    """
+    return {
+        "source": edge.source,
+        "target": edge.target,
+        "identifier": edge.identifier,
+        "stamp": edge.stamp,
+        "details": edge.details,
+        "parent": edge.parent
+    }
+
+def encode_vertex(vertex: Vertex) -> dict[str, Any]:
+    """
+    Encodes a Vertex object to a dictionary representation.
+    """
+    return {
+        "identifier": vertex.identifier,
+        "node_type": vertex.node_type,
+        "stamp": vertex.stamp,
+        "details": vertex.details,
+        "parent": vertex.parent
+    }
+
+def encode_stamp(stamp: Stamp) -> dict[str, Any]:
+    """
+    Encodes a Stamp object to a dictionary representation.
+    """
+    return {
+        "step": stamp.step,
+        "time": stamp.time,
+        "identifier": stamp.identifier,
+    }
+
+def encode_request_details(details: RequestDetails) -> dict[str, Any]:
+    """
+    Encodes a RequestDetails object to a dictionary representation.
+    """
+    return {
+        "model_name": details.model_name,
+        "model_provider": details.model_provider,
+        "input": details.input,
+        "output": details.output,
+    }
+
+
+def encode_message(message: Message) -> dict[str, Any]:
+    """
+    Encodes a Message object to a dictionary representation.
+    """
+    return {
+        "role": message.role.value,
+        "content": message.content,
+    }
+
+def encode_content(content: ToolResponse):
+    if isinstance(content, ToolResponse):
+        return {
+            "identifier": content.identifier,
+            "name": content.name,
+            "result": content.result,
+        }
+
+
+
+
+
+class RCJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+
+        if isinstance(o, supported_types):
+            return encoder_extender(o)
+
+        try:
+            return super().default(o)
+        except:
+            return "ERROR: " + str(o)  # Fallback to string representation for non-serializable objects
+

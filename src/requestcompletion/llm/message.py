@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Literal, Generic, TypeVar
 
+import tiktoken
+
 from .content import Content, ToolResponse
 
 _T = TypeVar("_T", bound=Content)
@@ -57,6 +59,9 @@ class Message(Generic[_T]):
     def content(self) -> _T:
         """Collects the content of the message."""
         return self._content
+
+    def tokens(self, encoding: tiktoken.Encoding) -> int:
+        return len(encoding.encode(self.content))
 
     @property
     def role(self) -> Role:

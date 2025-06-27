@@ -12,6 +12,7 @@ from .forest import (
     AbstractLinkedObject,
 )
 from ..utils.profiling import Stamp
+from ..utils.serialization.graph import Edge
 
 
 class Cancelled:
@@ -34,6 +35,22 @@ class RequestTemplate(AbstractLinkedObject):
     def __repr__(self):
         return f"RequestTemplate({self.identifier}, {self.source_id}, {self.sink_id}, {self.output}, {self.stamp})"
 
+    def to_edge(self):
+        """
+        Converts the request template to an edge representation.
+        """
+        return Edge(
+            source=self.source_id,
+            target=self.sink_id,
+            identifier=self.identifier,
+            stamp=self.stamp,
+            details={
+                "input_args": self.input[0],
+                "input_kwargs": self.input[1],
+                "output": self.output,
+            },
+            parent=self.parent.to_edge() if self.parent is not None else None,
+        )
     @property
     def closed(self):
         """
@@ -159,6 +176,7 @@ class RequestTemplate(AbstractLinkedObject):
 
 
 class RequestForest(Forest[RequestTemplate]):
+
     def __init__(
         self,
         request_heap: Dict[str, RequestTemplate] | None = None,
@@ -207,6 +225,11 @@ class RequestForest(Forest[RequestTemplate]):
                 new_set.add({x for x in tree if x.stamp.step <= at_step})
 
         return new_set
+
+    def to_edges(self):
+        edge_list = [request.to_edge() for request in self._heap.values()]
+
+        return edge_list
 
     def collect_dead_request(self, request_id: str):
         """
