@@ -88,7 +88,9 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
             RequestDetails(
                 message_input=deepcopy(message_history),
                 output=deepcopy(response.message),
-                model_name=response.message_info.model_name if response.message_info.model_name is not None else self.model.model_name(),
+                model_name=response.message_info.model_name
+                if response.message_info.model_name is not None
+                else self.model.model_name(),
                 model_provider=self.model.model_type(),
                 input_tokens=response.message_info.input_tokens,
                 output_tokens=response.message_info.output_tokens,
