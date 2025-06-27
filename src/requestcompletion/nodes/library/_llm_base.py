@@ -42,14 +42,23 @@ class RequestDetails:
             # Fallback to cl100k_base if the model encoding is not found
             return tiktoken.get_encoding("cl100k_base")
 
-    @property
+
     def input_tokens(self) -> int:
         """
         Returns the number of tokens in the input message history.
         """
-        # TODO implement specialized logic for tool calls
         encoding = self.get_encoding()
         return sum(message.tokens(encoding) for message in self.input)
+
+
+    def output_tokens(self) -> int | None:
+        """
+        Returns the number of tokens in the output message.
+        """
+        if self.output is None:
+            return 0
+        encoding = self.get_encoding()
+        return self.output.tokens(encoding)
 
     def __repr__(self):
         return f"RequestDetails(model_name={self.model_name}, model_provider={self.model_provider}, input={self.input}, output={self.output})"
