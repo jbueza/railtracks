@@ -33,7 +33,7 @@ class LinkedNode(AbstractLinkedObject):
             identifier=self.identifier,
             node_type=self.node.pretty_name(),
             stamp=self.stamp,
-            details={"details": self.node.details},
+            details={"internals": self.node.details},
             parent=self.parent.to_vertex() if self.parent else None,
         )
 
