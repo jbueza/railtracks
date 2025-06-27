@@ -20,8 +20,8 @@ class ExecutionInfo:
     """
     A class that contains the full details of the state of a run at any given point in time.
 
-    The class is designed to be used as a snapshot of the state which can be both used to view the state of the run and
-    to be used to continue the run from the point it was saved.
+    The class is designed to be used as a snapshot of state that can be used to display the state of the run, or to
+    create a graphical representation of the system.
     """
 
     def __init__(
@@ -161,17 +161,17 @@ class ExecutionInfo:
               "stamp": {
                 "step": int,
                 "time": float,
-                "identifier": str,
+                "identifier": str
               }
               "details": {
                  "input_args": [<list of input args>],
                  "input_kwargs": {<dict of input kwargs>},
-                 "output": Any,
+                 "output": Any
               }
               "parent": <recursive, the same as above | terminating when this param is null>
             }
-          ]
-         "stamps": [
+          ],
+          "stamps": [
             {
                "step": int,
                "time": float,
@@ -179,7 +179,7 @@ class ExecutionInfo:
             }
           ]
         }
-                ```
+        ```
         """
         return json.dumps(
             {

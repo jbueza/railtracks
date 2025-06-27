@@ -149,6 +149,9 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
         pass
 
     async def tracked_invoke(self) -> _TOutput:
+        """
+        A special method that will track and save the latency of the running of this invoke method.
+        """
         start_time = time.time()
         try:
             return await self.invoke()
