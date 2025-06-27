@@ -317,5 +317,5 @@ _T = TypeVar("_T")
 def return_none_on_error(func: Callable[[], _T]) -> _T:
     try:
         return func()
-    except: # noqa: E722
+    except:  # noqa: E722
         return None
