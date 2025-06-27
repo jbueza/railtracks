@@ -23,7 +23,6 @@ class RequestDetails:
     A named tuple to store details of each LLM request.
     """
 
-
     def __init__(
         self,
         message_input: llm.MessageHistory,
@@ -50,10 +49,7 @@ class RequestDetails:
         """
         # TODO implement specialized logic for tool calls
         encoding = self.get_encoding()
-        return sum(
-            message.tokens(encoding) for message in self.input
-        )
-
+        return sum(message.tokens(encoding) for message in self.input)
 
     def __repr__(self):
         return f"RequestDetails(model_name={self.model_name}, model_provider={self.model_provider}, input={self.input}, output={self.output})"

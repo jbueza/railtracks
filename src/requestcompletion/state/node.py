@@ -4,7 +4,7 @@ from __future__ import annotations
 import warnings
 
 from dataclasses import dataclass
-from typing import Optional, Iterable, ParamSpec, Dict, Type, List
+from typing import Optional, Iterable, ParamSpec, Dict, Type
 
 from .forest import (
     AbstractLinkedObject,
@@ -89,7 +89,6 @@ class NodeForest(Forest[LinkedNode]):
         full_nodes = [n.to_vertex() for n in self._heap.values()]
 
         return full_nodes
-
 
     def update(self, new_node: Node, stamp: Stamp):
         """

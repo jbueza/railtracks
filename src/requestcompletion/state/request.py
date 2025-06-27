@@ -51,6 +51,7 @@ class RequestTemplate(AbstractLinkedObject):
             },
             parent=self.parent.to_edge() if self.parent is not None else None,
         )
+
     @property
     def closed(self):
         """
@@ -176,7 +177,6 @@ class RequestTemplate(AbstractLinkedObject):
 
 
 class RequestForest(Forest[RequestTemplate]):
-
     def __init__(
         self,
         request_heap: Dict[str, RequestTemplate] | None = None,

@@ -55,6 +55,7 @@ def encoder_extender(o) -> dict[str, Any]:
     else:
         raise TypeError(f"Unsupported type: {type(o)}")
 
+
 def encode_tool_call(tool_call: ToolCall):
     """
     Encodes a ToolCall object to a dictionary representation.
@@ -65,6 +66,7 @@ def encode_tool_call(tool_call: ToolCall):
         "arguments": tool_call.arguments,
     }
 
+
 def encode_latency_details(latency_details: LatencyDetails):
     """
     Encodes LatencyDetails to a dictionary representation.
@@ -72,7 +74,6 @@ def encode_latency_details(latency_details: LatencyDetails):
     return {
         "total_time": latency_details.total_time,
     }
-
 
 
 def encode_edge(edge: Edge) -> dict[str, Any]:
@@ -85,8 +86,9 @@ def encode_edge(edge: Edge) -> dict[str, Any]:
         "identifier": edge.identifier,
         "stamp": edge.stamp,
         "details": edge.details,
-        "parent": edge.parent
+        "parent": edge.parent,
     }
+
 
 def encode_vertex(vertex: Vertex) -> dict[str, Any]:
     """
@@ -97,8 +99,9 @@ def encode_vertex(vertex: Vertex) -> dict[str, Any]:
         "node_type": vertex.node_type,
         "stamp": vertex.stamp,
         "details": vertex.details,
-        "parent": vertex.parent
+        "parent": vertex.parent,
     }
+
 
 def encode_stamp(stamp: Stamp) -> dict[str, Any]:
     """
@@ -109,6 +112,7 @@ def encode_stamp(stamp: Stamp) -> dict[str, Any]:
         "time": stamp.time,
         "identifier": stamp.identifier,
     }
+
 
 def encode_request_details(details: RequestDetails) -> dict[str, Any]:
     """
@@ -131,16 +135,13 @@ def encode_message(message: Message) -> dict[str, Any]:
         "content": message.content,
     }
 
+
 def encode_content(content: ToolResponse):
-
-        return {
-            "identifier": content.identifier,
-            "name": content.name,
-            "result": content.result,
-        }
-
-
-
+    return {
+        "identifier": content.identifier,
+        "name": content.name,
+        "result": content.result,
+    }
 
 
 class RCJSONEncoder(json.JSONEncoder):
@@ -149,13 +150,14 @@ class RCJSONEncoder(json.JSONEncoder):
 
     Please consult `supported_types` for the list of supported types.
     """
-    def default(self, o):
 
+    def default(self, o):
         if isinstance(o, supported_types):
             return encoder_extender(o)
 
         try:
             return super().default(o)
-        except:
-            return "ERROR: " + str(o)  # Fallback to string representation for non-serializable objects
-
+        except TypeError:
+            return "ERROR: " + str(
+                o
+            )  # Fallback to string representation for non-serializable objects

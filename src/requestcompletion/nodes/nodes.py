@@ -104,18 +104,17 @@ class DebugDetails(dict[str]):
 
     pass
 
+
 class LatencyDetails:
     def __init__(
-            self,
-            total_time: float,
-
+        self,
+        total_time: float,
     ):
         self.total_time = total_time
 
 
 class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
     """An abstract base class which defines some the functionality of a node"""
-
 
     def __init__(
         self,
@@ -158,7 +157,6 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
         finally:
             latency = time.time() - start_time
             self.details["latency"] = LatencyDetails(total_time=latency)
-
 
     def state_details(self) -> Dict[str, str]:
         """

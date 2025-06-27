@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import json
-from typing import List, TypeVar, Iterable, Tuple
+from typing import List, TypeVar, Tuple
 
 from .state.utils import create_sub_state_info
 from .utils.profiling import Stamp, StampManager
 from .state.request import RequestForest
 from .state.node import NodeForest
 from .utils.serialization.graph import Edge, Vertex
-from .utils.serialization.serialize import RCJSONEncoder
 from .visuals.agent_viewer import AgentViewer
 
 
@@ -119,7 +117,6 @@ class ExecutionInfo:
             List[Edge]: An iterable of edges in the graph.
         """
         return self.node_heap.to_vertices(), self.request_heap.to_edges()
-
 
     def view_graph(self):
         """A convenience method used to view a graph representation of the run."""

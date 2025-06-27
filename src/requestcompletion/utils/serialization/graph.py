@@ -5,21 +5,20 @@ from typing import Any, TYPE_CHECKING
 from typing_extensions import Self
 
 
-
 if TYPE_CHECKING:
     from requestcompletion.utils.profiling import Stamp
 
 
 class Edge:
     def __init__(
-            self,
-            *,
-            identifier: str | None,
-            source: str | None = None,
-            target: str,
-            stamp: Stamp,
-            details: dict[str, Any],
-            parent: Self | None = None,
+        self,
+        *,
+        identifier: str | None,
+        source: str | None = None,
+        target: str,
+        stamp: Stamp,
+        details: dict[str, Any],
+        parent: Self | None = None,
     ):
         """
         A simple representation of an edge in a graph structure.
@@ -39,21 +38,24 @@ class Edge:
         self.target = target
         self.stamp = stamp
         self.details = details
-        assert parent is None or parent.identifier == identifier, "The parent identifier must match the edge identifier"
-        assert parent is None or (parent.source == source and parent.target == target), "The parent edge must have the same source and target"
+        assert parent is None or parent.identifier == identifier, (
+            "The parent identifier must match the edge identifier"
+        )
+        assert parent is None or (
+            parent.source == source and parent.target == target
+        ), "The parent edge must have the same source and target"
         self.parent = parent
-
 
 
 class Vertex:
     def __init__(
-            self,
-            *,
-            identifier: str,
-            node_type: str,
-            stamp: Stamp,
-            details: dict[str, Any],
-            parent: Self | None,
+        self,
+        *,
+        identifier: str,
+        node_type: str,
+        stamp: Stamp,
+        details: dict[str, Any],
+        parent: Self | None,
     ):
         """
         The Vertex class represents a single vertex in a graph structure.
@@ -73,12 +75,7 @@ class Vertex:
         self.node_type = node_type
         self.details = details
         self.stamp = stamp
-        assert parent is None or parent.identifier == identifier, "The parent identifier must match the vertex identifier"
+        assert parent is None or parent.identifier == identifier, (
+            "The parent identifier must match the vertex identifier"
+        )
         self.parent = parent
-
-
-
-
-
-
-

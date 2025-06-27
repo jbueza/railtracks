@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-from collections import deque
 
 from typing import TypeVar, List, Callable, ParamSpec, Tuple, Dict, TYPE_CHECKING
 
@@ -69,7 +68,6 @@ class RCState:
         self._node_heap = execution_info.node_heap
         self._request_heap = execution_info.request_heap
         self._stamper = execution_info.stamper
-
 
         self.executor_config = executor_config
         # TODO add config connections to the RC work manager
