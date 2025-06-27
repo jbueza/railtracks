@@ -25,6 +25,16 @@ supported_types = (
 def encoder_extender(o) -> dict[str, Any]:
     """
     Extends the encoding of supported types to their dictionary representation.
+
+    We support the following types as of right now:
+    - Edge
+    - Vertex
+    - Stamp
+    - RequestDetails
+    - Message
+    - ToolResponse
+    - ToolCall
+    - LatencyDetails
     """
     if isinstance(o, Edge):
         return encode_edge(o)
@@ -46,6 +56,9 @@ def encoder_extender(o) -> dict[str, Any]:
         raise TypeError(f"Unsupported type: {type(o)}")
 
 def encode_tool_call(tool_call: ToolCall):
+    """
+    Encodes a ToolCall object to a dictionary representation.
+    """
     return {
         "identifier": tool_call.identifier,
         "name": tool_call.name,
@@ -53,6 +66,9 @@ def encode_tool_call(tool_call: ToolCall):
     }
 
 def encode_latency_details(latency_details: LatencyDetails):
+    """
+    Encodes LatencyDetails to a dictionary representation.
+    """
     return {
         "total_time": latency_details.total_time,
     }
@@ -116,7 +132,7 @@ def encode_message(message: Message) -> dict[str, Any]:
     }
 
 def encode_content(content: ToolResponse):
-    if isinstance(content, ToolResponse):
+
         return {
             "identifier": content.identifier,
             "name": content.name,
@@ -128,6 +144,11 @@ def encode_content(content: ToolResponse):
 
 
 class RCJSONEncoder(json.JSONEncoder):
+    """
+    A custom JSON encoder that extends the default JSONEncoder to handle specific types used in the system.
+
+    Please consult `supported_types` for the list of supported types.
+    """
     def default(self, o):
 
         if isinstance(o, supported_types):

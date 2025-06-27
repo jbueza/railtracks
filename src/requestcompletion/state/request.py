@@ -227,6 +227,9 @@ class RequestForest(Forest[RequestTemplate]):
         return new_set
 
     def to_edges(self):
+        """
+        Converts the current heap into a list of `Edge` objects.
+        """
         edge_list = [request.to_edge() for request in self._heap.values()]
 
         return edge_list

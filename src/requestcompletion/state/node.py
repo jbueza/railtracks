@@ -83,6 +83,9 @@ class NodeForest(Forest[LinkedNode]):
         return node
 
     def to_vertices(self):
+        """
+        Converts the current heap into a list of `Vertex` objects.
+        """
         full_nodes = [n.to_vertex() for n in self._heap.values()]
 
         return full_nodes
