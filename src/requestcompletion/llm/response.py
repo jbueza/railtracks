@@ -61,6 +61,7 @@ class Response:
         Args:
             message: The message that was returned as part of this.
             streamer: A generator that streams the response as a collection of chunked strings.
+            message_info: Additional information about the message, such as input/output tokens and latency.
         """
         if message is not None and not isinstance(message, Message):
             raise TypeError(f"message must be of type Message, got {type(message)}")
