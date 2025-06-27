@@ -22,6 +22,11 @@ class MessageInfo:
 
     @property
     def total_tokens(self):
+        """
+        Gets the total number of tokens used in the message.
+
+        If either input_tokens or output_tokens is None, it will return None.
+        """
         if self.output_tokens is None or self.input_tokens is None:
             return None
 
@@ -101,4 +106,4 @@ class Response:
             return "Response(<no-data>)"
 
     def __repr__(self):
-        return f"Response(message={self._message}, streamer={self._streamer})"
+        return f"Response(message={self._message}, streamer={self._streamer}, message_info={self._message_info})"

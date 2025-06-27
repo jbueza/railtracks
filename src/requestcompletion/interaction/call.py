@@ -166,7 +166,6 @@ async def _execute(
 
     # generate a unique request ID for this request. We need to hold this reference here because we will use it to
     # filter for its completion
-    # request_id = RequestTemplate.generate_id()
     request_id = str(uuid4())
 
     # note we set the listener before we publish the messages ensure that we do not miss any messages

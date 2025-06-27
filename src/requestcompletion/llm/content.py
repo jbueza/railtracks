@@ -16,13 +16,6 @@ class ToolCall(BaseModel):
     This simple model represents a moment when a tool is called.
     """
 
-    def _serialized_attrs(self) -> dict[str, Any]:
-        return {
-            "identifier": self.identifier,
-            "name": self.name,
-            "arguments": self.arguments,
-        }
-
     identifier: str = Field(description="The identifier attatched to this tool call.")
     name: str = Field(description="The name of the tool being called.")
     arguments: Dict[str, Any] = Field(
