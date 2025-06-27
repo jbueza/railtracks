@@ -161,8 +161,8 @@ class Node(ABC, Generic[_TOutput], metaclass=NodeCreationMeta):
         start_time = time.time()
         try:
             return await self.invoke()
-        except:
-            raise
+        except Exception as e:
+            raise e
         finally:
             latency = time.time() - start_time
             self.details["latency"] = LatencyDetails(total_time=latency)

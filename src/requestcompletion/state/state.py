@@ -340,7 +340,6 @@ class RCState:
         """
         # before doing any handling we must make sure our exception history object is up to date.
 
-        self.exception_history.append(exception)
         node_exception_action = RequestFailureAction(
             node_name=failed_node_name,
             exception=exception,
