@@ -2,18 +2,58 @@ from .message import Message
 from typing import Generator
 
 
+class MessageInfo:
+    def __init__(
+            self,
+            *,
+            input_tokens: int | None = None,
+            output_tokens: int | None = None,
+            latency: float | None = None,
+            model_name: str | None = None,
+            total_cost: float | None = None,
+            system_fingerprint: str | None = None,
+    ):
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+        self.latency = latency
+        self.model_name = model_name
+        self.total_cost = total_cost
+        self.system_fingerprint = system_fingerprint
+
+    @property
+    def total_tokens(self):
+        if self.output_tokens is None or self.input_tokens is None:
+            return None
+
+        return self.output_tokens + self.input_tokens
+
+    def __repr__(self):
+        return (
+            f"MessageInfo(input_tokens={self.input_tokens}, "
+            f"output_tokens={self.output_tokens}, "
+            f"latency={self.latency}, "
+            f"model_name={self.model_name}, "
+            f"total_cost={self.total_cost}, "
+            f"system_fingerprint={self.system_fingerprint})"
+        )
+
+
+
+
+
+
 class Response:
     """
     A simple object that represents a response from a model. It includes specific detail about the returned message
     and any other additional information from the model.
     """
 
-    # TODO: add elements like log_probs etc as optional params to this class
 
     def __init__(
         self,
         message: Message | None = None,
         streamer: Generator[str, None, None] | None = None,
+        message_info: MessageInfo = MessageInfo(),
     ):
         """
         Creates a new instance of a response object.
@@ -28,6 +68,7 @@ class Response:
             raise TypeError(f"streamer must be of type Generator, got {type(streamer)}")
         self._message = message
         self._streamer = streamer
+        self._message_info = message_info
 
     @property
     def message(self):
@@ -48,6 +89,15 @@ class Response:
         If none exists, this will return None.
         """
         return self._streamer
+
+    @property
+    def message_info(self) -> MessageInfo:
+        """
+        Gets the message info that was returned as part of this response.
+
+        This object contains additional information about the message, such as input/output tokens and latency.
+        """
+        return self._message_info
 
     def __str__(self):
         if self._message is not None:

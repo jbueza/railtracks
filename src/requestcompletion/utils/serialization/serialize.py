@@ -123,8 +123,10 @@ def encode_request_details(details: RequestDetails) -> dict[str, Any]:
         "model_provider": details.model_provider,
         "input": details.input,
         "output": details.output,
-        "input_tokens": details.input_tokens(),
-        "output_tokens": details.output_tokens(),
+        "input_tokens": details.input_tokens,
+        "output_tokens": details.output_tokens,
+        "total_cost": details.total_cost,
+        "system_fingerprint": details.system_fingerprint,
     }
 
 
@@ -163,3 +165,4 @@ class RCJSONEncoder(json.JSONEncoder):
             return "ERROR: " + str(
                 o
             )  # Fallback to string representation for non-serializable objects
+
