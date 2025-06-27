@@ -110,6 +110,12 @@ class LatencyDetails:
         self,
         total_time: float,
     ):
+        """
+        A simple class that contains latency details for a node during execution.
+
+        Args:
+            total_time (float): The total time taken for the node to execute, in seconds.
+        """
         self.total_time = total_time
 
 
