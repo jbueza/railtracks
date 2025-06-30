@@ -217,10 +217,9 @@ class LiteLLMWrapper(ModelBase, ABC):
     def _structured_handle_base(
         self, raw: ModelResponse, schema: Type[BaseModel]
     ) -> Response:
-
-            content_str = raw["choices"][0]["message"]["content"]
-            parsed = schema(**json.loads(content_str))
-            return Response(message=AssistantMessage(content=parsed))
+        content_str = raw["choices"][0]["message"]["content"]
+        parsed = schema(**json.loads(content_str))
+        return Response(message=AssistantMessage(content=parsed))
 
     def _structured(
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
