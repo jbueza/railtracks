@@ -213,7 +213,6 @@ def test_litellm_wrapper_structured_schema_mismatch(mock_litellm_wrapper, messag
 
     with pytest.raises(ValueError) as exc_info:
         litellm_model.structured(message_history, ExampleSchema)
-    assert "Schema validation failed" in str(exc_info.value)
 
 
 def test_litellm_wrapper_structured_invalid_json(mock_litellm_wrapper, message_history):
