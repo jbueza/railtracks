@@ -19,7 +19,6 @@ from ..mcp.oauth import InMemoryTokenStorage, CallbackServer
 from ..nodes.nodes import Node
 
 
-
 class MCPHttpParams(BaseModel):
     url: str
     headers: dict[str, Any] | None = None
