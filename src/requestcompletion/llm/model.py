@@ -2,8 +2,7 @@
 # In the following document, we will use the interface types defined in this module to interact with the llama index to
 # route to a given model.
 ###
-import asyncio
-from typing import List, Callable, overload, Coroutine
+from typing import List, Callable
 
 from pydantic import BaseModel
 
@@ -93,18 +92,20 @@ class ModelBase(ABC):
             message_history = hook(message_history)
         return message_history
 
-    def _run_post_hooks(self, message_history: MessageHistory, result: Response) -> Response:
+    def _run_post_hooks(
+        self, message_history: MessageHistory, result: Response
+    ) -> Response:
         """Runs all post-hooks on the provided message history and result."""
         for hook in self._post_hook:
             result = hook(message_history, result)
         return result
 
-    def _run_exception_hooks(self, message_history: MessageHistory, exception: Exception) -> None:
+    def _run_exception_hooks(
+        self, message_history: MessageHistory, exception: Exception
+    ) -> None:
         """Runs all exception hooks on the provided message history and exception."""
         for hook in self._exception_hook:
             hook(message_history, exception)
-
-
 
     def chat(self, messages: MessageHistory, **kwargs):
         """Chat with the model using the provided messages."""
@@ -134,32 +135,32 @@ class ModelBase(ABC):
 
         return response
 
-    def structured(
-        self, messages: MessageHistory, schema: BaseModel, **kwargs
-    ):
+    def structured(self, messages: MessageHistory, schema: BaseModel, **kwargs):
         """Structured interaction with the model using the provided messages and schema."""
         messages = self._run_pre_hooks(messages)
 
         try:
             response = self._structured(messages, schema, **kwargs)
         except:
-            self._run_exception_hooks(messages, Exception("Error during structured interaction"))
+            self._run_exception_hooks(
+                messages, Exception("Error during structured interaction")
+            )
             raise
 
         response = self._run_post_hooks(messages, response)
 
         return response
 
-    async def astructured(
-            self, messages: MessageHistory, schema: BaseModel, **kwargs
-    ):
+    async def astructured(self, messages: MessageHistory, schema: BaseModel, **kwargs):
         """Asynchronous structured interaction with the model using the provided messages and schema."""
         messages = self._run_pre_hooks(messages)
 
         try:
             response = await self._astructured(messages, schema, **kwargs)
         except:
-            self._run_exception_hooks(messages, Exception("Error during async structured interaction"))
+            self._run_exception_hooks(
+                messages, Exception("Error during async structured interaction")
+            )
             raise
 
         response = self._run_post_hooks(messages, response)
@@ -187,23 +188,25 @@ class ModelBase(ABC):
         try:
             response = await self._astream_chat(messages, **kwargs)
         except:
-            self._run_exception_hooks(messages, Exception("Error during async stream chat"))
+            self._run_exception_hooks(
+                messages, Exception("Error during async stream chat")
+            )
             raise
 
         response = self._run_post_hooks(messages, response)
 
         return response
 
-    def chat_with_tools(
-        self, messages: MessageHistory, tools: List[Tool], **kwargs
-    ):
+    def chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs):
         """Chat with the model using the provided messages and tools."""
         messages = self._run_pre_hooks(messages)
 
         try:
             response = self._chat_with_tools(messages, tools, **kwargs)
         except:
-            self._run_exception_hooks(messages, Exception("Error during chat with tools"))
+            self._run_exception_hooks(
+                messages, Exception("Error during chat with tools")
+            )
             raise
 
         response = self._run_post_hooks(messages, response)
@@ -218,7 +221,9 @@ class ModelBase(ABC):
         try:
             response = await self._achat_with_tools(messages, tools, **kwargs)
         except:
-            self._run_exception_hooks(messages, Exception("Error during async chat with tools"))
+            self._run_exception_hooks(
+                messages, Exception("Error during async chat with tools")
+            )
             raise
 
         response = self._run_post_hooks(messages, response)

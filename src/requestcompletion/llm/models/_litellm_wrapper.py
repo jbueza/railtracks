@@ -1,6 +1,6 @@
 from abc import ABC
 import json
-from typing import List, Dict, Type, Optional, Any, Generator, Union, Set, Literal
+from typing import List, Dict, Type, Optional, Any, Generator, Union, Set
 from pydantic import BaseModel, ValidationError
 from ...exceptions.errors import LLMError, NodeInvocationError
 import litellm
@@ -183,20 +183,20 @@ class LiteLLMWrapper(ModelBase, ABC):
         *,
         stream: bool = False,
         response_format: Optional[Any] = None,
-        ** call_kwargs: Any,
-        ) -> Union[ModelResponse, CustomStreamWrapper]:
+        **call_kwargs: Any,
+    ) -> Union[ModelResponse, CustomStreamWrapper]:
         """
-    Internal helper that:
-      1. Converts MessageHistory
-      2. Merges default kwargs
-      3. Calls litellm.completion
-    """
+        Internal helper that:
+          1. Converts MessageHistory
+          2. Merges default kwargs
+          3. Calls litellm.completion
+        """
         litellm_messages = [_to_litellm_message(m) for m in messages]
         merged = {**self._default_kwargs, **call_kwargs}
         if response_format is not None:
             merged["response_format"] = response_format
         warnings.filterwarnings(
-        "ignore", category = UserWarning, module = "pydantic.*"
+            "ignore", category=UserWarning, module="pydantic.*"
         )  # Supress pydantic warnings. See issue #204 for more deatils.
         return await litellm.acompletion(
             model=self._model_name, messages=litellm_messages, stream=stream, **merged
@@ -214,7 +214,9 @@ class LiteLLMWrapper(ModelBase, ABC):
         raw = await self._ainvoke(messages=messages, **kwargs)
         return self._chat_handle_base(raw)
 
-    def _structured_handle_base(self, raw: ModelResponse, schema: Type[BaseModel]) -> Response:
+    def _structured_handle_base(
+        self, raw: ModelResponse, schema: Type[BaseModel]
+    ) -> Response:
         try:
             content_str = raw["choices"][0]["message"]["content"]
             parsed = schema(**json.loads(content_str))
@@ -222,7 +224,6 @@ class LiteLLMWrapper(ModelBase, ABC):
 
         except ValidationError as ve:
             raise ValueError(f"Schema validation failed: {ve}") from ve
-
 
     def _structured(
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
@@ -238,7 +239,6 @@ class LiteLLMWrapper(ModelBase, ABC):
                 message_history=messages,
             ) from e
 
-
     async def _astructured(
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
     ) -> Response:
@@ -251,21 +251,17 @@ class LiteLLMWrapper(ModelBase, ABC):
                 message_history=messages,
             ) from e
 
-    def _stream_handler_base(
-        self, raw: CustomStreamWrapper
-    ) -> Response:
+    def _stream_handler_base(self, raw: CustomStreamWrapper) -> Response:
         def streamer() -> Generator[str, None, None]:
             for part in raw:
                 yield part.choices[0].delta.content or ""
 
         return Response(message=None, streamer=streamer())
 
-
     def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         stream_iter = self._invoke(messages, stream=True, **kwargs)
 
         return self._stream_handler_base(stream_iter)
-
 
     async def _astream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         stream_iter = await self._ainvoke(messages, stream=True, **kwargs)
@@ -337,4 +333,3 @@ class LiteLLMWrapper(ModelBase, ABC):
         Returns the model name.
         """
         return self._model_name
-
