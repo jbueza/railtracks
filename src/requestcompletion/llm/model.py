@@ -87,18 +87,6 @@ class ModelBase(ABC):
         """The name of the provider of this model or the model type."""
         return None
 
-    @overload
-    def _shared_model_call_logic(
-        self, handler: Callable[[MessageHistory], Response], message_history: MessageHistory
-    ) -> Response:
-        pass
-
-    @overload
-    async def _shared_model_call_logic(
-        self, handler: Callable[[MessageHistory], Coroutine[None, None, Response]], message_history: MessageHistory
-    ) -> Response:
-        pass
-
     def _run_pre_hooks(self, message_history: MessageHistory) -> MessageHistory:
         """Runs all pre-hooks on the provided message history."""
         for hook in self._pre_hook:
@@ -115,43 +103,6 @@ class ModelBase(ABC):
         """Runs all exception hooks on the provided message history and exception."""
         for hook in self._exception_hook:
             hook(message_history, exception)
-
-
-    def _shared_model_call_logic(self, handler, message_history):
-        if not asyncio.iscoroutinefunction(handler):
-            for hook in self._pre_hook:
-                message_history = hook(message_history)
-
-            try:
-                result = handler(message_history)
-                result.message._inject_prompt = False
-            except Exception as e:
-                for hook in self._exception_hook:
-                    hook(message_history, e)
-                raise e
-
-            for hook in self._post_hook:
-                result = hook(message_history, result)
-
-            return result
-        else:
-            async def _async_handler(ms: MessageHistory):
-                for hook in self._pre_hook:
-                    ms = hook(ms)
-
-                try:
-                    result = await handler(ms)
-                    result.message._inject_prompt = False
-                except Exception as e:
-                    for hook in self._exception_hook:
-                        hook(ms, e)
-                    raise e
-
-                for hook in self._post_hook:
-                    result = hook(ms, result)
-
-                return result
-            return _async_handler(message_history)
 
 
 
