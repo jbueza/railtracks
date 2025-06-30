@@ -217,13 +217,10 @@ class LiteLLMWrapper(ModelBase, ABC):
     def _structured_handle_base(
         self, raw: ModelResponse, schema: Type[BaseModel]
     ) -> Response:
-        try:
+
             content_str = raw["choices"][0]["message"]["content"]
             parsed = schema(**json.loads(content_str))
             return Response(message=AssistantMessage(content=parsed))
-
-        except ValidationError as ve:
-            raise ValueError(f"Schema validation failed: {ve}") from ve
 
     def _structured(
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
@@ -231,7 +228,7 @@ class LiteLLMWrapper(ModelBase, ABC):
         try:
             raw = self._invoke(messages, response_format=schema, **kwargs)
             return self._structured_handle_base(raw, schema)
-        except ValueError as ve:
+        except ValidationError as ve:
             raise ve
         except Exception as e:
             raise LLMError(
