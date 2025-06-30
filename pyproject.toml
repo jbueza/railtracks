@@ -23,7 +23,6 @@ dependencies = [
     "pyvis >= 0.3.1",
     "requests >=2.31,<3",
     "requests-mock >= 1.12.1",
-    "sseclient >= 0.0.27",
 ]
 
 [project.urls]

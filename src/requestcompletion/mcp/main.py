@@ -18,11 +18,6 @@ from ..llm import Tool
 from ..mcp.oauth import InMemoryTokenStorage, CallbackServer
 from ..nodes.nodes import Node
 
-try:
-    from sseclient import SSEClient
-except ImportError:
-    SSEClient = None
-
 
 class MCPHttpParams(BaseModel):
     url: str
