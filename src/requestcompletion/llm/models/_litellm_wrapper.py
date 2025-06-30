@@ -1,6 +1,6 @@
 from abc import ABC
 import json
-from typing import List, Dict, Type, Optional, Any, Generator, Union, Set
+from typing import List, Dict, Type, Optional, Any, Generator, Union, Set, Literal
 from pydantic import BaseModel, ValidationError
 from ...exceptions.errors import LLMError, NodeInvocationError
 import litellm
@@ -177,35 +177,124 @@ class LiteLLMWrapper(ModelBase, ABC):
             model=self._model_name, messages=litellm_messages, stream=stream, **merged
         )
 
-    def _chat(self, messages: MessageHistory, **kwargs) -> Response:
-        raw = self._invoke(messages, **kwargs)
+    async def _ainvoke(
+        self,
+        messages: MessageHistory,
+        *,
+        stream: bool = False,
+        response_format: Optional[Any] = None,
+        ** call_kwargs: Any,
+        ) -> Union[ModelResponse, CustomStreamWrapper]:
+        """
+    Internal helper that:
+      1. Converts MessageHistory
+      2. Merges default kwargs
+      3. Calls litellm.completion
+    """
+        litellm_messages = [_to_litellm_message(m) for m in messages]
+        merged = {**self._default_kwargs, **call_kwargs}
+        if response_format is not None:
+            merged["response_format"] = response_format
+        warnings.filterwarnings(
+        "ignore", category = UserWarning, module = "pydantic.*"
+        )  # Supress pydantic warnings. See issue #204 for more deatils.
+        return await litellm.acompletion(
+            model=self._model_name, messages=litellm_messages, stream=stream, **merged
+        )
+
+    def _chat_handle_base(self, raw: ModelResponse):
         content = raw["choices"][0]["message"]["content"]
         return Response(message=AssistantMessage(content=content))
+
+    def _chat(self, messages: MessageHistory, **kwargs) -> Response:
+        raw = self._invoke(messages=messages, **kwargs)
+        return self._chat_handle_base(raw)
+
+    async def _achat(self, messages: MessageHistory, **kwargs) -> Response:
+        raw = await self._ainvoke(messages=messages, **kwargs)
+        return self._chat_handle_base(raw)
+
+    def _structured_handle_base(self, raw: ModelResponse, schema: Type[BaseModel]) -> Response:
+        try:
+            content_str = raw["choices"][0]["message"]["content"]
+            parsed = schema(**json.loads(content_str))
+            return Response(message=AssistantMessage(content=parsed))
+
+        except ValidationError as ve:
+            raise ValueError(f"Schema validation failed: {ve}") from ve
+
 
     def _structured(
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
     ) -> Response:
         try:
             raw = self._invoke(messages, response_format=schema, **kwargs)
-            content_str = raw["choices"][0]["message"]["content"]
-            parsed = schema(**json.loads(content_str))
-            return Response(message=AssistantMessage(content=parsed))
-        except ValidationError as ve:
-            raise ValueError(f"Schema validation failed: {ve}") from ve
+            return self._structured_handle_base(raw, schema)
+        except ValueError as ve:
+            raise ve
         except Exception as e:
             raise LLMError(
                 reason="Structured LLM call failed",
                 message_history=messages,
             ) from e
 
-    def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
-        stream_iter = self._invoke(messages, stream=True, **kwargs)
 
+    async def _astructured(
+        self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
+    ) -> Response:
+        try:
+            raw = await self._ainvoke(messages, response_format=schema, **kwargs)
+            return self._structured_handle_base(raw, schema)
+        except Exception as e:
+            raise LLMError(
+                reason="Structured LLM call failed",
+                message_history=messages,
+            ) from e
+
+    def _stream_handler_base(
+        self, raw: CustomStreamWrapper
+    ) -> Response:
         def streamer() -> Generator[str, None, None]:
-            for part in stream_iter:
+            for part in raw:
                 yield part.choices[0].delta.content or ""
 
         return Response(message=None, streamer=streamer())
+
+
+    def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
+        stream_iter = self._invoke(messages, stream=True, **kwargs)
+
+        return self._stream_handler_base(stream_iter)
+
+
+    async def _astream_chat(self, messages: MessageHistory, **kwargs) -> Response:
+        stream_iter = await self._ainvoke(messages, stream=True, **kwargs)
+        return self._stream_handler_base(stream_iter)
+
+    def _update_kwarg_with_tool(self, tools: List[Tool], **kwargs):
+        litellm_tools = [_to_litellm_tool(t) for t in tools]
+
+        kwargs["tools"] = litellm_tools
+
+        return kwargs
+
+    def _chat_with_tools_handler_base(self, raw: ModelResponse) -> Response:
+        """
+        Handle the response from litellm.completion when using tools.
+        """
+        choice = raw.choices[0]
+
+        if choice.finish_reason == "stop" and not choice.message.tool_calls:
+            return Response(message=AssistantMessage(content=choice.message.content))
+
+        calls: List[ToolCall] = []
+        for tc in choice.message.tool_calls:
+            args = json.loads(tc.function.arguments)
+            calls.append(
+                ToolCall(identifier=tc.id, name=tc.function.name, arguments=args)
+            )
+
+        return Response(message=AssistantMessage(content=calls))
 
     def _chat_with_tools(
         self, messages: MessageHistory, tools: List[Tool], **kwargs: Any
@@ -222,26 +311,20 @@ class LiteLLMWrapper(ModelBase, ABC):
             A Response containing either plain assistant text or ToolCall(s).
         """
 
-        litellm_tools = [_to_litellm_tool(t) for t in tools]
-
-        kwargs["tools"] = litellm_tools
+        kwargs = self._update_kwarg_with_tool(tools, **kwargs)
 
         resp = self._invoke(messages, **kwargs)
 
-        choice = resp.choices[0]
+        return self._chat_with_tools_handler_base(resp)
 
-        # If no tool calls were emitted, return plain assistant response: NOT IDEAL
-        if choice.finish_reason == "stop" and not choice.message.tool_calls:
-            return Response(message=AssistantMessage(content=choice.message.content))
+    async def _achat_with_tools(
+        self, messages: MessageHistory, tools: List[Tool], **kwargs
+    ) -> Response:
+        kwargs = self._update_kwarg_with_tool(tools, **kwargs)
 
-        calls: List[ToolCall] = []
-        for tc in choice.message.tool_calls:
-            args = json.loads(tc.function.arguments)
-            calls.append(
-                ToolCall(identifier=tc.id, name=tc.function.name, arguments=args)
-            )
+        resp = await self._ainvoke(messages, **kwargs)
 
-        return Response(message=AssistantMessage(content=calls))
+        return self._chat_with_tools_handler_base(resp)
 
     def __str__(self) -> str:
         parts = self._model_name.split("/", 1)
