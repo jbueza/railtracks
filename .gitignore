@@ -18,7 +18,7 @@ test-results.xml
 myenv 
 venv
 .venv
-
+.coverage       # pytest coverage report
 .ruff_cache
 
 .logs
