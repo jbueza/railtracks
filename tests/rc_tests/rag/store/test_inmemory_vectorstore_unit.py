@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from conftest import DummyEmbeddingService, DummyRecord, DummySearchResult, DummyMetric, dummy_uuid_str
 
 # -------------- Auto-patch module dependencies (pytest-style) --------------
@@ -12,9 +11,6 @@ def patch_vectorstore_deps(monkeypatch):
     monkeypatch.setattr(vsmem, "VectorRecord", DummyRecord)
     monkeypatch.setattr(vsmem, "SearchResult", DummySearchResult)
     monkeypatch.setattr(vsmem, "Metric", DummyMetric)
-    # Dummy versions of vector utils
-    monkeypatch.setattr(vsmem, "normalize_vector", lambda v: v/np.linalg.norm(v) if np.linalg.norm(v) else v)
-    monkeypatch.setattr(vsmem, "distance", lambda a, b, metric="cosine": float(np.sum((np.array(a)-np.array(b))**2)) if metric == "l2" else -float(np.dot(a,b)))
     # No need to patch AbstractVectorStore if real base is abstract and not used directly
 
 from requestcompletion.RAG.vector_store.in_memory import InMemoryVectorStore
@@ -66,13 +62,29 @@ def test_delete(store):
     deleted2 = store.delete(["nonexistent"])
     assert deleted2 == 0
 
+import math
+
+def vectors_allclose(vec1, vec2, tol=1e-8):
+    if len(vec1) != len(vec2):
+        return False
+    return all(abs(a - b) < tol for a, b in zip(vec1, vec2))
+
+def normalize(vec):
+    norm = math.sqrt(sum(x * x for x in vec))
+    if norm == 0:
+        return vec  # or raise an error if zero vector is invalid
+    return [x / norm for x in vec]
+
 def test_update_vector(store):
     ids = store.add(["orig"])
     new_vec = [9.0, 9.0, 9.0]
     store.update(ids[0], new_vec, embed=False)
     actual = store._vectors[ids[0]]
-    assert np.allclose(actual, new_vec) or np.allclose(actual, np.array(new_vec)/np.linalg.norm(new_vec))
-
+    assert (
+        vectors_allclose(actual, new_vec)
+        or vectors_allclose(actual, normalize(new_vec))
+    )
+    
 def test_update_text(store):
     ids = store.add(["orig"])
     store.update(ids[0], "new text", embed=True)
