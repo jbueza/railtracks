@@ -216,8 +216,9 @@ def call_sync(
         )
     except RuntimeError:
         # If there is no running loop, we need to create one
-        if loop_found: raise
-    
+        if loop_found:
+            raise
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:

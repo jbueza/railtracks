@@ -109,4 +109,3 @@ class ExecutionInfo:
                 stamper=self.stamper,
                 exception_history=list(self.exception_history),
             )
-
