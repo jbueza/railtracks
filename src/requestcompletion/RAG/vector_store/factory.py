@@ -28,5 +28,5 @@ def create_store(
 
     if backend in {"memory", "inmemory"}:
         return InMemoryVectorStore(**kwargs)
-        
+
     raise ValueError(f"Unknown backend '{backend}'")

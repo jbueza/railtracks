@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Sequence, Union, Optional
 
 import numpy as np
 
-from ..embedding_service import BaseEmbeddingService 
+from ..embedding_service import BaseEmbeddingService
 from .base import AbstractVectorStore, Metric, SearchResult, VectorRecord
 from .utils import distance, normalize_vector, uuid_str
 
@@ -52,7 +52,9 @@ class InMemoryVectorStore(AbstractVectorStore):
         self.metric = Metric(metric)
         self._dim = dim
         # Default normalization: cosine --> True, others --> False (unless specified)
-        self._normalize = normalize if normalize is not None else (self.metric == Metric.cosine)
+        self._normalize = (
+            normalize if normalize is not None else (self.metric == Metric.cosine)
+        )
 
         self._vectors: Dict[str, List[float]] = {}
         self._record: Dict[str, VectorRecord] = {}
@@ -162,7 +164,7 @@ class InMemoryVectorStore(AbstractVectorStore):
         scores.sort(key=lambda t: t[1])
         results = [
             SearchResult(
-                score=score, 
+                score=score,
                 record=self._record[vid],
             )
             for vid, score in scores[:top_k]
@@ -218,13 +220,11 @@ class InMemoryVectorStore(AbstractVectorStore):
             if not self.embedding_service:
                 raise RuntimeError("BaseEmbeddingService required but missing.")
             vec = self.embedding_service.embed(new_text_or_vector)
-            
+
         else:
             vec = new_text_or_vector
             if embed:
                 raise ValueError("embed=True but raw vector supplied.")
-            
-        
 
         if self._normalize:
             vec = normalize_vector(vec)
@@ -236,8 +236,6 @@ class InMemoryVectorStore(AbstractVectorStore):
         )
         self._vectors[id] = vec
         self._record[id] = record
-        
-        
 
     # ---------- misc ----------
 
@@ -292,7 +290,5 @@ class InMemoryVectorStore(AbstractVectorStore):
             normalize=data["normalize"],
         )
         store._vectors = data["vectors"]
-        store._record = {
-            k: VectorRecord(**v) for k, v in data["record"].items()
-        }
+        store._record = {k: VectorRecord(**v) for k, v in data["record"].items()}
         return store
