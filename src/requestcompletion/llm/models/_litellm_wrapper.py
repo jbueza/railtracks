@@ -282,12 +282,12 @@ class LiteLLMWrapper(ModelBase, ABC):
         return Response(message=None, streamer=streamer())
 
     def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
-        stream_iter = self._invoke(messages, stream=True, **kwargs)
+        stream_iter, info = self._invoke(messages, stream=True, **kwargs)
 
         return self._stream_handler_base(stream_iter)
 
     async def _astream_chat(self, messages: MessageHistory, **kwargs) -> Response:
-        stream_iter = await self._ainvoke(messages, stream=True, **kwargs)
+        stream_iter, info = await self._ainvoke(messages, stream=True, **kwargs)
         return self._stream_handler_base(stream_iter)
 
     def _update_kwarg_with_tool(self, tools: List[Tool], **kwargs):
