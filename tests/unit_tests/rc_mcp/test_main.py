@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from requestcompletion.rc_mcp.main import MCPHttpParams, MCPAsyncClient, from_mcp
-from mcp import StdioServerParameters
 
 # ============= START MCPHttpParams tests =============
 
@@ -28,8 +27,11 @@ def test_mcp_httpparams_custom(mcp_http_params):
 async def test_async_client_enter_exit_stdio(
     stdio_config,
     mock_client_session,
+    # DO NOT REMOVE: these patched mocks are set up in conftest and being used in the test in the background
+    patch_stdio_client,
+    patch_ClientSession,
 ):
-    # Patch returns our mock_client_session when entering context
+    # ClientSession and stdio_client are now context managers set up by the fixtures
     async with MCPAsyncClient(stdio_config) as client:
         assert isinstance(client, MCPAsyncClient)
         assert client.session == mock_client_session
@@ -37,20 +39,25 @@ async def test_async_client_enter_exit_stdio(
 @pytest.mark.asyncio
 async def test_async_client_enter_exit_http(
     mcp_http_params,
+    patch_httpx_AsyncClient,
+    # DO NOT REMOVE: these patched mocks are set up in conftest and being used in the test in the background
     patch_streamablehttp_client,
     patch_ClientSession,
-    patch_httpx_AsyncClient
 ):
+    # Patch HTTPX client to return no oauth metadata
     patch_httpx_AsyncClient.return_value.__aenter__.return_value.get.return_value.status_code = 404
     async with MCPAsyncClient(mcp_http_params) as client:
         assert isinstance(client, MCPAsyncClient)
 
 # ========== END MCPAsyncClient context tests =========
 
-# ===== START MCPAsyncClient.list_tools/call_tool tests ====
 
+# ===== START MCPAsyncClient.list_tools/call_tool tests ====
 @pytest.mark.asyncio
-async def test_async_client_list_tools_caching(mock_client_session, stdio_config):
+async def test_async_client_list_tools_caching(
+    mock_client_session,
+    stdio_config,
+):
     client = MCPAsyncClient(stdio_config, client_session=mock_client_session)
     # no cache first time
     tools = await client.list_tools()
@@ -70,13 +77,15 @@ async def test_async_client_call_tool(mock_client_session, stdio_config):
 # ====== END MCPAsyncClient.list_tools/call_tool tests ===
 
 # =============== START MCPAsyncClient _init_http tests ============
-
 @pytest.mark.asyncio
 async def test_async_client_init_http_uses_correct_transport(
     mcp_http_params,
     patch_httpx_AsyncClient,
+    # DO NOT REMOVE: these patched mocks are set up in conftest and being used in the test in the background
     patch_streamablehttp_client,
-    patch_sse_client
+    patch_sse_client,
+    patch_ClientSession,
+    mock_client_session
 ):
     # SSE URL usage
     mcp_http_params.url = "https://host.com/api/sse"
@@ -94,9 +103,12 @@ async def test_async_client_init_http_uses_correct_transport(
 async def test_async_client_init_http_oauth_flow(
     mcp_http_params,
     patch_httpx_AsyncClient,
+    # DO NOT REMOVE: these patched mocks are set up in conftest and being used in the test in the background
     patch_streamablehttp_client,
     patch_CallbackServer,
-    patch_OAuthClientProvider
+    patch_OAuthClientProvider,
+    patch_ClientSession,
+    mock_client_session
 ):
     # Simulate OAuth server presence
     mcp_http_params.url = "http://mock-oauth-server"
@@ -104,6 +116,7 @@ async def test_async_client_init_http_oauth_flow(
     mock_response.status_code = 200
     mock_response.json.return_value = {"issuer": "x"}
     patch_httpx_AsyncClient.return_value.__aenter__.return_value.get.return_value = mock_response
+
     client = MCPAsyncClient(mcp_http_params)
     await client._init_http()
     assert client.transport_type in ("sse", "streamable_http")
