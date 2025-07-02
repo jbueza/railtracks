@@ -6,8 +6,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class ResourceInstance:
     """Base class for any resource object (text, image, video, etc.)."""
+
     def __init__(
         self,
         path: Optional[str] = None,
@@ -40,7 +42,7 @@ class ResourceInstance:
         return os.path.splitext(name)[0]
 
     @staticmethod
-    def get_resource_hash(file_path: str, _hash_type='sha256') -> str:
+    def get_resource_hash(file_path: str, _hash_type="sha256") -> str:
         hash_obj = hashlib.new(_hash_type)
         with open(file_path, "rb") as f:
             while chunk := f.read(8192):
@@ -57,19 +59,17 @@ class ResourceInstance:
             "tags": self.tags,
             "comment": self.comment,
             "hash": self.hash,
-            "duration": self.duration
+            "duration": self.duration,
         }
+
     def __str__(self):
         return f"<ResourceInstance name={self.name}, type={self.type}>"
 
+
 class TextObject(ResourceInstance):
     """Text-specific metadata and embedding storage."""
-    def __init__(
-        self,
-        raw_content: str,
-        path: Optional[str] = None,
-        **kwargs
-    ):
+
+    def __init__(self, raw_content: str, path: Optional[str] = None, **kwargs):
         super().__init__(path=path, type="text", **kwargs)
         self.raw_content: str = raw_content
         self.chunked_content: List[str] = []
@@ -83,9 +83,11 @@ class TextObject(ResourceInstance):
 
     def get_metadata(self) -> dict:
         meta = super().get_metadata()
-        meta.update({
-            "raw_content": self.raw_content,
-            "num_chunks": len(self.chunked_content),
-            "embeddings": f"{len(self.embeddings)} vectors"
-        })
+        meta.update(
+            {
+                "raw_content": self.raw_content,
+                "num_chunks": len(self.chunked_content),
+                "embeddings": f"{len(self.embeddings)} vectors",
+            }
+        )
         return meta

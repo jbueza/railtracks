@@ -59,13 +59,15 @@ class RAG:
             # create TextObjects for file paths
             for doc in docs:
                 if os.path.exists(doc):
-                    with open(doc, 'r', encoding='utf-8') as f:
+                    with open(doc, "r", encoding="utf-8") as f:
                         content = f.read()
                     self.text_objects.append(TextObject(raw_content=content, path=doc))
                 else:
                     raise ValueError(f"File path {doc} does not exist.")
         else:
-            raise ValueError(f"input_type must be 'text' or 'path', instead got '{input_type}'.")
+            raise ValueError(
+                f"input_type must be 'text' or 'path', instead got '{input_type}'."
+            )
 
     def embed_all(self):
         chunks_all = []

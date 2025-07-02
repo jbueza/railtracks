@@ -28,7 +28,6 @@ class LORAGTokenizer:
 
 
 class Tokenizer:
-
     def __init__(self, model: str = "gpt-3.5-turbo"):
         """Initialize the tokenizer with a specific model.
 

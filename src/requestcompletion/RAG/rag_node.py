@@ -2,6 +2,7 @@ from requestcompletion.RAG.rag_core import RAG
 from requestcompletion import Node
 import requestcompletion as rc
 
+
 class RAGNode(Node):
     def __init__(self, documents: list, query: str) -> list:
         self.rag_core = RAG(
@@ -23,10 +24,11 @@ class RAGNode(Node):
     def pretty_name(cls) -> str:
         return "Easy RAG Node"
 
-    def invoke(self)-> list:
+    def invoke(self) -> list:
         return self.result
 
-def easy_rag_function(documents:list):
+
+def easy_rag_function(documents: list):
     class RAGNodeMini(Node):
         def __init__(self, query: str) -> list:
             self.rag_core = RAG(
@@ -35,7 +37,11 @@ def easy_rag_function(documents:list):
                     "model": "text-embedding-3-small",
                 },
                 store_config={},
-                chunk_config={"chunk_size": 100, "chunk_overlap": 20, "model": "gpt-4o"},
+                chunk_config={
+                    "chunk_size": 100,
+                    "chunk_overlap": 20,
+                    "model": "gpt-4o",
+                },
             )
 
             self.rag_core.embed_all()
@@ -48,10 +54,11 @@ def easy_rag_function(documents:list):
         def pretty_name(cls) -> str:
             return "Easy RAG Node"
 
-        def invoke(self)-> list:
+        def invoke(self) -> list:
             return self.result
 
     return RAGNodeMini
+
 
 class EasyRAGClass:
     def __init__(self, documents: list) -> None:
@@ -67,9 +74,9 @@ class EasyRAGClass:
 
     def __call__(self):
         rag_core = self.rag_core
+
         class RAGNodeMini(Node):
             def __init__(self, query) -> list:
-
                 result = rag_core.search(query, top_k=2)
                 print(query)
                 print(result)
@@ -79,10 +86,11 @@ class EasyRAGClass:
             def pretty_name(cls) -> str:
                 return "Easy RAG Node"
 
-            def invoke(self)-> list:
+            def invoke(self) -> list:
                 return self.result
 
         return RAGNodeMini
+
 
 if __name__ == "__main__":
     docs = [
@@ -96,9 +104,7 @@ if __name__ == "__main__":
     with rc.Runner() as runner:
         response = rc.call(easy_rag_func, query=query)
     # new class way
-    easy_rag_agent = EasyRAGClass(
-        documents=docs
-    )
+    easy_rag_agent = EasyRAGClass(documents=docs)
     easy_rag_agent = easy_rag_agent()
     with rc.Runner() as runner:
         response = rc.call(easy_rag_agent, query=query)
