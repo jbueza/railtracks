@@ -20,16 +20,14 @@ class RAGNode(Node):
         self.result = result
 
     @classmethod
-    def pretty_name(self) -> str:
+    def pretty_name(cls) -> str:
         return "Easy RAG Node"
-    
+
     def invoke(self)-> list:
         return self.result
-    
 
-    
 def easy_rag_function(documents:list):
-    class RAGNode_mini(Node):
+    class RAGNodeMini(Node):
         def __init__(self, query: str) -> list:
             self.rag_core = RAG(
                 docs=documents,
@@ -47,15 +45,14 @@ def easy_rag_function(documents:list):
             self.result = result
 
         @classmethod
-        def pretty_name(self) -> str:
+        def pretty_name(cls) -> str:
             return "Easy RAG Node"
-        
+
         def invoke(self)-> list:
             return self.result
-        
-    return RAGNode_mini
-    
-        
+
+    return RAGNodeMini
+
 class EasyRAGClass:
     def __init__(self, documents: list) -> None:
         self.rag_core = RAG(
@@ -70,23 +67,23 @@ class EasyRAGClass:
 
     def __call__(self):
         rag_core = self.rag_core
-        class RAGNode_mini(Node):
+        class RAGNodeMini(Node):
             def __init__(self, query) -> list:
-                
+
                 result = rag_core.search(query, top_k=2)
                 print(query)
                 print(result)
                 self.result = result
 
             @classmethod
-            def pretty_name(self) -> str:
+            def pretty_name(cls) -> str:
                 return "Easy RAG Node"
-            
+
             def invoke(self)-> list:
                 return self.result
-            
-        return RAGNode_mini        
-        
+
+        return RAGNodeMini
+
 if __name__ == "__main__":
     docs = [
         "Apple is deep red",
