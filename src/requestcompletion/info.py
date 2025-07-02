@@ -6,7 +6,6 @@ from .state.utils import create_sub_state_info
 from .utils.profiling import Stamp, StampManager
 from .state.request import RequestForest
 from .state.node import NodeForest
-from .visuals.agent_viewer import AgentViewer
 
 
 _TOutput = TypeVar("_TOutput")
@@ -111,6 +110,3 @@ class ExecutionInfo:
                 exception_history=list(self.exception_history),
             )
 
-    def view_graph(self):
-        """A convenience method used to view a graph representation of the run."""
-        AgentViewer(self.all_stamps, self.request_heap, self.node_heap).display_graph()
