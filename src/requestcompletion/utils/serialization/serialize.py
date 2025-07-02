@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 from typing import Any
+from pydantic import BaseModel
 
 
 from requestcompletion.llm import Message, ToolResponse, ToolCall
@@ -19,6 +20,7 @@ supported_types = (
     Stamp,
     ToolCall,
     LatencyDetails,
+    BaseModel
 )
 
 
@@ -52,6 +54,8 @@ def encoder_extender(o) -> dict[str, Any]:
         return encode_tool_call(o)
     elif isinstance(o, LatencyDetails):
         return encode_latency_details(o)
+    elif isinstance(o, BaseModel):
+        return encode_base_model(o)
     else:
         raise TypeError(f"Unsupported type: {type(o)}")
 
@@ -148,6 +152,13 @@ def encode_content(content: ToolResponse):
     }
 
 
+def encode_base_model(model: BaseModel):
+    """
+    Encodes a BaseModel object to a dictionary representation.
+    """
+    return model.model_dump()  # Use Pydantic's model_dump method for serialization
+
+
 class RCJSONEncoder(json.JSONEncoder):
     """
     A custom JSON encoder that extends the default JSONEncoder to handle specific types used in the system.
@@ -162,6 +173,6 @@ class RCJSONEncoder(json.JSONEncoder):
         try:
             return super().default(o)
         except TypeError:
-            return "ERROR: " + str(
+            return f"ERROR: w/ type {type(o)}" + str(
                 o
             )  # Fallback to string representation for non-serializable objects
