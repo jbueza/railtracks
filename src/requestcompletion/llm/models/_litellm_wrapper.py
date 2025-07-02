@@ -11,7 +11,8 @@ from typing import (
     Union,
     Set,
     TypeVar,
-    Callable, Tuple,
+    Callable,
+    Tuple,
 )
 from pydantic import BaseModel, ValidationError
 from ...exceptions.errors import LLMError, NodeInvocationError
@@ -192,8 +193,6 @@ class LiteLLMWrapper(ModelBase, ABC):
         mess_info = self.extract_message_info(completion, time.time() - start_time)
         return completion, mess_info
 
-
-
     async def _ainvoke(
         self,
         messages: MessageHistory,
@@ -237,7 +236,10 @@ class LiteLLMWrapper(ModelBase, ABC):
         return self._chat_handle_base(*raw)
 
     def _structured_handle_base(
-        self, raw: ModelResponse, info: MessageInfo, schema: Type[BaseModel],
+        self,
+        raw: ModelResponse,
+        info: MessageInfo,
+        schema: Type[BaseModel],
     ) -> Response:
         content_str = raw["choices"][0]["message"]["content"]
         parsed = schema(**json.loads(content_str))
@@ -261,7 +263,9 @@ class LiteLLMWrapper(ModelBase, ABC):
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
     ) -> Response:
         try:
-            model_resp, info = await self._ainvoke(messages, response_format=schema, **kwargs)
+            model_resp, info = await self._ainvoke(
+                messages, response_format=schema, **kwargs
+            )
             return self._structured_handle_base(model_resp, info, schema)
         except Exception as e:
             raise LLMError(
@@ -293,7 +297,9 @@ class LiteLLMWrapper(ModelBase, ABC):
 
         return kwargs
 
-    def _chat_with_tools_handler_base(self, raw: ModelResponse, info: MessageInfo) -> Response:
+    def _chat_with_tools_handler_base(
+        self, raw: ModelResponse, info: MessageInfo
+    ) -> Response:
         """
         Handle the response from litellm.completion when using tools.
         """
