@@ -1,6 +1,18 @@
+import time
 from abc import ABC
 import json
-from typing import List, Dict, Type, Optional, Any, Generator, Union, Set
+from typing import (
+    List,
+    Dict,
+    Type,
+    Optional,
+    Any,
+    Generator,
+    Union,
+    Set,
+    TypeVar,
+    Callable, Tuple,
+)
 from pydantic import BaseModel, ValidationError
 from ...exceptions.errors import LLMError, NodeInvocationError
 import litellm
@@ -8,7 +20,7 @@ from litellm.utils import ModelResponse, CustomStreamWrapper
 
 from ..model import ModelBase
 from ..message import Message
-from ..response import Response
+from ..response import Response, MessageInfo
 from ..history import MessageHistory
 from ..message import AssistantMessage, ToolMessage
 from ..content import ToolCall
@@ -159,13 +171,14 @@ class LiteLLMWrapper(ModelBase, ABC):
         stream: bool = False,
         response_format: Optional[Any] = None,
         **call_kwargs: Any,
-    ) -> Union[ModelResponse, CustomStreamWrapper]:
+    ) -> Tuple[Union[ModelResponse, CustomStreamWrapper], MessageInfo]:
         """
         Internal helper that:
           1. Converts MessageHistory
           2. Merges default kwargs
           3. Calls litellm.completion
         """
+        start_time = time.time()
         litellm_messages = [_to_litellm_message(m) for m in messages]
         merged = {**self._default_kwargs, **call_kwargs}
         if response_format is not None:
@@ -173,9 +186,13 @@ class LiteLLMWrapper(ModelBase, ABC):
         warnings.filterwarnings(
             "ignore", category=UserWarning, module="pydantic.*"
         )  # Supress pydantic warnings. See issue #204 for more deatils.
-        return litellm.completion(
+        completion = litellm.completion(
             model=self._model_name, messages=litellm_messages, stream=stream, **merged
         )
+        mess_info = self.extract_message_info(completion, time.time() - start_time)
+        return completion, mess_info
+
+
 
     async def _ainvoke(
         self,
@@ -184,13 +201,14 @@ class LiteLLMWrapper(ModelBase, ABC):
         stream: bool = False,
         response_format: Optional[Any] = None,
         **call_kwargs: Any,
-    ) -> Union[ModelResponse, CustomStreamWrapper]:
+    ) -> Tuple[Union[ModelResponse, CustomStreamWrapper], MessageInfo]:
         """
         Internal helper that:
           1. Converts MessageHistory
           2. Merges default kwargs
           3. Calls litellm.completion
         """
+        start_time = time.time()
         litellm_messages = [_to_litellm_message(m) for m in messages]
         merged = {**self._default_kwargs, **call_kwargs}
         if response_format is not None:
@@ -198,35 +216,39 @@ class LiteLLMWrapper(ModelBase, ABC):
         warnings.filterwarnings(
             "ignore", category=UserWarning, module="pydantic.*"
         )  # Supress pydantic warnings. See issue #204 for more deatils.
-        return await litellm.acompletion(
+        completion = await litellm.acompletion(
             model=self._model_name, messages=litellm_messages, stream=stream, **merged
         )
 
-    def _chat_handle_base(self, raw: ModelResponse):
+        mess_info = self.extract_message_info(completion, time.time() - start_time)
+
+        return completion, mess_info
+
+    def _chat_handle_base(self, raw: ModelResponse, info: MessageInfo):
         content = raw["choices"][0]["message"]["content"]
-        return Response(message=AssistantMessage(content=content))
+        return Response(message=AssistantMessage(content=content), message_info=info)
 
     def _chat(self, messages: MessageHistory, **kwargs) -> Response:
         raw = self._invoke(messages=messages, **kwargs)
-        return self._chat_handle_base(raw)
+        return self._chat_handle_base(*raw)
 
     async def _achat(self, messages: MessageHistory, **kwargs) -> Response:
         raw = await self._ainvoke(messages=messages, **kwargs)
-        return self._chat_handle_base(raw)
+        return self._chat_handle_base(*raw)
 
     def _structured_handle_base(
-        self, raw: ModelResponse, schema: Type[BaseModel]
+        self, raw: ModelResponse, info: MessageInfo, schema: Type[BaseModel],
     ) -> Response:
         content_str = raw["choices"][0]["message"]["content"]
         parsed = schema(**json.loads(content_str))
-        return Response(message=AssistantMessage(content=parsed))
+        return Response(message=AssistantMessage(content=parsed), message_info=info)
 
     def _structured(
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
     ) -> Response:
         try:
-            raw = self._invoke(messages, response_format=schema, **kwargs)
-            return self._structured_handle_base(raw, schema)
+            model_resp, info = self._invoke(messages, response_format=schema, **kwargs)
+            return self._structured_handle_base(model_resp, info, schema)
         except ValidationError as ve:
             raise ve
         except Exception as e:
@@ -239,8 +261,8 @@ class LiteLLMWrapper(ModelBase, ABC):
         self, messages: MessageHistory, schema: Type[BaseModel], **kwargs
     ) -> Response:
         try:
-            raw = await self._ainvoke(messages, response_format=schema, **kwargs)
-            return self._structured_handle_base(raw, schema)
+            model_resp, info = await self._ainvoke(messages, response_format=schema, **kwargs)
+            return self._structured_handle_base(model_resp, info, schema)
         except Exception as e:
             raise LLMError(
                 reason="Structured LLM call failed",
@@ -248,6 +270,7 @@ class LiteLLMWrapper(ModelBase, ABC):
             ) from e
 
     def _stream_handler_base(self, raw: CustomStreamWrapper) -> Response:
+        # TODO implement tracking in here.
         def streamer() -> Generator[str, None, None]:
             for part in raw:
                 yield part.choices[0].delta.content or ""
@@ -270,7 +293,7 @@ class LiteLLMWrapper(ModelBase, ABC):
 
         return kwargs
 
-    def _chat_with_tools_handler_base(self, raw: ModelResponse) -> Response:
+    def _chat_with_tools_handler_base(self, raw: ModelResponse, info: MessageInfo) -> Response:
         """
         Handle the response from litellm.completion when using tools.
         """
@@ -286,7 +309,7 @@ class LiteLLMWrapper(ModelBase, ABC):
                 ToolCall(identifier=tc.id, name=tc.function.name, arguments=args)
             )
 
-        return Response(message=AssistantMessage(content=calls))
+        return Response(message=AssistantMessage(content=calls), message_info=info)
 
     def _chat_with_tools(
         self, messages: MessageHistory, tools: List[Tool], **kwargs: Any
@@ -304,19 +327,19 @@ class LiteLLMWrapper(ModelBase, ABC):
         """
 
         kwargs = self._update_kwarg_with_tool(tools, **kwargs)
+        resp, info = self._invoke(messages, **kwargs)
+        resp: ModelResponse
 
-        resp = self._invoke(messages, **kwargs)
-
-        return self._chat_with_tools_handler_base(resp)
+        return self._chat_with_tools_handler_base(resp, info)
 
     async def _achat_with_tools(
         self, messages: MessageHistory, tools: List[Tool], **kwargs
     ) -> Response:
         kwargs = self._update_kwarg_with_tool(tools, **kwargs)
 
-        resp = await self._ainvoke(messages, **kwargs)
+        resp, info = await self._ainvoke(messages, **kwargs)
 
-        return self._chat_with_tools_handler_base(resp)
+        return self._chat_with_tools_handler_base(resp, info)
 
     def __str__(self) -> str:
         parts = self._model_name.split("/", 1)
@@ -329,3 +352,48 @@ class LiteLLMWrapper(ModelBase, ABC):
         Returns the model name.
         """
         return self._model_name
+
+    @classmethod
+    def extract_message_info(
+        cls, model_response: ModelResponse, latency: float
+    ) -> MessageInfo:
+        """
+        Create a Response object from a ModelResponse.
+
+        Args:
+            model_response (ModelResponse): The response from the model.
+            latency (float): The latency of the response in seconds.
+
+        Returns:
+            MessageInfo: An object containing the details about the message info.
+        """
+        input_tokens = _return_none_on_error(lambda: model_response.usage.prompt_tokens)
+        output_tokens = _return_none_on_error(
+            lambda: model_response.usage.completion_tokens
+        )
+        model_name = _return_none_on_error(lambda: model_response.model)
+        system_fingerprint = _return_none_on_error(
+            lambda: model_response.system_fingerprint
+        )
+        total_cost = _return_none_on_error(
+            lambda: model_response._hidden_params["response_cost"]
+        )
+
+        return MessageInfo(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            latency=latency,
+            model_name=model_name,
+            total_cost=total_cost,
+            system_fingerprint=system_fingerprint,
+        )
+
+
+_T = TypeVar("_T")
+
+
+def _return_none_on_error(func: Callable[[], _T]) -> _T:
+    try:
+        return func()
+    except:  # noqa: E722
+        return None
