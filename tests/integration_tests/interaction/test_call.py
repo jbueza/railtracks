@@ -4,7 +4,7 @@ import pytest
 from copy import deepcopy
 import random
 from typing import List
-
+import asyncio
 import requestcompletion as rc
 from requestcompletion.exceptions import GlobalTimeOutError
 
