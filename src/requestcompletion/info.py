@@ -153,7 +153,7 @@ class ExecutionInfo:
               }
               "parent": <recursive the same as above | terminating when this param is null>
           ]
-          "requests": [
+          "edges": [
             {
               "source": str | null,
               "target": str,
