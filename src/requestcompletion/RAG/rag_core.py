@@ -78,7 +78,6 @@ class RAG:
             tobj.set_embeddings(vectors)
             vobjects = textobject_to_vectorrecords(tobj)
             self.vector_store.add(vobjects)
-            
 
     def search(self, query: str, top_k=3) -> List[SearchResult]:
         query_vec = self.embed_service.embed([query])[0]  # Assume one vector only

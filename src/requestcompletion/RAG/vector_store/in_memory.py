@@ -4,8 +4,6 @@ import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Union, Optional
 
-import numpy as np
-
 from ..embedding_service import BaseEmbeddingService
 from .base import AbstractVectorStore, Metric, SearchResult, VectorRecord
 from .utils import distance, normalize_vector, uuid_str

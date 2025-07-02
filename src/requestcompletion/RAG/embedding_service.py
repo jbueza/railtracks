@@ -1,7 +1,6 @@
 # embedding/service.py
 from __future__ import annotations
-from typing import List, Sequence, Union, Iterable, Optional, Dict, Any
-import os
+from typing import List, Sequence, Iterable, Optional, Any
 import logging
 
 import litellm

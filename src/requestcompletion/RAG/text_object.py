@@ -29,16 +29,16 @@ class ResourceInstance:
         self.hash = hash or (self.get_resource_hash(self.path) if self.path else "")
         self.duration = duration or 0
         self.object = object
-    
+
     @staticmethod
     def normalize_path(path: str) -> str:
         return path.replace("\\", "/")
-    
+
     @staticmethod
     def get_name_from_path(path: str) -> str:
         name = os.path.basename(path)
         return os.path.splitext(name)[0]
-    
+
     @staticmethod
     def get_resource_hash(file_path: str, _hash_type='sha256') -> str:
         hash_obj = hashlib.new(_hash_type)
@@ -46,7 +46,7 @@ class ResourceInstance:
             while chunk := f.read(8192):
                 hash_obj.update(chunk)
         return hash_obj.hexdigest()
-    
+
     def get_metadata(self) -> dict:
         """Serializable metadata dictionary."""
         return {

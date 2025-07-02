@@ -107,8 +107,3 @@ if __name__ == "__main__":
         response = rc.call(easy_rag_agent, query=query)
 
     print("response:", response)
-    
-
-    
-    
-   
