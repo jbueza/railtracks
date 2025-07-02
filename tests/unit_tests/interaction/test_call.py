@@ -299,7 +299,6 @@ def test_call_sync_with_no_running_loop():
         mock_loop.run_until_complete.assert_called_once_with(mock_task)
         mock_loop.close.assert_called_once()
 
-@pytest.mark.skip("Error being caught and new event loop created")
 def test_call_sync_with_running_loop_raises_error():
     """Test that call_sync raises RuntimeError when called from within a running loop."""
     mock_node = Mock(return_value=MockNode("sync_result"))
@@ -315,7 +314,6 @@ def test_call_sync_with_running_loop_raises_error():
 # ============================ END Call Sync Tests ==============================
 
 # ============================ START Edge Case Tests ============================
-
 @pytest.mark.asyncio
 async def test_call_with_none_arguments(mock_run):
     """Test call with None as arguments."""

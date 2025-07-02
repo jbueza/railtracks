@@ -2,7 +2,9 @@ import pytest
 import asyncio
 from unittest.mock import patch
 from requestcompletion.pubsub.publisher import Publisher, RCPublisher
+from requestcompletion.pubsub.messages import Streaming
 
+# ================================== Pub Sub Fixtures ==================================
 @pytest.fixture
 def sync_callback_container():
     """Container for a simple mutable value, with a registered callback function."""
@@ -47,8 +49,7 @@ def streamed_object():
 
 @pytest.fixture
 def streaming_message(streamed_object):
-    from requestcompletion.pubsub.messages import Streaming
-    return Streaming(streamed_object)
+    return Streaming(streamed_object=streamed_object, node_id="123")
 
 @pytest.fixture
 def dummy_publisher():
@@ -59,3 +60,26 @@ def dummy_publisher():
 def logger_patch():
     with patch("requestcompletion.pubsub.publisher.logger") as mock_logger:
         yield mock_logger
+
+# ================================== Message Fixtures ==================================
+@pytest.fixture
+def dummy_node_class():
+    class Node:
+        def pretty_name(self):
+            return "MockNode"
+    return Node
+
+@pytest.fixture
+def dummy_node_state(dummy_node_class):
+    class DummyNodeState:
+        def __init__(self):
+            self.node = dummy_node_class()
+        def instantiate(self):
+            return self.node
+        def __repr__(self):
+            return f"DummyNodeState({self.node})"
+    return DummyNodeState()
+
+@pytest.fixture
+def dummy_exception():
+    return Exception("Something went wrong")
