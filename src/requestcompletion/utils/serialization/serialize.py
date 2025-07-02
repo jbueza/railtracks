@@ -20,7 +20,7 @@ supported_types = (
     Stamp,
     ToolCall,
     LatencyDetails,
-    BaseModel
+    BaseModel,
 )
 
 
