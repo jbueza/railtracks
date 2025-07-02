@@ -185,7 +185,7 @@ class ExecutionInfo:
             {
                 "nodes": self.node_heap.to_vertices(),
                 "edges": self.request_heap.to_edges(),
-                "stamps": self.all_stamps,
+                "steps": self.all_stamps,
             },
             cls=RCJSONEncoder,
         )
