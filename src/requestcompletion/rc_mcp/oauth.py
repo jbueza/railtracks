@@ -105,7 +105,7 @@ class CallbackServer:
         self.server = HTTPServer(("localhost", self.port), handler_class)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
-        print(f"🖥️  Started callback server on http://localhost:{self.port}")
+        print(f"Started callback server on http://localhost:{self.port}")
 
     def stop(self):
         """Stop the callback server."""

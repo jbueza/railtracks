@@ -118,7 +118,6 @@ class RCState:
         self._stamper.create_stamp(message)
 
     async def cancel(self, node_id: str):
-        print("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️cancel called")
         if node_id not in self._node_heap.heap():
             assert False
 

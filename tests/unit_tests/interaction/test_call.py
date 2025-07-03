@@ -268,7 +268,6 @@ async def test_execute_publishes_request_and_waits_for_response(full_context_set
 
 
 # ============================ START Call Sync Tests ============================
-
 def test_call_sync_with_no_running_loop():
     """Test call_sync when no event loop is running."""
     mock_node = Mock(return_value=MockNode("sync_result"))
