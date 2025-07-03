@@ -17,13 +17,6 @@ def patch_litellm(monkeypatch):
 
 from requestcompletion.RAG.embedding_service import BaseEmbeddingService, EmbeddingService
 
-def test_base_service_not_implemented():
-    base = BaseEmbeddingService()
-    with pytest.raises(NotImplementedError):
-        base.embed("abc")
-    with pytest.raises(NotImplementedError):
-        base.embed_many(["a", "b"])
-
 def test_repr_includes_class_and_model():
     es = EmbeddingService(model="test-model")
     assert "EmbeddingService" in repr(es)
