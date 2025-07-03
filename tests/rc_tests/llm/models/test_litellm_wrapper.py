@@ -200,13 +200,13 @@ def test_litellm_wrapper_structured_schema_mismatch(mock_litellm_wrapper, messag
 
     # Force a response that won't match the schema (string instead of int)
     def _invoke_override(*args, **kwargs):
-        return {
+        return ({
             "choices": [
                 {
                     "message": {"content": '{"required_value": "not_an_int"}'},
                 }
             ]
-        }
+        }, None)
 
     litellm_model = mock_litellm_wrapper(model_name="mock-model")
     litellm_model._invoke = _invoke_override
@@ -253,7 +253,7 @@ def test_litellm_wrapper_stream_chat(mock_litellm_wrapper, message_history):
                 ]
             )
 
-        return gen()
+        return gen(), None
 
     litellm_model = mock_litellm_wrapper(model_name="mock-model")
     litellm_model._invoke = _invoke_override
@@ -267,14 +267,14 @@ def test_litellm_wrapper_stream_chat(mock_litellm_wrapper, message_history):
 
 def test_litellm_wrapper_chat_with_tools_no_tool_call(mock_litellm_wrapper, message_history, tool):
     def _invoke_override(*args, **kwargs):
-        return litellm.utils.ModelResponse(
+        return (litellm.utils.ModelResponse(
             choices=[
                 {
                     "message": {"content": "No tool call here"},
                     "finish_reason": "stop",
                 }
             ]
-        )
+        ), None)
 
     litellm_model = mock_litellm_wrapper(model_name="mock-model")
     litellm_model._invoke = _invoke_override
@@ -285,7 +285,7 @@ def test_litellm_wrapper_chat_with_tools_no_tool_call(mock_litellm_wrapper, mess
 
 def test_litellm_wrapper_chat_with_tools_single_tool_call(mock_litellm_wrapper, message_history, tool):
     def _invoke_override(*args, **kwargs):
-        return litellm.utils.ModelResponse(
+        return (litellm.utils.ModelResponse(
             choices=[
                 {
                     "message": {
@@ -300,7 +300,7 @@ def test_litellm_wrapper_chat_with_tools_single_tool_call(mock_litellm_wrapper, 
                     "finish_reason": "function_call",
                 }
             ]
-        )
+        ), None)
 
     litellm_model = mock_litellm_wrapper(model_name="mock-model")
     litellm_model._invoke = _invoke_override
