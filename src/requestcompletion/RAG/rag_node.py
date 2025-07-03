@@ -2,6 +2,7 @@ from requestcompletion.RAG.rag_core import RAG
 from requestcompletion import Node
 import requestcompletion as rc
 
+
 def get_rag_node(
     documents: list,
     embed_model="text-embedding-3-small",
