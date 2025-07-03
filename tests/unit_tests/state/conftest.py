@@ -6,7 +6,8 @@ from requestcompletion.utils.profiling import Stamp
 from requestcompletion.state.forest import Forest, AbstractLinkedObject
 from requestcompletion.state.node import LinkedNode, NodeForest
 from requestcompletion.state.request import RequestTemplate, RequestForest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock, AsyncMock
+
 # ================= START fixtures for forest.py ====================
 @dataclass(frozen=True)
 class MockLinkedObject(AbstractLinkedObject):
@@ -156,3 +157,62 @@ def req_forest():
     return RequestForest()
 
 # ================ END request.py fixtures/helpers =======================
+
+# ================= START fixtures for state.py ====================
+# ---- Mock Publisher ----
+@pytest.fixture
+def mock_publisher():
+    mock = MagicMock()
+    mock.subscribe = MagicMock()
+    # .publish is async for test
+    async def _publish(*args, **kwargs): return None
+    mock.publish = AsyncMock(side_effect=_publish)
+    return mock
+
+# ---- Mock Coordinator ----
+@pytest.fixture
+def mock_coordinator():
+    mock = MagicMock()
+    mock.shutdown = MagicMock()
+    async def _submit(*args, **kwargs): return "submission_result"
+    mock.submit = AsyncMock(side_effect=_submit)
+    return mock
+
+# ---- Mock Stamper/Stamp ----
+@pytest.fixture
+def dummy_stamper():
+    class DummyStamper:
+        class DummyStamp:
+            def __init__(self, msg=""): self.msg = msg
+            def __eq__(self, other): return isinstance(other, DummyStamper.DummyStamp)
+        def __init__(self): self.stamps = []
+        def create_stamp(self, msg): self.stamps.append(msg); return self.DummyStamp(msg)
+        def stamp_creator(self): return lambda msg="": self.create_stamp(msg)
+    # Use .stamp_creator() to match the interface in RCState
+    return DummyStamper()
+
+# ---- ExecutionInfo + ExecutorConfig dummy ----
+@pytest.fixture
+def dummy_execution_info(node_forest, req_forest, dummy_stamper):
+    class DummyExecutionInfo:
+        def __init__(self, node_heap, request_heap, stamper):
+            self.node_heap = node_heap
+            self.request_heap = request_heap
+            self.stamper = stamper
+    return DummyExecutionInfo(node_forest, req_forest, dummy_stamper)
+
+@pytest.fixture
+def dummy_executor_config():
+    class DummyExecutorConfig:
+        def __init__(self, end_on_error=False):
+            self.end_on_error = end_on_error
+    return DummyExecutorConfig()
+
+# ---- Patch RC logger everywhere ----
+@pytest.fixture(autouse=True)
+def patch_rc_logger(monkeypatch):
+    # Patch get_rc_logger to return a MagicMock logger for every RCState
+    monkeypatch.setattr(
+        "requestcompletion.state.state.get_rc_logger", lambda: MagicMock()
+    )
+# ================ END fixtures for state.py ====================
