@@ -88,7 +88,6 @@ def test_nodeforest_id_type_mapping(node_forest, dummy_node_factory):
 
 # =============== END NodeForest heap & access =====================
 
-
 # =============== START to_vertices & conversions ==================
 def test_nodeforest_to_vertices_returns_all(node_forest, dummy_node_factory):
     id1 = str(uuid.uuid4())

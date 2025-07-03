@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from copy import deepcopy
 from requestcompletion.utils.profiling import Stamp
 from requestcompletion.state.forest import Forest, AbstractLinkedObject
-from requestcompletion.state.node import (
-    LinkedNode, NodeForest
-)
+from requestcompletion.state.node import LinkedNode, NodeForest
+from requestcompletion.state.request import RequestTemplate, RequestForest
+from unittest.mock import patch
 # ================= START fixtures for forest.py ====================
 @dataclass(frozen=True)
 class MockLinkedObject(AbstractLinkedObject):
@@ -128,3 +128,31 @@ def node_forest():
     return NodeForest()
 
 # ================ END fixtures for node.py =========================
+# ================== START request.py fixtures/helpers ====================
+@pytest.fixture
+def req_stamp():
+    def _make(step, ident="x"):
+        return Stamp(time=100 + step, step=step, identifier=ident)
+    return _make
+
+@pytest.fixture
+def req_template_factory(req_stamp):
+    def _make(identifier="id", source_id=None, sink_id=None, input_args=(), input_kwargs=None, output=None, step=0, parent=None):
+        identifier = identifier
+        sink_id = sink_id or "sink"
+        return RequestTemplate(
+            identifier=identifier,
+            source_id=source_id,
+            sink_id=sink_id,
+            input=(input_args, input_kwargs or {}),
+            output=output,
+            stamp=req_stamp(step, identifier),
+            parent=parent,
+        )
+    return _make
+
+@pytest.fixture
+def req_forest():
+    return RequestForest()
+
+# ================ END request.py fixtures/helpers =======================
