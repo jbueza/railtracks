@@ -284,7 +284,6 @@ class LiteLLMWrapper(ModelBase, ABC):
     def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         stream_iter, info = self._invoke(messages, stream=True, **kwargs)
 
-
         return self._stream_handler_base(stream_iter)
 
     async def _astream_chat(self, messages: MessageHistory, **kwargs) -> Response:
