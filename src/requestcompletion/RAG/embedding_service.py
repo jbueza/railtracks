@@ -2,22 +2,20 @@
 from __future__ import annotations
 from typing import List, Sequence, Iterable, Optional, Any
 import logging
-
+from abc import ABC, abstractmethod
 import litellm
 
 
 logger = logging.getLogger(__name__)
 
 
-class BaseEmbeddingService:
+class BaseEmbeddingService(ABC):
     """
     Base class for embedding services.
     """
 
-    def embed(self, text: str, **kwargs) -> List[float]:
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    def embed_many(self, texts: Sequence[str], **kwargs) -> List[List[float]]:
+    @abstractmethod
+    def embed(self, texts: str, **kwargs) -> List[float]:
         raise NotImplementedError("Subclasses must implement this method.")
 
     def __repr__(self):

@@ -1,17 +1,11 @@
 import pytest
-import requestcompletion as rc
-from requestcompletion.RAG import EasyRAGClass, RAG
-
-docs = [
-    "Apple is deep red",
-    "Pear is light yellow",
-    "Watermelon is green on the outside and red on the inside",
-]
+from requestcompletion.RAG import RAG
+from conftest import get_docs
 
 
 @pytest.fixture(scope="module")
-def set_docs() -> RAG:
-
+def set_docs(get_docs) -> RAG:
+    docs = get_docs
     rag = RAG(
         docs,
         embed_config={
@@ -25,8 +19,8 @@ def set_docs() -> RAG:
     return rag
 
 
-def test_search_question(set_docs):
-
+def test_search_question(set_docs, get_docs):
+    docs = get_docs
     rag: RAG = set_docs
     query = "What is the color of watermelon?"
     result = rag.search(query, top_k=2)
@@ -39,9 +33,10 @@ def test_search_question(set_docs):
     assert result[0].record.text == docs[2]
 
 
-def test_search_confirmation(set_docs):
+def test_search_confirmation(set_docs, get_docs):
 
     rag: RAG = set_docs
+    docs = get_docs
     query = "Pear is yellow"
     result = rag.search(query, top_k=2)
     print(query)
