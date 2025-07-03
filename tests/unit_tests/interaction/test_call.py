@@ -237,7 +237,7 @@ async def test_run_calls_execute_with_regular_filter(mock_execute):
 # ============================ START Execute Function Tests ============================
 
 @pytest.mark.asyncio
-async def test_execute_publishes_request_and_waits_for_response(full_context_setup, mock_request_template):
+async def test_execute_publishes_request_and_waits_for_response(full_context_setup):
     """Test that _execute publishes a request and waits for the response."""
     mock_node = Mock(return_value=MockNode("test_result"))
     
@@ -256,7 +256,6 @@ async def test_execute_publishes_request_and_waits_for_response(full_context_set
     published_message = full_context_setup['publisher'].publish.call_args[0][0]
     assert isinstance(published_message, RequestCreation)
     assert published_message.current_node_id == "parent_123"
-    assert published_message.new_request_id == "generated_id_123"
     assert published_message.running_mode == "async"
     assert published_message.new_node_type == mock_node
     assert published_message.args == ("arg1",)

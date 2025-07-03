@@ -7,7 +7,7 @@ from src.requestcompletion.execution.task import Task
 def mock_node():
     node = AsyncMock()
     node.uuid = "mock-uuid"
-    node.invoke = AsyncMock(return_value="result")
+    node.tracked_invoke = AsyncMock(return_value="result")
     return node
 
 

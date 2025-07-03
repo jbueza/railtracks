@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 
-import warnings
-
 from dataclasses import dataclass
-from typing import Optional, Iterable, ParamSpec, Dict, Type
+from typing import Optional, ParamSpec, Dict, Type
 
 from .forest import (
     AbstractLinkedObject,
@@ -115,6 +113,7 @@ class NodeForest(Forest[LinkedNode]):
 
     def get_node_type(self, identifier: str):
         return self.id_type_mapping.get(identifier, None)
+
 
 class ConcurrentNodeUpdatesError(Exception):
     """A special exception used to signify when you are trying to update a node which is already being updated"""

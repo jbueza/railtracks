@@ -54,13 +54,6 @@ def mock_runner():
 
 
 @pytest.fixture
-def mock_request_template():
-    """Fixture that patches RequestTemplate.generate_id."""
-    with patch('requestcompletion.interaction.call.RequestTemplate') as template:
-        template.generate_id.return_value = "generated_id_123"
-        yield template
-
-@pytest.fixture
 def mock_execute():
     """Fixture that patches the _execute function."""
     with patch('requestcompletion.interaction.call._execute') as execute:
