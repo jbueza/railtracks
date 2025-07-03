@@ -35,15 +35,27 @@ class MockLLM(llm.ModelBase):
     def _chat(self, messages: MessageHistory, **kwargs) -> Response:
         return self._chat(messages)
 
-    def _structured(
-        self, messages: MessageHistory, schema: BaseModel, **kwargs
-    ) -> Response:
+    def _structured(self, messages: MessageHistory, schema: BaseModel, **kwargs) -> Response:
         return self._structured(messages, schema)
 
     def _stream_chat(self, messages: MessageHistory, **kwargs) -> Response:
         return self._stream_chat(messages)
 
-    def _chat_with_tools(
+    def _chat_with_tools(self, messages: MessageHistory, tools: List[Tool], **kwargs) -> Response:
+        return self._chat_with_tools(messages, tools)
+
+    async def _achat(self, messages: MessageHistory, **kwargs) -> Response:
+        return self._chat(messages)
+
+    async def _astructured(
+        self, messages: MessageHistory, schema: BaseModel, **kwargs
+    ) -> Response:
+        return self._structured(messages, schema)
+
+    async def _astream_chat(self, messages: MessageHistory, **kwargs) -> Response:
+        return self._stream_chat(messages)
+
+    async def _achat_with_tools(
         self, messages: MessageHistory, tools: List[Tool], **kwargs
     ) -> Response:
         return self._chat_with_tools(messages, tools)
