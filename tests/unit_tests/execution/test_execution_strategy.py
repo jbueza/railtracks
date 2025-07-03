@@ -59,7 +59,6 @@ def test_asyncio_shutdown_is_noop():
 # ============ END AsyncioExecutionStrategy Tests ===============
 
 # ============ START Miscellaneous Structure Tests ===============
-
 def test_task_execution_strategy_base_shutdown():
     # Should work for coverage, is a no-op
     class DummyStrategy(AsyncioExecutionStrategy):
