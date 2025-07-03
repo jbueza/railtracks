@@ -1,49 +1,71 @@
-
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
-from src.requestcompletion.execution.execution_strategy import AsyncioExecutionStrategy
+from src.requestcompletion.execution.execution_strategy import (
+    AsyncioExecutionStrategy,
+)
 from src.requestcompletion.pubsub.messages import RequestSuccess, RequestFailure
 
-# ============ START AsyncioExecutionStrategy Success Tests ===============
+# ============ START AsyncioExecutionStrategy Tests ===============
+
 @pytest.mark.asyncio
-@patch("src.requestcompletion.execution.execution_strategy.get_publisher")
 @patch("src.requestcompletion.execution.execution_strategy.NodeState")
-async def test_asyncio_execution_strategy_success(mock_node_state, mock_get_publisher, mock_task, mock_publisher):
+@patch("src.requestcompletion.execution.execution_strategy.get_publisher")
+async def test_asyncio_execute_success(
+    mock_get_publisher, mock_node_state, mock_task, mock_publisher
+):
+    # Arrange
     mock_get_publisher.return_value = mock_publisher
-    mock_task.invoke = AsyncMock(return_value="ok")
-    mock_node_state.return_value = "node-state"
+    mock_node_state.return_value = "fake-node-state"
+    mock_task.invoke = AsyncMock(return_value="completed!")
 
     strat = AsyncioExecutionStrategy()
+
+    # Act
     response = await strat.execute(mock_task)
 
+    # Assert
     assert isinstance(response, RequestSuccess)
-    assert response.result == "ok"
-    assert response.node_state == "node-state"
+    assert response.result == "completed!"
+    assert response.node_state == "fake-node-state"
     mock_publisher.publish.assert_awaited_once_with(response)
-# ============ END AsyncioExecutionStrategy Success Tests ===============
 
-# ============ START AsyncioExecutionStrategy Failure Tests ===============
 @pytest.mark.asyncio
-@patch("src.requestcompletion.execution.execution_strategy.get_publisher")
 @patch("src.requestcompletion.execution.execution_strategy.NodeState")
-async def test_asyncio_execution_strategy_failure(mock_node_state, mock_get_publisher, mock_task, mock_publisher):
+@patch("src.requestcompletion.execution.execution_strategy.get_publisher")
+async def test_asyncio_execute_failure(
+    mock_get_publisher, mock_node_state, mock_task, mock_publisher
+):
+    # Arrange
     mock_get_publisher.return_value = mock_publisher
-    mock_task.invoke = AsyncMock(side_effect=RuntimeError("fail"))
-    mock_node_state.return_value = "node-state"
+    mock_node_state.return_value = "nstate"
+    mock_task.invoke = AsyncMock(side_effect=ValueError("Bang!"))
 
     strat = AsyncioExecutionStrategy()
+
+    # Act
     response = await strat.execute(mock_task)
 
+    # Assert
     assert isinstance(response, RequestFailure)
-    assert isinstance(response.error, RuntimeError)
-    assert response.node_state == "node-state"
+    assert isinstance(response.error, ValueError)
+    assert response.node_state == "nstate"
     mock_publisher.publish.assert_awaited_once_with(response)
-# ============ END AsyncioExecutionStrategy Failure Tests ===============
 
-# ============ START AsyncioExecutionStrategy Shutdown Tests ===============
-def test_asyncio_execution_strategy_shutdown_noop():
+def test_asyncio_shutdown_is_noop():
     strat = AsyncioExecutionStrategy()
-    # Should not raise or do anything
-    strat.shutdown()
-# ============ END AsyncioExecutionStrategy Shutdown Tests ===============
+    strat.shutdown()  # Should not throw
+
+# ============ END AsyncioExecutionStrategy Tests ===============
+
+# ============ START Miscellaneous Structure Tests ===============
+
+def test_task_execution_strategy_base_shutdown():
+    # Should work for coverage, is a no-op
+    class DummyStrategy(AsyncioExecutionStrategy):
+        pass
+
+    strat = DummyStrategy()
+    strat.shutdown()  # should be no-op
+
+# ============ END Miscellaneous Structure Tests ===============

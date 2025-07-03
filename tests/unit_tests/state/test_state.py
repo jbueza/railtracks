@@ -52,7 +52,8 @@ def test_create_node_and_request(dummy_execution_info, dummy_executor_config, mo
 # ================= END RCState: Node and Request Creation ======================
 
 # ================= START RCState: Cancel/Info =====================
-def test_cancel_updates_request(dummy_execution_info, dummy_executor_config, mock_coordinator, mock_publisher, req_forest, node_forest, req_template_factory):
+@pytest.mark.asyncio
+async def test_cancel_updates_request(dummy_execution_info, dummy_executor_config, mock_coordinator, mock_publisher, req_forest, node_forest, req_template_factory):
     # Setup state with one node and one request
     dummy_execution_info.node_heap = node_forest
     dummy_execution_info.request_heap = req_forest
@@ -65,14 +66,16 @@ def test_cancel_updates_request(dummy_execution_info, dummy_executor_config, moc
     state._request_heap.update = MagicMock()
     state._request_heap.get_request_from_child_id = lambda nid: "rid"
     # Should not assert as node_id is present
-    state.cancel("sid")
+    await state.cancel("sid")
     state._request_heap.update.assert_called()
 
+@pytest.mark.asyncio
+async def test_cancel_asserts_if_node_id_is_missing(dummy_execution_info, dummy_executor_config, mock_coordinator, mock_publisher, node_forest):
     # Should assert if node_id is missing
     state = RCState(dummy_execution_info, dummy_executor_config, mock_coordinator, mock_publisher)
     state._node_heap = node_forest
     with pytest.raises(AssertionError):
-        state.cancel("DOESNOTEXIST")
+        await state.cancel("DOESNOTEXIST")
 
 def test_info_and_get_info_filters_and_returns(dummy_execution_info, dummy_executor_config, mock_coordinator, mock_publisher, monkeypatch):
     state = RCState(dummy_execution_info, dummy_executor_config, mock_coordinator, mock_publisher)
