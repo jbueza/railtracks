@@ -275,7 +275,7 @@ def test_call_sync_with_no_running_loop():
     with patch('asyncio.get_running_loop', side_effect=RuntimeError("No running loop")), \
          patch('asyncio.new_event_loop') as mock_new_loop, \
          patch('asyncio.set_event_loop') as mock_set_loop, \
-         patch('requestcompletion.interaction.call.call', return_value=asyncio.Future()) as mock_call:
+         patch('requestcompletion.interaction.call.call') as mock_call:
         
         mock_loop = Mock()
         mock_task = Mock()
@@ -283,9 +283,8 @@ def test_call_sync_with_no_running_loop():
         mock_loop.create_task.return_value = mock_task
         mock_loop.run_until_complete.return_value = "sync_result"
         
-        # Set up the future returned by call
-        future = asyncio.Future()
-        future.set_result("sync_result")
+        future = Mock()
+        future.set_result = Mock()
         mock_call.return_value = future
         
         result = call_sync(mock_node, "arg1", kwarg1="value1")
