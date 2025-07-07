@@ -1,7 +1,7 @@
 import re
 import pytest
 
-from requestcompletion.rag.vector_store.utils import (
+from requestcompletion.RAG.vector_store.utils import (
     uuid_str,
     normalize_vector,
     distance,

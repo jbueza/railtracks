@@ -1,5 +1,5 @@
 import pytest
-from requestcompletion.rag.embedding_service import BaseEmbeddingService, EmbeddingService
+from requestcompletion.RAG.embedding_service import BaseEmbeddingService, EmbeddingService
 
 
 @pytest.fixture(autouse=True)
@@ -14,7 +14,7 @@ def patch_litellm(monkeypatch):
             ]}
 
     # Patch where it is used:
-    import requestcompletion.rag.embedding_service as embmod
+    import requestcompletion.RAG.embedding_service as embmod
     monkeypatch.setattr(embmod, "litellm", DummyLitellm)
 
 def test_repr_includes_class_and_model():

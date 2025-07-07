@@ -1,5 +1,5 @@
 import pytest
-from requestcompletion.rag import RAG
+from requestcompletion.RAG import RAG
 from conftest import get_docs
 
 
