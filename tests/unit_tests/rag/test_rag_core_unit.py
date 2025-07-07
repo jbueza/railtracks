@@ -1,12 +1,13 @@
 import pytest
 
 from conftest import DummyEmbeddingService, DummyTextChunkingService, DummyVectorRecord, DummyTextObject
+from requestcompletion.rag.rag_core import RAG, textobject_to_vectorrecords
 
 
 # Patch all dependencies using monkeypatch fixture
 @pytest.fixture(autouse=True)
 def patch_all(monkeypatch):
-    import requestcompletion.RAG.rag_core as ragmod
+    import requestcompletion.rag.rag_core as ragmod
     monkeypatch.setattr(ragmod, "TextObject", DummyTextObject)
     monkeypatch.setattr(ragmod, "EmbeddingService", DummyEmbeddingService)
     monkeypatch.setattr(ragmod, "TextChunkingService", DummyTextChunkingService)
@@ -31,7 +32,7 @@ def patch_all(monkeypatch):
             self.metadata = metadata
 
     # Patch all symbols in rag module at appropriate locations
-    import requestcompletion.RAG.rag_core as ragmod
+    import requestcompletion.rag.rag_core as ragmod
     monkeypatch.setattr(ragmod, "TextObject", DummyTextObject)
     monkeypatch.setattr(ragmod, "EmbeddingService", DummyEmbeddingService)
     monkeypatch.setattr(ragmod, "TextChunkingService", DummyTextChunkingService)
@@ -43,8 +44,6 @@ def patch_all(monkeypatch):
     )
     # Also patch VectorRecord in ragmod.textobject_to_vectorrecords if needed
     ragmod.textobject_to_vectorrecords.__globals__["VectorRecord"] = DummyVectorRecord
-
-from requestcompletion.RAG.rag_core import RAG, textobject_to_vectorrecords
 
 def test_textobject_to_vectorrecords_basic():
     class DummyTextObjectForTest:

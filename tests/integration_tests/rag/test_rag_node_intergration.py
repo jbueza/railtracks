@@ -1,6 +1,6 @@
 import pytest
 import requestcompletion as rc
-from requestcompletion.RAG.rag_node import get_rag_node
+from requestcompletion.rag.rag_node import get_rag_node
 from conftest import get_docs
 
 def test_node_search_question(get_docs):
