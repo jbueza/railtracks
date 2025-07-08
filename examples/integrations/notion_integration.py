@@ -1,11 +1,17 @@
-# Using Notion MCP Server with RC
-
-To use Notion tools with RC, use the `from_mcp_server` utility to load tools directly from the MCP server. For this example, ensure you have a valid Notion API token set in the environment variables. To get the token, in Notion, go to Settings > Connections > Develop or manage integrations, and create a new integration, or get the token from an existing one.
-```python
+##################################################################
+# For this example, ensure you have a valid Notion API token set
+# in the environment variables. To get the token, in Notion, go
+# to Settings > Connections > Develop or manage integrations, and
+# create a new integration, or get the token from an existing one.
+##################################################################
 import json
 import os
+
 from mcp import StdioServerParameters
 from requestcompletion.nodes.library.mcp_tool import from_mcp_server
+
+from requestcompletion.nodes.library.easy_usage_wrappers.tool_call_llm import tool_call_llm
+import requestcompletion as rc
 
 
 MCP_COMMAND = "npx"
@@ -28,13 +34,10 @@ tools = from_mcp_server(
         env=notion_env,
     )
 )
-```
 
-At this point, the tools can be used the same as any other RC tool. See the following code as a simple example.
+##################################################################
+# Example using the tools with an agent
 
-```python
-from requestcompletion.nodes.library.easy_usage_wrappers.tool_call_llm import tool_call_llm
-import requestcompletion as rc
 
 agent = tool_call_llm(
     connected_nodes={*tools},
@@ -51,4 +54,3 @@ with rc.Runner() as run:
     result = run.run_sync(agent, message_history)
 
 print(result.answer.content)
-```
