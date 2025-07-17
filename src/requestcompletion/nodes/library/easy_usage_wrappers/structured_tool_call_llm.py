@@ -7,6 +7,7 @@ from requestcompletion.llm import (
     SystemMessage,
 )
 
+from ....llm.tools import Parameter
 from ....nodes.nodes import Node
 from ...library.tool_calling_llms.structured_tool_call_llm import StructuredToolCallLLM
 from ..easy_usage_wrappers.node_builder import NodeBuilder
@@ -21,7 +22,7 @@ def structured_tool_call_llm(  # noqa: C901
     system_message: SystemMessage | str | None = None,
     schema: BaseModel,
     tool_details: str | None = None,
-    tool_params: dict | None = None,
+    tool_params: set[Parameter] | None = None,
 ) -> Type[StructuredToolCallLLM]:
     """
     Dynamically create a StructuredToolCallLLM node class with custom configuration for tool calling.
@@ -46,7 +47,7 @@ def structured_tool_call_llm(  # noqa: C901
         The Pydantic model that defines the structure of the output.
     tool_details : str or None, optional
         Description of the node subclass for other LLMs to know how to use this as a tool.
-    tool_params : dict or None, optional
+    tool_params : set of params or None, optional
         Parameters that must be passed if other LLMs want to use this as a tool.
 
     Returns
