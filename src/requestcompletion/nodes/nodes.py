@@ -153,7 +153,7 @@ class Node(ABC, ToolCallable, Generic[_TOutput]):
 
     def safe_copy(self) -> Self:
         """
-        A method used to create a new pass by value copy of every element of the node except for the backend connections.
+        A method used to create a new pass by value copy of every element of the node.
         """
         cls = self.__class__
         result = cls.__new__(cls)
