@@ -1,3 +1,4 @@
+import functools
 import warnings
 from inspect import isfunction
 from typing import (
@@ -25,17 +26,24 @@ from requestcompletion.exceptions.node_creation.validation import (
     _check_tool_params_and_details,
     check_connected_nodes,
 )
-from requestcompletion.llm import Parameter
+from requestcompletion.llm import (
+    MessageHistory,
+    ModelBase,
+    Parameter,
+    SystemMessage,
+    Tool,
+    UserMessage,
+)
 from requestcompletion.llm.type_mapping import TypeMapper
-from requestcompletion.nodes.library.mcp_tool import from_mcp_server
-
-from ....llm import MessageHistory, ModelBase, SystemMessage, Tool, UserMessage
-from ....nodes.nodes import Node
-from ....rc_mcp import MCPStdioParams
-from ...library._llm_base import LLMBase
-from ...library.tool_calling_llms._base import OutputLessToolCallLLM
-from ...library.tool_calling_llms.tool_call_llm import ToolCallLLM
-from ..function_base import DynamicFunctionNode
+from requestcompletion.nodes.library._llm_base import LLMBase
+from requestcompletion.nodes.library.easy_usage_wrappers.mcp_tool import from_mcp_server
+from requestcompletion.nodes.library.function_base import DynamicFunctionNode
+from requestcompletion.nodes.library.tool_calling_llms._base import (
+    OutputLessToolCallLLM,
+)
+from requestcompletion.nodes.library.tool_calling_llms.tool_call_llm import ToolCallLLM
+from requestcompletion.nodes.nodes import Node
+from requestcompletion.rc_mcp import MCPStdioParams
 
 _TNode = TypeVar("_TNode", bound=Node)
 _P = ParamSpec("_P")
@@ -163,7 +171,9 @@ class NodeBuilder(Generic[_TNode]):
             f"To perform this operation the node class we are building must be of type LLMBase but got {self._node_class}"
         )
 
-        from ..function import from_function
+        from requestcompletion.nodes.library.easy_usage_wrappers.function import (
+            from_function,
+        )
 
         connected_nodes = {
             from_function(elem) if isfunction(elem) else elem
@@ -253,9 +263,7 @@ class NodeBuilder(Generic[_TNode]):
 
         self._with_override("type_mapper", classmethod(lambda cls: type_mapper))
 
-        self._with_override(
-            "func", classmethod(lambda cls, *args, **kwargs: func(*args, **kwargs))
-        )
+        self._with_override("func", classmethod_preserving_function_meta(func))
 
         self.override_tool_info(
             tool=Tool.from_function(func, details=tool_details, params=tool_params)
@@ -407,3 +415,11 @@ class NodeBuilder(Generic[_TNode]):
         )
 
         return cast(type[_TNode], klass)
+
+
+def classmethod_preserving_function_meta(func):
+    @functools.wraps(func)
+    def wrapper(cls, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    return classmethod(wrapper)

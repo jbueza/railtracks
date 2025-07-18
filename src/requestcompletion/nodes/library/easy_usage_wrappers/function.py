@@ -9,11 +9,11 @@ from typing import (
     Set,
 )
 
-from ...exceptions import NodeCreationError
-from ...exceptions.node_creation.validation import validate_function
-from ...llm import Parameter
-from .easy_usage_wrappers.node_builder import NodeBuilder
-from .function_base import (
+from requestcompletion.exceptions import NodeCreationError
+from requestcompletion.exceptions.node_creation.validation import validate_function
+from requestcompletion.llm import Parameter
+from requestcompletion.nodes._node_builder import NodeBuilder
+from requestcompletion.nodes.library.function_base import (
     _P,
     AsyncDynamicFunctionNode,
     SyncDynamicFunctionNode,
@@ -68,7 +68,7 @@ def from_function(
 
     builder = NodeBuilder(
         type_,
-        pretty_name=pretty_name if pretty_name is not None else f"{func.__name__} Node",
+        pretty_name=pretty_name,
     )
 
     builder.setup_function_node(
