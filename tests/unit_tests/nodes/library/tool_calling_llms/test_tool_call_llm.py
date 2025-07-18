@@ -189,6 +189,7 @@ def test_tool_call_llm_with_output_type_message_history(mock_llm, mock_tool):
     mh = MessageHistory([SystemMessage("system prompt"), UserMessage("hello")])
     node = ToolCallLLM(mh)
     assert isinstance(node.return_output(), MessageHistory)
+    assert all(not isinstance(x.role, SystemMessage) for x in node.return_output())
 
     assert ToolCallLLM.pretty_name() == "Test ToolCallLLM"
 
