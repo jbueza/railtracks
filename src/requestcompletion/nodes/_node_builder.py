@@ -44,6 +44,7 @@ from requestcompletion.nodes.library.tool_calling_llms._base import (
 from requestcompletion.nodes.library.tool_calling_llms.tool_call_llm import ToolCallLLM
 from requestcompletion.nodes.nodes import Node
 from requestcompletion.rc_mcp import MCPStdioParams
+from requestcompletion.visuals.browser.chat_ui import ChatUI
 
 _TNode = TypeVar("_TNode", bound=Node)
 _P = ParamSpec("_P")
@@ -224,6 +225,22 @@ class NodeBuilder(Generic[_TNode]):
 
         self._with_override("connected_nodes", classmethod(lambda cls: connected_nodes))
         self._with_override("max_tool_calls", max_tool_calls)
+
+    def chat_ui(
+        self,
+        chat_ui: ChatUI,
+    ):
+        """
+        Configure a chat UI for the node.
+
+        Starts the chat UI server asynchronously and sets it as an override
+        for the node being built.
+
+        Args:
+            chat_ui (ChatUI): The chat UI instance to configure for this node.
+        """
+        chat_ui.start_server_async()
+        self._with_override("chat_ui", chat_ui)
 
     @overload
     def setup_function_node(
