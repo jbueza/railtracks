@@ -27,12 +27,10 @@ from requestcompletion.exceptions.node_creation.validation import (
     check_connected_nodes,
 )
 from requestcompletion.llm import (
-    MessageHistory,
     ModelBase,
     Parameter,
     SystemMessage,
     Tool,
-    UserMessage,
 )
 from requestcompletion.llm.type_mapping import TypeMapper
 from requestcompletion.nodes.library._llm_base import LLMBase
@@ -379,9 +377,12 @@ class NodeBuilder(Generic[_TNode]):
 
             self._with_override("tool_info", classmethod(tool_info))
 
-    def _override_prepare_tool_llm(self, tool_params: dict[str, Any]):
+    def _override_prepare_tool_llm(self, tool_params: Iterable[Parameter]):
         """
         Override the prepare_tool function specifically for LLM nodes.
+
+        This uses the prepare_tool_message_history method from LLMBase to create a coherent
+        instruction message from tool parameters.
         """
 
         assert issubclass(self._node_class, LLMBase), (
@@ -389,11 +390,9 @@ class NodeBuilder(Generic[_TNode]):
         )
 
         def prepare_tool(cls, tool_parameters: Dict[str, Any]):
-            message_hist = MessageHistory(
-                [
-                    UserMessage(f"{param.name}: '{tool_parameters[param.name]}'")
-                    for param in (tool_params if tool_params else [])
-                ]
+            # Use the shared implementation in LLMBase
+            message_hist = cls.prepare_tool_message_history(
+                tool_parameters, tool_params
             )
             return cls(message_hist)
 
