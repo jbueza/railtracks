@@ -70,7 +70,7 @@ class NodeBuilder(Generic[_TNode]):
 
     def __init__(
         self,
-        node_class: type[_TNode],
+        node_class: Type[_TNode],
         /,
         *,
         pretty_name: str | None = None,
@@ -82,17 +82,21 @@ class NodeBuilder(Generic[_TNode]):
         self._node_class = node_class
         self._name = class_name or f"Dynamic{node_class.__qualname__}"
         self._methods = {}
+
         if pretty_name is not None:
             self._with_override(
                 "pretty_name", classmethod(lambda cls: pretty_name or cls.__name__)
             )
+
         if return_into is not None:
             self._with_override("return_into", classmethod(lambda cls: return_into))
+
         if format_for_context is not None:
             self._with_override(
                 "format_for_context",
                 classmethod(lambda cls, x: format_for_context(x)),
             )
+
         if format_for_return is not None:
             self._with_override(
                 "format_for_return",
@@ -148,9 +152,6 @@ class NodeBuilder(Generic[_TNode]):
         """
 
         self._with_override("schema", classmethod(lambda cls: schema))
-
-    def struct_mess_hist(self):
-        self._with_override("struct_mess_hist", True)
 
     def tool_calling_llm(
         self, connected_nodes: Set[Union[Type[Node], Callable]], max_tool_calls: int
@@ -459,7 +460,9 @@ class NodeBuilder(Generic[_TNode]):
             class_dict,
         )
 
-        return cast(type[_TNode], klass)
+        casted_klass = cast(Type[_TNode], klass)  # Ensure type consistency
+
+        return casted_klass
 
 
 def classmethod_preserving_function_meta(func):
