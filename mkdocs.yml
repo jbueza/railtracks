@@ -4,7 +4,7 @@ theme:
   name: material
   features:
     - navigation.indexes
-    - navigation.sections
+    # - navigation.sections
     - navigation.prefetch
     - search.suggest
     - content.code.copy
@@ -36,11 +36,16 @@ nav:
 
   - Tools + MCP:
       - tools_mcp/index.md
-      - Create Your Own Tool: tools_mcp/create_your_own.md
       - MCP:
           - tools_mcp/mcp/index.md
           - Using MCP: tools_mcp/mcp/MCP_tools_in_RT.md
           - Creating an MCP: tools_mcp/mcp/RTtoMCP.md
+
+      - Tools:
+          - tools_mcp/tools/index.md
+          - Functions as Tools: tools_mcp/tools/functions_as_tools.md
+          - Agents as Tools: tools_mcp/tools/agents_as_tools.md
+          - Advanced Tooling: tools_mcp/tools/advanced_usage.md
 
       - Integrations:
         - Notion: tools_mcp/guides/notion.md
@@ -55,6 +60,7 @@ nav:
         - Visualization: observability/visualization.md
         - Logging: observability/logging.md
         - Streaming: observability/streaming.md
+        - Error Handling: observability/error_handling.md
 
   - LLM Support:
       - llm_support/index.md
