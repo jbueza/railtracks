@@ -4,7 +4,6 @@ theme:
   name: material
   features:
     - navigation.indexes
-    # - navigation.sections
     - navigation.prefetch
     - search.suggest
     - content.code.copy
@@ -60,6 +59,7 @@ nav:
         - Visualization: observability/visualization.md
         - Logging: observability/logging.md
         - Streaming: observability/streaming.md
+        - Local Chat: observability/chat.md
         - Error Handling: observability/error_handling.md
 
   - LLM Support:
@@ -86,10 +86,11 @@ nav:
   
   - System Overviews:
       - system_internals/index.md
-      - Node: system_internals/node.md
-      - Runner: system_internals/runner.md
-      - PubSub: system_internals/pubsub.md
-      - Coordinator: system_internals/coordinator.md
+      - Core Concepts: system_internals/concepts.md
+      - Node Abstraction: system_internals/node.md
+      - Session Management: system_internals/session.md
+      - PubSub Messaging: system_internals/pubsub.md
+      - Coordinator Orchestration: system_internals/coordinator.md
 
 
 plugins:
