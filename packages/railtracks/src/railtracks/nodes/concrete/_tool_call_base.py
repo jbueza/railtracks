@@ -18,6 +18,7 @@ from railtracks.exceptions import LLMError, NodeCreationError
 from railtracks.interaction.call import call
 from railtracks.llm import (
     AssistantMessage,
+    Message,
     MessageHistory,
     ModelBase,
     ToolCall,
@@ -63,7 +64,7 @@ class OutputLessToolCallLLM(LLMBase[_T], ABC, Generic[_T]):
 
     def __init__(
         self,
-        user_input: MessageHistory | UserMessage | str,
+        user_input: MessageHistory | UserMessage | str | list[Message],
         llm_model: ModelBase | None = None,
         max_tool_calls: int | None = None,
     ):
