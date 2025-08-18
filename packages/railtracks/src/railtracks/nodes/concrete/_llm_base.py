@@ -313,6 +313,10 @@ class LLMBase(Node[_T], ABC, Generic[_T]):
 
         return new_instance
 
+    @classmethod
+    def type(cls):
+        return "Agent"
+
 
 _TBaseModel = TypeVar("_TBaseModel", bound=BaseModel)
 
