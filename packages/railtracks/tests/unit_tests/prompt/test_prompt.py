@@ -1,6 +1,5 @@
 import pytest
 
-from railtracks import ExecutorConfig
 from railtracks.llm import MessageHistory, Message
 from railtracks.llm.response import Response
 import railtracks as rt

@@ -24,6 +24,7 @@ from railtracks.context.central import (
     shutdown_publisher,
 )
 from railtracks.exceptions import GlobalTimeOutError
+from railtracks.nodes.utils import extract_node_from_function
 from railtracks.pubsub.messages import (
     FatalFailure,
     RequestCompletionMessage,
@@ -33,7 +34,7 @@ from railtracks.pubsub.messages import (
 from railtracks.pubsub.utils import output_mapping
 
 if TYPE_CHECKING:
-    from railtracks.nodes.concrete import RTFunction
+    from railtracks.built_nodes.concrete import RTFunction
     from railtracks.nodes.nodes import Node
 
 _P = ParamSpec("_P")
@@ -91,9 +92,6 @@ async def call(
     node: Callable[_P, Node[_TOutput]]
     # this entire section is a bit of a typing nightmare becuase all overloads we provide.
     if isinstance(node_, FunctionType):
-        # this is a temporary lazy import. We need to decouple the dependecny tree around the interaction and node module see (# 551)
-        from railtracks.nodes.utils import extract_node_from_function
-
         node = extract_node_from_function(node_)
     else:
         node = node_

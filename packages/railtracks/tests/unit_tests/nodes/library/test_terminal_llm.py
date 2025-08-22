@@ -1,8 +1,8 @@
 import pytest
 import railtracks as rt
 from railtracks.llm import MessageHistory, SystemMessage, UserMessage
-from railtracks.nodes.concrete import TerminalLLM
-from railtracks.nodes.easy_usage_wrappers.helpers import terminal_llm
+from railtracks.built_nodes.concrete import TerminalLLM
+from railtracks.built_nodes.easy_usage_wrappers.helpers import terminal_llm
 from railtracks.exceptions import NodeCreationError, NodeInvocationError
 
 

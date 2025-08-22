@@ -1,10 +1,9 @@
 from typing import Any, Callable, Type
 
+from railtracks.built_nodes._node_builder import NodeBuilder
+from railtracks.built_nodes.concrete import TerminalLLM
 from railtracks.llm import ModelBase, SystemMessage
 from railtracks.llm.tools import Parameter
-
-from ..._node_builder import NodeBuilder
-from ...concrete import TerminalLLM
 
 
 def terminal_llm(
