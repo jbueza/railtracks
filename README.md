@@ -52,6 +52,5 @@ Many frameworks for building LLM-powered applications focus on pipelines, chains
 * **Transparent Execution** – Includes integrated logging, history tracing, and built-in visualizations to show exactly how your system behaves.
 * **Minimal API** – The small configurable API makes life a breeze compared to other tools. No magic.
 * **Visual Insights** – Graph-based visualizations help you understand data flow and agent interactions at a glance.
-* **Pluggable Models** – Use any LLM provider: OpenAI, open-weight models, or your own local inference engine.
 
 Where frameworks like LangGraph emphasize pipelines, RailTracks aims to be the developer-friendly sweet spot: powerful enough for complex systems, but simple enough to understand, extend, and debug.
