@@ -105,10 +105,13 @@ def create_railtracks_dir():
         print_success(f"Created .gitignore with {cli_directory}")
 
 
-def download_and_extract_ui():
+def download_and_extract_ui(base_dir: Path | None = None):
     """Download the latest frontend UI and extract it to .railtracks/ui"""
     ui_url = latest_ui_url
-    ui_dir = Path(f"{cli_directory}/ui")
+    if base_dir is None:
+        ui_dir = Path(f"{cli_directory}/ui")
+    else:
+        ui_dir = base_dir / cli_directory / "ui"
 
     print_status("Downloading latest frontend UI...")
 
@@ -214,6 +217,129 @@ def migrate_railtracks():
         print_status("No JSON files found in .railtracks root to migrate")
 
     print_success("Directory structure verification and migration completed!")
+
+
+def get_template_directory():
+    """Get the template directory path"""
+    script_dir = get_script_directory()
+    # Template is in packages/railtracks-cli/template relative to the src/railtracks_cli directory
+    # Go up from src/railtracks_cli to src, then to packages/railtracks-cli, then to template
+    template_dir = script_dir.parent.parent / "template"
+    return template_dir
+
+
+def new_agent(agent_name: str):
+    """Create a new agent project from template"""
+    # Validate agent name
+    if not agent_name or not agent_name.strip():
+        print_error("Agent name cannot be empty")
+        sys.exit(1)
+
+    agent_name = agent_name.strip()
+
+    # Check for invalid characters (spaces, etc.)
+    if " " in agent_name:
+        print_error(
+            "Agent name cannot contain spaces. Use hyphens or underscores instead."
+        )
+        sys.exit(1)
+
+    # Convert agent name to Python module name (replace hyphens with underscores)
+    agent_module_name = agent_name.replace("-", "_")
+
+    # Get template directory
+    template_dir = get_template_directory()
+    if not template_dir.exists():
+        print_error(f"Template directory not found: {template_dir}")
+        sys.exit(1)
+
+    # Create new agent directory
+    agent_dir = Path(agent_name)
+    if agent_dir.exists():
+        print_error(f"Directory '{agent_name}' already exists")
+        sys.exit(1)
+
+    print_status(f"Creating new agent project: {agent_name}")
+    agent_dir.mkdir(exist_ok=True)
+
+    # Create .railtracks directory structure
+    print_status("Creating .railtracks directory structure...")
+    railtracks_dir = agent_dir / cli_directory
+    railtracks_dir.mkdir(exist_ok=True)
+
+    # Create data directories
+    data_dir = railtracks_dir / "data"
+    data_dir.mkdir(exist_ok=True)
+    (data_dir / "evaluations").mkdir(exist_ok=True)
+    (data_dir / "sessions").mkdir(exist_ok=True)
+    print_success("Created .railtracks directory structure")
+
+    # Create .gitignore in agent directory
+    gitignore_path = agent_dir / ".gitignore"
+    gitignore_content = f"{cli_directory}\n"
+    gitignore_path.write_text(gitignore_content, encoding="utf-8")
+    print_success("Created .gitignore file")
+
+    # Download and extract UI
+    download_and_extract_ui(base_dir=agent_dir)
+
+    # Process template files
+    def process_template_file(src_path: Path, dest_path: Path):
+        """Copy and process a template file, replacing placeholders"""
+        # Read template content
+        if src_path.is_file():
+            content = src_path.read_text(encoding="utf-8")
+
+            # Replace placeholders
+            content = content.replace("{AGENT_NAME}", agent_name)
+            content = content.replace("{AGENT_MODULE_NAME}", agent_module_name)
+
+            # Write to destination
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            dest_path.write_text(content, encoding="utf-8")
+        elif src_path.is_dir():
+            # Create directory
+            dest_path.mkdir(parents=True, exist_ok=True)
+
+    # Walk through template directory
+    for template_path in template_dir.rglob("*"):
+        # Skip the template directory itself
+        if template_path == template_dir:
+            continue
+
+        # Skip hidden directories like .git, .venv, etc.
+        if template_path.is_dir():
+            if template_path.name.startswith(".") and template_path.name != ".github":
+                continue
+            # Skip directories - parent directories will be created when processing files
+            continue
+
+        # Skip hidden files (except .github which we want to include)
+        if template_path.name.startswith(".") and ".github" not in str(template_path):
+            continue
+
+        # Get relative path from template directory
+        rel_path = template_path.relative_to(template_dir)
+
+        # Get the filename
+        filename = rel_path.name
+
+        # Handle special case: rename {AGENT_MODULE_NAME}.py to actual module name
+        if filename == "{AGENT_MODULE_NAME}.py":
+            # Replace the filename with the actual module name
+            dest_path = agent_dir / rel_path.parent / f"{agent_module_name}.py"
+        else:
+            dest_path = agent_dir / rel_path
+
+        process_template_file(template_path, dest_path)
+
+    print_success(f"Created agent project: {agent_name}")
+    print_status(f"Directory: {agent_dir.absolute()}")
+    print_status("Next steps:")
+    print_status(f"  1. cd {agent_name}")
+    print_status("  2. pip install -r requirements.txt")
+    print_status(f"  3. Edit src/{agent_module_name}.py to customize your agent")
+    print_status("  4. Run 'railtracks viz' to start the visualizer")
 
 
 # FastAPI endpoints
@@ -435,6 +561,7 @@ def main():
         )
         print(f"  viz     Start the {cli_name} development server")
         print(f"  migrate Verify and migrate the structure of .{cli_name}/ directory")
+        print("  new     Create a new agent project from template")
         print("")
         print("Examples:")
         print(f"  {cli_name} init    # Initialize development environment")
@@ -442,6 +569,7 @@ def main():
         print(
             f"  {cli_name} migrate # Verify and migrate .{cli_name}/ directory structure"
         )
+        print(f"  {cli_name} new ticket-triage-agent  # Create new agent project")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -463,9 +591,17 @@ def main():
         server.start()
     elif command == "migrate":
         migrate_railtracks()
+    elif command == "new":
+        if len(sys.argv) < 3:
+            print_error("Agent name is required")
+            print(f"Usage: {cli_name} new <agent-name>")
+            print(f"Example: {cli_name} new ticket-triage-agent")
+            sys.exit(1)
+        agent_name = sys.argv[2]
+        new_agent(agent_name)
     else:
         print(f"Unknown command: {command}")
-        print("Available commands: init, viz, migrate")
+        print("Available commands: init, viz, migrate, new")
         sys.exit(1)
 
 
