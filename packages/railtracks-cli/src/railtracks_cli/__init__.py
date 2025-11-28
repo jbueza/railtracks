@@ -570,12 +570,12 @@ def main():
         print("  new     Create a new agent project from template")
         print("")
         print("Examples:")
-        print(f"  {cli_name} init    # Initialize development environment")
-        print(f"  {cli_name} viz     # Start visualizer web app")
+        print(f"  {cli_name} init              # Initialize development environment")
+        print(f"  {cli_name} viz               # Start visualizer web app")
         print(
-            f"  {cli_name} migrate # Verify and migrate .{cli_name}/ directory structure"
+            f"  {cli_name} migrate           # Verify and migrate .{cli_name}/ directory structure"
         )
-        print(f"  {cli_name} new ticket-triage-agent  # Create new agent project")
+        print(f"  {cli_name} new <agent-name>  # Create new agent project")
         sys.exit(1)
 
     command = sys.argv[1]
