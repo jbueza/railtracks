@@ -276,7 +276,7 @@ def new_agent(agent_name: str):
 
     # Create .gitignore in agent directory
     gitignore_path = agent_dir / ".gitignore"
-    gitignore_content = f"{cli_directory}\n"
+    gitignore_content = f"{cli_directory}\n.env\n"
     gitignore_path.write_text(gitignore_content, encoding="utf-8")
     print_success("Created .gitignore file")
 
@@ -332,6 +332,12 @@ def new_agent(agent_name: str):
             dest_path = agent_dir / rel_path
 
         process_template_file(template_path, dest_path)
+
+    # Create .env.sample file
+    env_sample_path = agent_dir / ".env.sample"
+    env_sample_content = 'OPENAI_API_KEY="[your open ai key]"\n'
+    env_sample_path.write_text(env_sample_content, encoding="utf-8")
+    print_success("Created .env.sample file")
 
     print_success(f"Created agent project: {agent_name}")
     print_status(f"Directory: {agent_dir.absolute()}")
